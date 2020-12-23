@@ -5,6 +5,8 @@ use clap::Clap;
 
 
 mod app;
+mod io;
+mod mesh;
 mod physics;
 mod scheme;
 mod state;

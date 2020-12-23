@@ -4,25 +4,16 @@ use num::rational::Rational64;
 use ndarray::{ArcArray, Ix2};
 use godunov_core::runge_kutta;
 use crate::traits::Conserved;
+use crate::mesh::BlockIndex;
 
 
 
 
 // ============================================================================
-#[derive(Copy, Clone, Eq, Hash)]
-struct BlockIndex {
-    i: usize,
-    j: usize,
-}
-
-
-
-
-// ============================================================================
-impl std::cmp::PartialEq for BlockIndex {
-    fn eq(&self, other: &Self) -> bool {
-        self.i == other.i && self.j == other.j
-    }
+#[derive(Clone)]
+pub struct BlockState<C: Conserved> {
+    pub conserved: ArcArray<C, Ix2>,
+    pub scalar: ArcArray<f64, Ix2>,
 }
 
 
@@ -30,20 +21,10 @@ impl std::cmp::PartialEq for BlockIndex {
 
 // ============================================================================
 #[derive(Clone)]
-struct BlockState<C: Conserved> {
-    conserved: ArcArray<C, Ix2>,
-    scalar: ArcArray<f64, Ix2>,
-}
-
-
-
-
-// ============================================================================
-#[derive(Clone)]
-struct State<C: Conserved> {
-    time: f64,
-    iteration: Rational64,
-    solution: HashMap<BlockIndex, BlockState<C>>,
+pub struct State<C: Conserved> {
+    pub time: f64,
+    pub iteration: Rational64,
+    pub solution: HashMap<BlockIndex, BlockState<C>>,
 }
 
 

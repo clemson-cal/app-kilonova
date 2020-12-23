@@ -6,8 +6,8 @@ use io_logical::verified;
 
 
 // ============================================================================
-static DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
-static VERSION_AND_BUILD: &str = git_version::git_version!(prefix=concat!("v", env!("CARGO_PKG_VERSION"), " "));
+pub static DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
+pub static VERSION_AND_BUILD: &str = git_version::git_version!(prefix=concat!("v", env!("CARGO_PKG_VERSION"), " "));
 
 
 
