@@ -374,7 +374,6 @@ dependencies = [
  "clap",
  "futures",
  "git-version",
- "glob",
  "godunov-core",
  "hdf5",
  "hydro-srhd",
