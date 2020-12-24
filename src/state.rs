@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 use num::ToPrimitive;
 use num::rational::Rational64;
 use ndarray::{ArcArray, Ix2};
@@ -10,7 +11,7 @@ use crate::mesh::BlockIndex;
 
 
 // ============================================================================
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct BlockState<C: Conserved> {
     pub conserved: ArcArray<C, Ix2>,
     pub scalar: ArcArray<f64, Ix2>,
@@ -20,7 +21,7 @@ pub struct BlockState<C: Conserved> {
 
 
 // ============================================================================
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct State<C: Conserved> {
     pub time: f64,
     pub iteration: Rational64,
@@ -59,18 +60,19 @@ impl<C: Conserved> runge_kutta::WeightedAverageAsync for State<C>
     type Runtime = tokio::runtime::Runtime;
     async fn weighted_average(self, br: Rational64, s0: &Self, runtime: &Self::Runtime) -> Self
     {
-        use futures::future::FutureExt;
         use futures::future::join_all;
         use godunov_core::runge_kutta::WeightedAverage;
 
         let bf = br.to_f64().unwrap();
         let s_avg = self.solution.into_iter().map(|(index, s1)| {
             let s0 = s0.clone();
-            runtime.spawn(
-                async move {
-                    (index, s1.weighted_average(br, &s0.solution[&index]))
-                }
-            ).map(|f| f.unwrap())
+            async move {
+                runtime.spawn(
+                    async move {
+                        (index, s1.weighted_average(br, &s0.solution[&index]))
+                    }
+                ).await.unwrap()
+            }
         });
 
         State{

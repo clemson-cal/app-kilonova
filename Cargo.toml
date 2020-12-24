@@ -9,22 +9,23 @@ repository  = "https://github.com/clemson-cal/app-kilonova"
 
 
 [dependencies]
-num             = "0.3"
-ndarray         = "0.13"
-hdf5            = "0.7.0"
-clap            = "3.0.0-beta"
 anyhow          = "1.0"
-num_cpus        = "1.0"
-git-version     = "0.3"
-futures         = "0.3"
 async-trait     = "0.1"
-tokio           = { version = "0.3", features = ["rt-multi-thread"] }
+futures         = "0.3"
+git-version     = "0.3"
+num_cpus        = "1.0"
+serde-pickle    = "0.6"
+serde_yaml      = "0.8"
+toml            = "0.5"
+ndarray         = { version = "0.13", features = ["serde"] }
+num             = { version = "0.3",  features = ["serde"] }
+serde           = { version = "1.0",  features = ["derive"] }
+tokio           = { version = "0.3",  features = ["rt-multi-thread"] }
 
-kind-config     = { git = "https://github.com/clemson-cal/kind-config",     features = ["hdf5"] }
-hydro-srhd      = { git = "https://github.com/clemson-cal/hydro-srhd",      features = ["hdf5"] }
+
+hydro-srhd      = { git = "https://github.com/clemson-cal/hydro-srhd"  }
 godunov-core    = { git = "https://github.com/clemson-cal/godunov-core" }
 ndarray-ops     = { git = "https://github.com/clemson-cal/ndarray-ops" }
-io-logical      = { path = "../io-logical" }
 
 
 [profile.release]

@@ -1,0 +1,7 @@
+model:
+  num_blocks: 14
+  block_size: 26
+
+execution:
+  num_threads: 12
+  outdir: "output"

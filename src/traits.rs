@@ -18,7 +18,7 @@ pub trait Zeros {
 
 
 // ============================================================================
-pub trait Conserved: Clone + Copy + Send + Sync + Zeros + Arithmetic + hdf5::H5Type {
+pub trait Conserved: 'static + Clone + Copy + Send + Sync + Zeros + Arithmetic { //+ hdf5::H5Type {
     fn mass_and_momentum(&self) -> (f64, f64, f64);
 }
 
@@ -26,7 +26,7 @@ pub trait Conserved: Clone + Copy + Send + Sync + Zeros + Arithmetic + hdf5::H5T
 
 
 // ============================================================================
-pub trait Primitive: Clone + Copy + Send + Sync + hdf5::H5Type {
+pub trait Primitive: Clone + Copy + Send + Sync { //+ hdf5::H5Type {
     fn velocity_x(self) -> f64;
     fn velocity_y(self) -> f64;
     fn mass_density(self) -> f64;
