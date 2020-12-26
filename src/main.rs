@@ -19,19 +19,14 @@ mod scheme;
 mod state;
 mod tasks;
 mod traits;
-mod model_jet_cloud;
-mod model_halo_kilonova;
-
+mod models;
 
 use std::collections::HashMap;
 use mesh::Mesh;
+use models::{JetInCloud, HaloKilonova};
+use physics::AgnosticPrimitive;
 use state::State;
 use traits::{Primitive, InitialModel};
-use physics::AgnosticPrimitive;
-use model_jet_cloud::JetInCloud;
-use model_halo_kilonova::HaloKilonova;
-
-
 
 
 /**
