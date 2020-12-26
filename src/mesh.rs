@@ -1,6 +1,11 @@
+use std::collections::HashMap;
 use ndarray::{ArcArray, Ix1, Ix2};
+use serde::{Serialize, Deserialize};
 
 
+/**
+ * Type alias for a 2D block index
+ */
 pub type BlockIndex = (usize, usize);
 
 
@@ -20,7 +25,7 @@ pub struct BlockGeometry {
 
 
 /**
- * A spherical annulus, intersected with a finite polar extent
+ * A volume in (r, theta) space; polar section of a spherical annulus
  */
 #[derive(Clone)]
 pub struct SphericalPolarExtent {
@@ -43,6 +48,26 @@ pub struct SphericalPolarGrid {
 }
 
 
+/**
+ * Abstract description of a spherical polar mesh
+ */
+#[derive(Serialize, Deserialize)] #[serde(deny_unknown_fields)]
+pub struct Mesh {
+
+    /// Inner boundary radius; the grid will start precisely here
+    pub inner_radius: f64,
+
+    /// Outer radius; the grid may extend up to one block past this
+    pub outer_radius: f64,
+
+    /// Number of zones from pole to pole
+    pub num_polar_zones: usize,
+
+    /// Number of radial zones in each block
+    pub block_size: usize,
+}
+
+
 
 
 // ============================================================================
@@ -55,6 +80,8 @@ impl SphericalPolarExtent {
         }
     }
 }
+
+
 
 
 // ============================================================================
@@ -75,8 +102,37 @@ impl SphericalPolarGrid {
         SphericalPolarExtent{
             inner_radius: lower.0,
             outer_radius: upper.0,
-            lower_theta: lower.0,
+            lower_theta: lower.1,
             upper_theta: upper.1,
         }
+    }
+}
+
+
+
+
+// ============================================================================
+impl Mesh {
+    pub fn grid_blocks(&self) -> HashMap<BlockIndex, SphericalPolarGrid> {
+        let mut i = 0;
+        let mut r = self.inner_radius;
+        let mut blocks = HashMap::new();
+        let block_dlogr = 10.0;
+
+        todo!("calculate block_dlogr");
+
+        while r < self.outer_radius {
+            let extent = SphericalPolarExtent{
+                inner_radius: r,
+                outer_radius: r * block_dlogr,
+                lower_theta: 0.0,
+                upper_theta: std::f64::consts::PI,
+            };
+            blocks.insert((i, 0), extent.grid(self.block_size, self.num_polar_zones));
+
+            r *= block_dlogr;
+            i += 1;
+        }
+        return blocks;
     }
 }

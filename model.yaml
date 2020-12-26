@@ -1,2 +1,10 @@
-num_blocks: 14
-block_size: 26
+model:
+  jet_in_cloud:
+    engine_duration: 1.0
+    engine_strength: 1.0
+
+mesh:
+  inner_radius: 1.0
+  outer_radius: 10.0
+  num_polar_zones: 128
+  block_size: 32
