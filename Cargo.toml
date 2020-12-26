@@ -17,6 +17,7 @@ num_cpus        = "1.0"
 serde-pickle    = "0.6"
 serde_yaml      = "0.8"
 toml            = "0.5"
+enum_dispatch   = "0.3"
 ndarray         = { version = "0.14", features = ["serde"] }
 num             = { version = "0.3",  features = ["serde"] }
 serde           = { version = "1.0",  features = ["derive"] }

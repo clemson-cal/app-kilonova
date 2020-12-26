@@ -72,12 +72,26 @@ pub struct Mesh {
 
 // ============================================================================
 impl SphericalPolarExtent {
+
+    /**
+     * Create a grid from this r-theta area with the given number of zones in the
+     * polar and radial directions.
+     */
     pub fn grid(&self, num_zones_r: usize, num_zones_q: usize) -> SphericalPolarGrid {
         SphericalPolarGrid{
             extent: self.clone(),
             num_zones_r,
             num_zones_q,
         }
+    }
+
+    /**
+     * Return the geometric centroid of this r-theta area.
+     */
+    pub fn centroid(&self) -> (f64, f64) {
+        let q = 0.5 * (self.lower_theta + self.upper_theta);
+        let r = (self.inner_radius * self.outer_radius).sqrt();
+        (r, q)
     }
 }
 
@@ -86,7 +100,19 @@ impl SphericalPolarExtent {
 
 // ============================================================================
 impl SphericalPolarGrid {
-    fn vertex_coordinate(&self, i: i64, j: i64) -> (f64, f64) {
+
+    /**
+     * The dimensions of an array of cells.
+     */
+    pub fn cell_dim(&self) -> (usize, usize) {
+        (self.num_zones_r, self.num_zones_q)
+    }
+
+    /**
+     * Return the r-theta vertex coordinate for index (i, j). Note that
+     * (i, j) are allowed to be outside the formal extent of this grid.
+     */
+    pub fn vertex_coordinate(&self, i: i64, j: i64) -> (f64, f64) {
         let (y0, y1) = (self.extent.inner_radius.log(10.0), self.extent.outer_radius.log(10.0));
         let (q0, q1) = (self.extent.lower_theta, self.extent.upper_theta);
         let dy = (y1 - y0) / self.num_zones_r as f64;
@@ -96,7 +122,11 @@ impl SphericalPolarGrid {
         (y.powf(10.0), q)
     }
 
-    fn zone(&self, i: i64, j: i64) -> SphericalPolarExtent {
+    /**
+     * Return the spherical polar extent of a cell with index (i, j). Note that
+     * (i, j) are allowed to be outside the formal extent of this grid. 
+     */
+    pub fn zone(&self, i: i64, j: i64) -> SphericalPolarExtent {
         let lower = self.vertex_coordinate(i + 0, j + 0);
         let upper = self.vertex_coordinate(i + 1, j + 1);
         SphericalPolarExtent{
@@ -113,13 +143,12 @@ impl SphericalPolarGrid {
 
 // ============================================================================
 impl Mesh {
+
     pub fn grid_blocks(&self) -> HashMap<BlockIndex, SphericalPolarGrid> {
+        let block_dlogr = self.block_size as f64 * std::f64::consts::PI / self.num_polar_zones as f64;
         let mut i = 0;
         let mut r = self.inner_radius;
         let mut blocks = HashMap::new();
-        let block_dlogr = 10.0;
-
-        todo!("calculate block_dlogr");
 
         while r < self.outer_radius {
             let extent = SphericalPolarExtent{
@@ -129,10 +158,9 @@ impl Mesh {
                 upper_theta: std::f64::consts::PI,
             };
             blocks.insert((i, 0), extent.grid(self.block_size, self.num_polar_zones));
-
-            r *= block_dlogr;
+            r += r * block_dlogr;
             i += 1;
         }
-        return blocks;
+        blocks
     }
 }

@@ -1,7 +1,5 @@
 #![allow(unused)]
-use std::collections::HashMap;
 use std::fs::File;
-use std::default::Default;
 use serde::{Serialize, Deserialize};
 
 
@@ -21,38 +19,27 @@ mod scheme;
 mod state;
 mod tasks;
 mod traits;
+mod model_jet_cloud;
+mod model_halo_kilonova;
 
+
+use std::collections::HashMap;
 use mesh::Mesh;
+use state::State;
+use traits::{Primitive, InitialModel};
+use physics::AgnosticPrimitive;
+use model_jet_cloud::JetInCloud;
+use model_halo_kilonova::HaloKilonova;
 
 
-/**
- * Jet propagating through a kilonova debris cloud and surrounding relativistic
- * envelop
- */
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct JetInCloud {
-    pub engine_duration: f64,
-    pub engine_strength: f64,
-}
-
-
-/**
- * Explosion in a horizontally stratified external medium
- */
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct HaloKilonova {
-    pub explosion_energy: f64,
-}
 
 
 /**
  * Model choice
  */
+#[enum_dispatch::enum_dispatch(InitialModel)]
 #[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields, rename_all = "snake_case")]
 enum Model {
     JetInCloud(JetInCloud),
     HaloKilonova(HaloKilonova),
@@ -80,8 +67,16 @@ fn main() -> anyhow::Result<()> {
     } else {
         anyhow::bail!("no config file given")
     };
-    println!("{}", serde_yaml::to_string(&user)?);
+    println!("{}\n", serde_yaml::to_string(&user)?.replace("---", ""));
 
+    let system = physics::RelativisticHydrodynamics::new();
+
+    let mut primitive_map = HashMap::new();
+
+    for (index, subgrid) in user.mesh.grid_blocks() {
+        println!("{:?} {}", index, subgrid.extent.inner_radius);
+        primitive_map.insert(index, physics::grid_primitive(&subgrid, &system, &user.model));
+    }
 
     Ok(())
 }
