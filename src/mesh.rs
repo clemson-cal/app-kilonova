@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::f64::consts::PI;
 use ndarray::{ArcArray, Ix1, Ix2};
 use serde::{Serialize, Deserialize};
 
@@ -14,13 +15,13 @@ pub type BlockIndex = (usize, usize);
  * spherical polar geometry
  */
 #[derive(Clone)]
-pub struct BlockGeometry {
-    radial_vertices:   ArcArray<f64, Ix1>,
-    polar_vertices:    ArcArray<f64, Ix1>,
-    cell_centers:      ArcArray<(f64, f64), Ix2>,
-    cell_volumes:      ArcArray<(f64, f64), Ix2>,
-    radial_face_areas: ArcArray<(f64, f64), Ix2>,
-    polar_face_areas:  ArcArray<(f64, f64), Ix2>,
+pub struct GridGeometry {
+    pub radial_vertices:   ArcArray<f64, Ix1>,
+    pub radial_face_areas: ArcArray<f64, Ix2>,
+    pub polar_vertices:    ArcArray<f64, Ix1>,
+    pub polar_face_areas:  ArcArray<f64, Ix2>,
+    pub cell_volumes:      ArcArray<f64, Ix2>,
+    pub cell_centers:      ArcArray<(f64, f64), Ix2>,
 }
 
 
@@ -71,11 +72,32 @@ pub struct Mesh {
 
 
 // ============================================================================
+fn cell_volume(c0: (f64, f64), c1: (f64, f64)) -> f64
+{
+    let dcost = -(f64::cos(c1.1) - f64::cos(c0.1));
+    2.0 * PI * (c1.0.powi(3) - c0.0.powi(3)) / 3.0 * dcost
+}
+
+fn face_area(c0: (f64, f64), c1: (f64, f64)) -> f64
+{
+    let s0 = c0.0 * f64::sin(c0.1);
+    let s1 = c1.0 * f64::sin(c1.1);
+    let z0 = c0.0 * f64::cos(c0.1);
+    let z1 = c1.0 * f64::cos(c1.1);
+    let ds = s1 - s0;
+    let dz = z1 - z0;
+    PI * (s0 + s1) * (ds * ds + dz * dz).sqrt()
+}
+
+
+
+
+// ============================================================================
 impl SphericalPolarExtent {
 
     /**
      * Create a grid from this r-theta area with the given number of zones in the
-     * polar and radial directions.
+     * polar and radial directions
      */
     pub fn grid(&self, num_zones_r: usize, num_zones_q: usize) -> SphericalPolarGrid {
         SphericalPolarGrid{
@@ -86,12 +108,39 @@ impl SphericalPolarExtent {
     }
 
     /**
-     * Return the geometric centroid of this r-theta area.
+     * Return the geometric centroid of this r-theta area
      */
     pub fn centroid(&self) -> (f64, f64) {
         let q = 0.5 * (self.lower_theta + self.upper_theta);
         let r = (self.inner_radius * self.outer_radius).sqrt();
         (r, q)
+    }
+
+    /**
+     * Return the 3D volume of this extent
+     */
+    pub fn volume(&self) -> f64 {
+        let c0 = (self.inner_radius, self.lower_theta);
+        let c1 = (self.outer_radius, self.upper_theta);
+        cell_volume(c0, c1)
+    }
+
+    /**
+     * Return the area of the inner radial surface
+     */
+    pub fn face_area_r(&self) -> f64 {
+        let c0 = (self.inner_radius, self.lower_theta);
+        let c1 = (self.inner_radius, self.upper_theta);
+        face_area(c0, c1)
+    }
+
+    /**
+     * Return the area of the lower theta surface
+     */
+    pub fn face_area_q(&self) -> f64 {
+        let c0 = (self.inner_radius, self.lower_theta);
+        let c1 = (self.outer_radius, self.lower_theta);
+        face_area(c0, c1)
     }
 }
 
@@ -102,9 +151,9 @@ impl SphericalPolarExtent {
 impl SphericalPolarGrid {
 
     /**
-     * The dimensions of an array of cells.
+     * The dimensions of an array of cells
      */
-    pub fn cell_dim(&self) -> (usize, usize) {
+    pub fn dim(&self) -> (usize, usize) {
         (self.num_zones_r, self.num_zones_q)
     }
 
@@ -134,6 +183,26 @@ impl SphericalPolarGrid {
             outer_radius: upper.0,
             lower_theta: lower.1,
             upper_theta: upper.1,
+        }
+    }
+
+    pub fn geometry(&self) -> GridGeometry {
+        let nr = self.num_zones_r;
+        let nq = self.num_zones_q;
+        let radial_vertices   = ArcArray::from_shape_fn(nr, |i| self.vertex_coordinate(i as i64, 0).0);
+        let polar_vertices    = ArcArray::from_shape_fn(nq, |j| self.vertex_coordinate(0, j as i64).1);
+        let radial_face_areas = ArcArray::from_shape_fn((nr + 1, nq), |(i, j)| self.zone(i as i64, j as i64).face_area_r());
+        let polar_face_areas  = ArcArray::from_shape_fn((nr, nq + 1), |(i, j)| self.zone(i as i64, j as i64).face_area_q());
+        let cell_volumes      = ArcArray::from_shape_fn((nr, nq), |(i, j)| self.zone(i as i64, j as i64).volume());
+        let cell_centers      = ArcArray::from_shape_fn((nr, nq), |(i, j)| self.zone(i as i64, j as i64).centroid());
+
+        GridGeometry{
+            radial_vertices,
+            radial_face_areas,
+            polar_vertices,
+            polar_face_areas,
+            cell_volumes,
+            cell_centers,
         }
     }
 }

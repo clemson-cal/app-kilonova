@@ -35,7 +35,7 @@ enum Model {
 
 
 /**
- * Hydrodynamics type
+ * Enum for any of the supported hydrodynamics types
  */
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case", tag = "type")]
@@ -46,10 +46,11 @@ enum AgnosticHydrodynamics {
 
 
 /**
- * Enum to maintain the solution state for any of the supported hydro systems
+ * Enum for the solution state of any of the supported hydrodynamics types
  */
 #[derive(Serialize, Deserialize)]
 enum AgnosticState {
+    Euler,
     Relativistic(State<hydro_srhd::srhd_2d::Conserved>),
 }
 

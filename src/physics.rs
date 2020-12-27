@@ -48,12 +48,15 @@ impl Hydrodynamics for RelativisticHydrodynamics {
     fn plm_gradient(&self, theta: f64, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
         piecewise_linear::plm_gradient4(theta, a, b, c)
     }
+
     fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive {
         u.to_primitive(self.gamma_law_index).unwrap()
     }
+
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved {
         p.to_conserved(self.gamma_law_index)
     }
+
     fn interpret(&self, a: &AgnosticPrimitive) -> Self::Primitive {
         hydro_srhd::srhd_2d::Primitive(a.mass_density, a.velocity_r, a.velocity_q, a.gas_pressure)
     }
@@ -84,7 +87,7 @@ where
     H: Hydrodynamics<Primitive = P>,
     P: Primitive,
     M: InitialModel {
-    Array::from_shape_fn(grid.cell_dim(), |(i, j)| {
+    Array::from_shape_fn(grid.dim(), |(i, j)| {
         system.interpret(&model.at(grid.zone(i as i64, j as i64).centroid()))
     })
 }
