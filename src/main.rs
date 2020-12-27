@@ -48,6 +48,7 @@ use state::{
 };
 use traits::{
     Conserved,
+    Hydrodynamics,
     InitialModel,
 };
 use tasks::{
@@ -183,12 +184,18 @@ fn side_effects<C: Conserved>(state: &State<C>, tasks: &mut Tasks, _control: &Co
 
 
 // ============================================================================
-fn run<C: Conserved>(mut state: State<C>, mut tasks: Tasks, config: Configuration) -> anyhow::Result<()> {
-    while state.time < config.control.final_time {
-        state.time += 0.1000001;
-        state.iteration += 1;
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        side_effects(&state, &mut tasks, &config.control);
+fn run<H, C>(
+    mut state: State<C>,
+    mut tasks: Tasks,
+    mesh: Mesh,
+    hydro: H,
+    control: Control) -> anyhow::Result<()>
+where
+    H: Hydrodynamics<Conserved = C>,
+    C: Conserved {
+    while state.time < control.final_time {
+        scheme::advance(&mut state, &hydro, &mesh);
+        side_effects(&state, &mut tasks, &control);
     }
     Ok(())
 }
@@ -200,16 +207,18 @@ fn run<C: Conserved>(mut state: State<C>, mut tasks: Tasks, config: Configuratio
 fn main() -> anyhow::Result<()> {
 
     let App{state, tasks, config} = App::build()?;
+    let Configuration{hydro, mesh, control, ..} = config;
 
     println!("{}", DESCRIPTION);
     println!("{}", VERSION_AND_BUILD);
 
-    match state {
-        AgnosticState::Euler => {
+    match (state, hydro) {
+        (AgnosticState::Euler, _) => {
             anyhow::bail!("Euler hydrodynamics not implemented")
         },
-        AgnosticState::Relativistic(state) => {
-            run(state, tasks, config)
-        }
+        (AgnosticState::Relativistic(state), AgnosticHydrodynamics::Relativistic(hydro)) => {
+            run(state, tasks, mesh, hydro, control)
+        },
+        _ => unreachable!(),
     }
 }

@@ -4,8 +4,15 @@ use num::rational::Rational64;
 use serde::{Serialize, Deserialize};
 use ndarray::{ArcArray, Ix2};
 use godunov_core::runge_kutta;
-use crate::traits::{Hydrodynamics, InitialModel, Conserved};
-use crate::mesh::{BlockIndex, GridGeometry};
+use crate::traits::{
+    Conserved,
+    Hydrodynamics,
+    InitialModel,
+};
+use crate::mesh::{
+    BlockIndex,
+    GridGeometry
+};
 
 
 
