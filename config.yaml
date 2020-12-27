@@ -12,3 +12,7 @@ mesh:
   outer_radius: 1e6
   num_polar_zones: 128
   block_size: 32
+
+control:
+  final_time: 1.0
+  checkpoint_interval: 0.5

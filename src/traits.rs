@@ -12,6 +12,7 @@ pub trait Arithmetic: Add<Output=Self> + Sub<Output=Self> + Mul<f64, Output=Self
  * Conserved field type for the hydrodynamics system
  */
 pub trait Conserved: 'static + Clone + Copy + Send + Sync + Arithmetic {
+    fn lab_frame_mass(&self) -> f64;
 }
 
 
@@ -36,12 +37,22 @@ pub trait Hydrodynamics: {
 }
 
 
-
 /**
  * Implemented by types that can generate primitive fields to be used as an
  * initial or boundary value
  */
 #[enum_dispatch::enum_dispatch]
 pub trait InitialModel {
-    fn at(&self, coordinate: (f64, f64)) -> AgnosticPrimitive;
+
+    /**
+     * Return an agnostic primitive state at the give r-theta coordinate. An
+     * [`AgnosticPrimitive`] must be converted to the appropriate [`Primitive`]
+     * type by the [`Hydrodynamics::interpret`] method.
+     */
+     fn primitive_at(&self, coordinate: (f64, f64)) -> AgnosticPrimitive;
+
+     /**
+      * Return the scalar concentration at the given r-theta coordinate.
+      */
+     fn scalar_at(&self, coordinate: (f64, f64)) -> f64;
 }

@@ -1,14 +1,12 @@
 use serde::{Serialize, Deserialize};
-use ndarray::{Array, Ix2};
 use godunov_core::piecewise_linear;
-use crate::traits::{Hydrodynamics, InitialModel, Primitive};
-use crate::mesh::SphericalPolarGrid;
+use crate::traits::Hydrodynamics;
 
 
 
 
 /**
- * Primitive state that is agnostic to the hydrodynamics system
+ * Primitive variable state that is agnostic to the hydrodynamics system
  */
 pub struct AgnosticPrimitive {
 
@@ -70,24 +68,10 @@ impl crate::traits::Arithmetic for hydro_srhd::srhd_2d::Conserved {
 }
 
 impl crate::traits::Conserved for hydro_srhd::srhd_2d::Conserved {
+    fn lab_frame_mass(&self) -> f64 {
+        self.lab_frame_density()
+    }
 }
 
 impl crate::traits::Primitive for hydro_srhd::srhd_2d::Primitive {
-}
-
-
-
-
-/**
- * Generate an array of hydrodynamic primitives for the given grid patch and
- * model.
- */
-pub fn grid_primitive<H, M, P>(grid: &SphericalPolarGrid, system: &H, model: &M) -> Array<P, Ix2>
-where
-    H: Hydrodynamics<Primitive = P>,
-    P: Primitive,
-    M: InitialModel {
-    Array::from_shape_fn(grid.dim(), |(i, j)| {
-        system.interpret(&model.at(grid.zone(i as i64, j as i64).centroid()))
-    })
 }

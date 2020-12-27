@@ -37,8 +37,11 @@ pub struct Tasks {
     /// post-processing
     pub write_primitives: RecurringTask,
 
+    /// Print the loop message
+    pub iteration_message: RecurringTask,
+
     /// Summarize the simulation performance
-    pub report_progress:  RecurringTask,
+    pub report_progress: RecurringTask,
 }
 
 
@@ -66,6 +69,13 @@ impl RecurringTask
     pub fn advance(&mut self, interval: f64) {
         self.count += 1;
         self.next_time += interval;
+        self.last_performed = Instant::now();
+    }
+
+    pub fn lap_seconds(&mut self) -> f64 {
+        let seconds = self.last_performed.elapsed().as_secs_f64();
+        self.last_performed = Instant::now();
+        seconds
     }
 }
 
@@ -79,6 +89,7 @@ impl Tasks
         Self{
             write_checkpoint: RecurringTask::new(),
             write_primitives: RecurringTask::new(),
+            iteration_message: RecurringTask::new(),
             report_progress: RecurringTask::new(),
         }
     }

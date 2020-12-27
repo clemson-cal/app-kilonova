@@ -151,17 +151,18 @@ impl SphericalPolarExtent {
 impl SphericalPolarGrid {
 
     /**
-     * The dimensions of an array of cells
+     * Return the dimensions of an array of cells in this grid.
      */
-    pub fn dim(&self) -> (usize, usize) {
+    pub fn _dim(&self) -> (usize, usize) {
         (self.num_zones_r, self.num_zones_q)
     }
 
     /**
-     * Return the r-theta vertex coordinate for index (i, j). Note that
-     * (i, j) are allowed to be outside the formal extent of this grid.
+     * Return the r-theta vertex coordinate for index (i, j). For this function,
+     * (i, j) are allowed to be outside the formal extent of this grid,
+     * including being negative.
      */
-    pub fn vertex_coordinate(&self, i: i64, j: i64) -> (f64, f64) {
+    pub fn vertex_coordinate_signed(&self, i: i64, j: i64) -> (f64, f64) {
         let (y0, y1) = (self.extent.inner_radius.log(10.0), self.extent.outer_radius.log(10.0));
         let (q0, q1) = (self.extent.lower_theta, self.extent.upper_theta);
         let dy = (y1 - y0) / self.num_zones_r as f64;
@@ -172,12 +173,20 @@ impl SphericalPolarGrid {
     }
 
     /**
-     * Return the spherical polar extent of a cell with index (i, j). Note that
-     * (i, j) are allowed to be outside the formal extent of this grid. 
+     * Return the r-theta coordinates of the vertex at the given index (i, j).
      */
-    pub fn zone(&self, i: i64, j: i64) -> SphericalPolarExtent {
-        let lower = self.vertex_coordinate(i + 0, j + 0);
-        let upper = self.vertex_coordinate(i + 1, j + 1);
+    pub fn vertex_coordinate(&self, i: usize, j: usize) -> (f64, f64) {
+        self.vertex_coordinate_signed(i as i64, j as i64)
+    }
+
+    /**
+     * Return the spherical polar extent of a cell with index (i, j). For this
+     * function, (i, j) are allowed to be outside the formal extent of this
+     * grid, including being negative.
+     */
+    pub fn zone_signed(&self, i: i64, j: i64) -> SphericalPolarExtent {
+        let lower = self.vertex_coordinate_signed(i + 0, j + 0);
+        let upper = self.vertex_coordinate_signed(i + 1, j + 1);
         SphericalPolarExtent{
             inner_radius: lower.0,
             outer_radius: upper.0,
@@ -186,15 +195,26 @@ impl SphericalPolarGrid {
         }
     }
 
+    /**
+     * Return the spherical polar extent of a cell with the given index (i, j).
+     */
+    pub fn zone(&self, index: (usize, usize)) -> SphericalPolarExtent {
+        self.zone_signed(index.0 as i64, index.1 as i64)
+    }
+
+    /**
+     * Return a grid [`GridGeometry`] instance for this grid patch, containing
+     * cached geometry data.
+     */
     pub fn geometry(&self) -> GridGeometry {
         let nr = self.num_zones_r;
         let nq = self.num_zones_q;
-        let radial_vertices   = ArcArray::from_shape_fn(nr, |i| self.vertex_coordinate(i as i64, 0).0);
-        let polar_vertices    = ArcArray::from_shape_fn(nq, |j| self.vertex_coordinate(0, j as i64).1);
-        let radial_face_areas = ArcArray::from_shape_fn((nr + 1, nq), |(i, j)| self.zone(i as i64, j as i64).face_area_r());
-        let polar_face_areas  = ArcArray::from_shape_fn((nr, nq + 1), |(i, j)| self.zone(i as i64, j as i64).face_area_q());
-        let cell_volumes      = ArcArray::from_shape_fn((nr, nq), |(i, j)| self.zone(i as i64, j as i64).volume());
-        let cell_centers      = ArcArray::from_shape_fn((nr, nq), |(i, j)| self.zone(i as i64, j as i64).centroid());
+        let radial_vertices   = ArcArray::from_shape_fn(nr, |i| self.vertex_coordinate(i, 0).0);
+        let polar_vertices    = ArcArray::from_shape_fn(nq, |j| self.vertex_coordinate(0, j).1);
+        let radial_face_areas = ArcArray::from_shape_fn((nr + 1, nq), |index| self.zone(index).face_area_r());
+        let polar_face_areas  = ArcArray::from_shape_fn((nr, nq + 1), |index| self.zone(index).face_area_q());
+        let cell_volumes      = ArcArray::from_shape_fn((nr, nq), |index| self.zone(index).volume());
+        let cell_centers      = ArcArray::from_shape_fn((nr, nq), |index| self.zone(index).centroid());
 
         GridGeometry{
             radial_vertices,
@@ -213,7 +233,11 @@ impl SphericalPolarGrid {
 // ============================================================================
 impl Mesh {
 
+    /**
+     * Return a map of the grid blocks on this mesh.
+     */
     pub fn grid_blocks(&self) -> HashMap<BlockIndex, SphericalPolarGrid> {
+        assert!(self.inner_radius < self.outer_radius);
         let block_dlogr = self.block_size as f64 * std::f64::consts::PI / self.num_polar_zones as f64;
         let mut i = 0;
         let mut r = self.inner_radius;
@@ -231,5 +255,12 @@ impl Mesh {
             i += 1;
         }
         blocks
+    }
+
+    pub fn grid_blocks_geometry(&self) -> HashMap<BlockIndex, GridGeometry> {
+        self.grid_blocks()
+            .iter()
+            .map(|(&index, grid)| (index, grid.geometry()))
+            .collect()
     }
 }

@@ -1,6 +1,18 @@
+/**
+ * The Clemson Kilonova Code
+ */
+
+
+
+
+// ============================================================================
 static DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 static VERSION_AND_BUILD: &str = git_version::git_version!(prefix=concat!("v", env!("CARGO_PKG_VERSION"), " "));
 
+
+
+
+// ============================================================================
 mod mesh;
 mod models;
 mod physics;
@@ -9,15 +21,38 @@ mod state;
 mod tasks;
 mod traits;
 
-use std::fs::File;
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
-use mesh::Mesh;
-use models::{JetInCloud, HaloKilonova};
-use physics::{AgnosticPrimitive, RelativisticHydrodynamics};
-use state::State;
-use traits::InitialModel;
-use tasks::Tasks;
+
+
+
+// ============================================================================
+use std::fs::{
+    File,
+};
+use serde::{
+    Serialize,
+    Deserialize,
+};
+use mesh::{
+    Mesh,
+};
+use models::{
+    JetInCloud,
+    HaloKilonova,
+};
+use physics::{
+    AgnosticPrimitive,
+    RelativisticHydrodynamics,
+};
+use state::{
+    State,
+};
+use traits::{
+    Conserved,
+    InitialModel,
+};
+use tasks::{
+    Tasks,
+};
 
 
 
@@ -56,6 +91,18 @@ enum AgnosticState {
 
 
 /**
+ * Simulation control: how long to run for, how frequently to perform side
+ * effects, etc.
+ */
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Control {
+    pub final_time: f64,
+    pub checkpoint_interval: f64,
+}
+
+
+/**
  * User configuration
  */
 #[derive(Serialize, Deserialize)]
@@ -64,6 +111,7 @@ struct Configuration {
     pub hydro: AgnosticHydrodynamics,
     pub model: Model,
     pub mesh: Mesh,
+    pub control: Control,
 }
 
 
@@ -74,7 +122,7 @@ struct Configuration {
 struct App {
     state: AgnosticState,
     tasks: Tasks,
-    model: Model,
+    config: Configuration,
 }
 
 
@@ -87,21 +135,16 @@ impl App {
      * Construct a new App instance from a user configuration
      */
     fn from_config(config: Configuration) -> anyhow::Result<Self> {
-        let state = match config.hydro {
+        let geometry = config.mesh.grid_blocks_geometry();
+        let state = match &config.hydro {
             AgnosticHydrodynamics::Euler => anyhow::bail!("hydro: euler is not implemented yet"),
-            AgnosticHydrodynamics::Relativistic(_) => AgnosticState::Relativistic(
-                State{
-                    time: 0.0,
-                    iteration: num::rational::Rational64::new(0, 1),
-                    solution: HashMap::new(),
-                }
-            )
+            AgnosticHydrodynamics::Relativistic(hydro) => {
+                let state = State::from_model(&config.model, hydro, &geometry);
+                AgnosticState::Relativistic(state)
+            }
         };
-
         let tasks = Tasks::new();
-        let model = config.model;
-
-        Ok(Self{state, tasks, model})
+        Ok(Self{state, tasks, config})
     }
 
     /**
@@ -126,36 +169,47 @@ impl App {
 
 
 
-/**
- * Perform side effects and mutate the tasks struct
- */
-fn side_effects(tasks: &mut Tasks) {
-    tasks.write_checkpoint.advance(1.0);    
+// ============================================================================
+fn side_effects<C: Conserved>(state: &State<C>, tasks: &mut Tasks, _control: &Control) {
+
+    let mzps = 1e-6 * state.total_zones() as f64 / tasks.iteration_message.lap_seconds();
+
+    println!("[{:05}] t={:.3} blocks={} mzps={:.2})", state.iteration, state.time, state.solution.len(), mzps);
+
+    tasks.write_checkpoint.advance(1.0);
 }
 
 
 
 
-/**
- * Main function
- */
+// ============================================================================
+fn run<C: Conserved>(mut state: State<C>, mut tasks: Tasks, config: Configuration) -> anyhow::Result<()> {
+    while state.time < config.control.final_time {
+        state.time += 0.1000001;
+        state.iteration += 1;
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        side_effects(&state, &mut tasks, &config.control);
+    }
+    Ok(())
+}
+
+
+
+
+// ============================================================================
 fn main() -> anyhow::Result<()> {
 
-    let App{mut state, mut tasks, model} = App::build()?;
+    let App{state, tasks, config} = App::build()?;
 
     println!("{}", DESCRIPTION);
     println!("{}", VERSION_AND_BUILD);
 
-    // let mut primitive_map = HashMap::new();
-
-    // for (index, subgrid) in user.mesh.grid_blocks() {
-    //     println!("{:?} {}", index, subgrid.extent.inner_radius);
-    //     primitive_map.insert(index, physics::grid_primitive(&subgrid, &system, &user.model));
-    // }
-
-    for _ in 0..100 {
-        side_effects(&mut tasks);
+    match state {
+        AgnosticState::Euler => {
+            anyhow::bail!("Euler hydrodynamics not implemented")
+        },
+        AgnosticState::Relativistic(state) => {
+            run(state, tasks, config)
+        }
     }
-
-    Ok(())
 }
