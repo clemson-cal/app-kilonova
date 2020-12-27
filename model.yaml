@@ -1,10 +1,11 @@
 hydro:
-  relativistic
+  type: relativistic
+  gamma_law_index: 1.333
 
 model:
-  jet_in_cloud:
-    engine_duration: 1.0
-    engine_strength: 1.0
+  type: jet_in_cloud
+  engine_duration: 1.0
+  engine_strength: 1.0
 
 mesh:
   inner_radius: 1.0

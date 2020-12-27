@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use ndarray::{Array, Ix2};
 use godunov_core::piecewise_linear;
 use crate::traits::{Hydrodynamics, InitialModel, Primitive};
@@ -30,6 +31,8 @@ pub struct AgnosticPrimitive {
 /**
  * Interface implementation for relativistic hydrodynamics
  */
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields, tag = "type")]
 pub struct RelativisticHydrodynamics {
     pub gamma_law_index: f64,
 }
@@ -38,15 +41,6 @@ pub struct RelativisticHydrodynamics {
 
 
 // ============================================================================
-// impl RelativisticHydrodynamics {
-//     pub fn new() -> Self {
-//         Self{
-//             gamma_law_index: 4.0 / 3.0
-//         }
-//     }
-// }
-
-
 impl Hydrodynamics for RelativisticHydrodynamics {
     type Conserved = hydro_srhd::srhd_2d::Conserved;
     type Primitive = hydro_srhd::srhd_2d::Primitive;

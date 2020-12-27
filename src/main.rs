@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use mesh::Mesh;
 use models::{JetInCloud, HaloKilonova};
-use physics::AgnosticPrimitive;
+use physics::{AgnosticPrimitive, RelativisticHydrodynamics};
 use state::State;
 use traits::InitialModel;
 use tasks::Tasks;
@@ -27,7 +27,7 @@ use tasks::Tasks;
  */
 #[enum_dispatch::enum_dispatch(InitialModel)]
 #[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "snake_case")]
+#[serde(deny_unknown_fields, rename_all = "snake_case", tag = "type")]
 enum Model {
     JetInCloud(JetInCloud),
     HaloKilonova(HaloKilonova),
@@ -38,10 +38,10 @@ enum Model {
  * Hydrodynamics type
  */
 #[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "snake_case")]
-enum HydrodynamicsEnum {
+#[serde(deny_unknown_fields, rename_all = "snake_case", tag = "type")]
+enum AgnosticHydrodynamics {
     Euler,
-    Relativistic,
+    Relativistic(RelativisticHydrodynamics),
 }
 
 
@@ -60,12 +60,10 @@ enum AgnosticState {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Configuration {
-    pub hydro: HydrodynamicsEnum,
+    pub hydro: AgnosticHydrodynamics,
     pub model: Model,
     pub mesh: Mesh,
 }
-
-
 
 
 /**
@@ -84,11 +82,13 @@ struct App {
 // ============================================================================
 impl App {
 
-    /// Construct a new App instance from a user configuration
+    /**
+     * Construct a new App instance from a user configuration
+     */
     fn from_config(config: Configuration) -> anyhow::Result<Self> {
         let state = match config.hydro {
-            HydrodynamicsEnum::Euler => anyhow::bail!("hydro: euler is not implemented yet"),
-            HydrodynamicsEnum::Relativistic => AgnosticState::Relativistic(
+            AgnosticHydrodynamics::Euler => anyhow::bail!("hydro: euler is not implemented yet"),
+            AgnosticHydrodynamics::Relativistic(_) => AgnosticState::Relativistic(
                 State{
                     time: 0.0,
                     iteration: num::rational::Rational64::new(0, 1),
@@ -103,7 +103,9 @@ impl App {
         Ok(Self{state, tasks, model})
     }
 
-    /// Construct a new App instance from the command line arguments
+    /**
+     * Construct a new App instance from the command line arguments
+     */
     fn build() -> anyhow::Result<Self> {
         if let Some(input_file) = std::env::args().skip(1).next() {
             if input_file.ends_with(".yaml") {
@@ -138,12 +140,10 @@ fn side_effects(tasks: &mut Tasks) {
  */
 fn main() -> anyhow::Result<()> {
 
-    let App{state, mut tasks, model} = App::build()?;
+    let App{mut state, mut tasks, model} = App::build()?;
 
     println!("{}", DESCRIPTION);
     println!("{}", VERSION_AND_BUILD);
-
-    // let system = physics::RelativisticHydrodynamics::new();
 
     // let mut primitive_map = HashMap::new();
 
