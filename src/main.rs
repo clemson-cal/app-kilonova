@@ -135,7 +135,7 @@ impl App {
      * Construct a new App instance from a user configuration
      */
     fn from_config(config: Configuration) -> anyhow::Result<Self> {
-        let geometry = config.mesh.grid_blocks_geometry();
+        let geometry = config.mesh.grid_blocks_geometry()?;
         let state = match &config.hydro {
             AgnosticHydrodynamics::Euler => anyhow::bail!("hydro: euler is not implemented yet"),
             AgnosticHydrodynamics::Relativistic(hydro) => {

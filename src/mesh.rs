@@ -52,7 +52,8 @@ pub struct SphericalPolarGrid {
 /**
  * Abstract description of a spherical polar mesh
  */
-#[derive(Serialize, Deserialize)] #[serde(deny_unknown_fields)]
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Mesh {
 
     /// Inner boundary radius; the grid will start precisely here
@@ -236,7 +237,7 @@ impl Mesh {
     /**
      * Return a map of the grid blocks on this mesh.
      */
-    pub fn grid_blocks(&self) -> HashMap<BlockIndex, SphericalPolarGrid> {
+    fn grid_blocks(&self) -> HashMap<BlockIndex, SphericalPolarGrid> {
         assert!(self.inner_radius < self.outer_radius);
         let block_dlogr = self.block_size as f64 * std::f64::consts::PI / self.num_polar_zones as f64;
         let mut i = 0;
@@ -257,10 +258,13 @@ impl Mesh {
         blocks
     }
 
-    pub fn grid_blocks_geometry(&self) -> HashMap<BlockIndex, GridGeometry> {
-        self.grid_blocks()
-            .iter()
-            .map(|(&index, grid)| (index, grid.geometry()))
-            .collect()
+    pub fn grid_blocks_geometry(&self) -> anyhow::Result<HashMap<BlockIndex, GridGeometry>> {
+        if self.outer_radius <= self.inner_radius {
+            anyhow::bail!("outer_radius <= inner_radius")
+        }
+        Ok(self.grid_blocks()
+               .iter()
+               .map(|(&index, grid)| (index, grid.geometry()))
+               .collect())
     }
 }
