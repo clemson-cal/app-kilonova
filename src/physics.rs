@@ -38,13 +38,13 @@ pub struct RelativisticHydrodynamics {
 
 
 // ============================================================================
-impl RelativisticHydrodynamics {
-    pub fn new() -> Self {
-        Self{
-            gamma_law_index: 4.0 / 3.0
-        }
-    }
-}
+// impl RelativisticHydrodynamics {
+//     pub fn new() -> Self {
+//         Self{
+//             gamma_law_index: 4.0 / 3.0
+//         }
+//     }
+// }
 
 
 impl Hydrodynamics for RelativisticHydrodynamics {

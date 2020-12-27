@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 use num::ToPrimitive;
 use num::rational::Rational64;
+use serde::{Serialize, Deserialize};
 use ndarray::{ArcArray, Ix2};
 use godunov_core::runge_kutta;
 use crate::traits::Conserved;
@@ -10,7 +10,9 @@ use crate::mesh::BlockIndex;
 
 
 
-// ============================================================================
+/**
+ * The solution state for an individual grid block
+ */
 #[derive(Clone, Serialize, Deserialize)]
 pub struct BlockState<C: Conserved> {
     pub conserved: ArcArray<C, Ix2>,
@@ -20,7 +22,9 @@ pub struct BlockState<C: Conserved> {
 
 
 
-// ============================================================================
+/**
+ * The full solution state for the simulation
+ */
 #[derive(Clone, Serialize, Deserialize)]
 pub struct State<C: Conserved> {
     pub time: f64,
@@ -32,10 +36,8 @@ pub struct State<C: Conserved> {
 
 
 // ============================================================================
-impl<C: Conserved> runge_kutta::WeightedAverage for BlockState<C>
-{
-    fn weighted_average(self, br: Rational64, s0: &Self) -> Self
-    {
+impl<C: Conserved> runge_kutta::WeightedAverage for BlockState<C> {
+    fn weighted_average(self, br: Rational64, s0: &Self) -> Self {
         let s1 = self;
         let bf = br.to_f64().unwrap();
         let u0 = s0.conserved.clone();
@@ -55,11 +57,11 @@ impl<C: Conserved> runge_kutta::WeightedAverage for BlockState<C>
 
 // ============================================================================
 #[async_trait::async_trait]
-impl<C: Conserved> runge_kutta::WeightedAverageAsync for State<C>
-{
+impl<C: Conserved> runge_kutta::WeightedAverageAsync for State<C> {
+
     type Runtime = tokio::runtime::Runtime;
-    async fn weighted_average(self, br: Rational64, s0: &Self, runtime: &Self::Runtime) -> Self
-    {
+
+    async fn weighted_average(self, br: Rational64, s0: &Self, runtime: &Self::Runtime) -> Self {
         use futures::future::join_all;
         use godunov_core::runge_kutta::WeightedAverage;
 

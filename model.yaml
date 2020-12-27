@@ -1,3 +1,6 @@
+hydro:
+  relativistic
+
 model:
   jet_in_cloud:
     engine_duration: 1.0

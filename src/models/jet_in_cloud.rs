@@ -21,7 +21,7 @@ pub struct JetInCloud {
 
 // ============================================================================
 impl InitialModel for JetInCloud {
-    fn at(&self, coordinate: (f64, f64)) -> AgnosticPrimitive {
+    fn at(&self, _coordinate: (f64, f64)) -> AgnosticPrimitive {
         AgnosticPrimitive{
             velocity_r: 0.0,
             velocity_q: 0.0,

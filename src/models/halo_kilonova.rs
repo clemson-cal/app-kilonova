@@ -3,6 +3,8 @@ use crate::traits::InitialModel;
 use crate::physics::AgnosticPrimitive;
 
 
+
+
 /**
  * Explosion in a horizontally stratified external medium
  */
@@ -17,7 +19,7 @@ pub struct HaloKilonova {
 
 // ============================================================================
 impl InitialModel for HaloKilonova {
-    fn at(&self, coordinate: (f64, f64)) -> AgnosticPrimitive {
+    fn at(&self, _coordinate: (f64, f64)) -> AgnosticPrimitive {
     	AgnosticPrimitive{
     		velocity_r: 0.0,
     		velocity_q: 0.0,
