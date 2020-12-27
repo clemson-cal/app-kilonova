@@ -25,8 +25,13 @@ mod traits;
 
 
 // ============================================================================
-use std::fs::{
-    File,
+use std::{
+    fs::{
+        File,
+        read_to_string,
+    },
+    path::Path,
+    ffi::OsStr,
 };
 use serde::{
     Serialize,
@@ -152,17 +157,14 @@ impl App {
      * Construct a new App instance from the command line arguments
      */
     fn build() -> anyhow::Result<Self> {
-        if let Some(input_file) = std::env::args().skip(1).next() {
-            if input_file.ends_with(".yaml") {
-                Self::from_config(serde_yaml::from_reader(File::open(input_file)?)?)
-            } else if input_file.ends_with(".pk") {
-                Ok(serde_pickle::from_reader(File::open(input_file)?)?)
-            } else {
-                anyhow::bail!("unknown input file type '{}'", input_file)
+        match std::env::args().skip(1).next() {
+            None => anyhow::bail!("no input file given"),
+            Some(input_file) => match Path::new(&input_file).extension().and_then(OsStr::to_str) {
+                Some("yaml") => Self::from_config(serde_yaml::from_reader(File::open(input_file)?)?),
+                Some("toml") => Self::from_config(toml::from_str(&read_to_string(input_file)?)?),
+                Some("pk") => Ok(serde_pickle::from_reader(File::open(input_file)?)?),
+                _ => anyhow::bail!("unknown input file type '{}'", input_file),
             }
-        }
-        else {
-            anyhow::bail!("no input file given")
         }
     }
 }
