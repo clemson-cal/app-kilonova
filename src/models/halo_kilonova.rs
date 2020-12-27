@@ -8,7 +8,7 @@ use crate::physics::AgnosticPrimitive;
 /**
  * Explosion in a horizontally stratified external medium
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HaloKilonova {
     pub explosion_energy: f64,

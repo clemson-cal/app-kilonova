@@ -52,7 +52,7 @@ pub struct SphericalPolarGrid {
 /**
  * Abstract description of a spherical polar mesh
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Mesh {
 

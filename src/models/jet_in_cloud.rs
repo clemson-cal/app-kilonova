@@ -9,7 +9,7 @@ use crate::traits::InitialModel;
  * Jet propagating through a kilonova debris cloud and surrounding relativistic
  * envelop
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JetInCloud {
     pub engine_duration: f64,

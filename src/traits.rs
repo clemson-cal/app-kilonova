@@ -20,13 +20,13 @@ pub trait Conserved: 'static + Clone + Copy + Send + Sync + Arithmetic {
  * Primitive field type for the hydrodynamics system
  */
 pub trait Primitive: Clone + Copy + Send + Sync {
-}
+} 
 
 
 /**
  * Interface to a hydrodynamics system: either euler_2d or srhd_2d
  */
-pub trait Hydrodynamics: {
+pub trait Hydrodynamics: Clone {
     type Conserved: Conserved;
     type Primitive: Primitive;
 
@@ -42,7 +42,7 @@ pub trait Hydrodynamics: {
  * initial or boundary value
  */
 #[enum_dispatch::enum_dispatch]
-pub trait InitialModel {
+pub trait InitialModel: Clone {
 
     /**
      * Return an agnostic primitive state at the give r-theta coordinate. An

@@ -67,7 +67,7 @@ use tasks::{
  * Model choice
  */
 #[enum_dispatch::enum_dispatch(InitialModel)]
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case", tag = "type")]
 enum Model {
     JetInCloud(JetInCloud),
@@ -78,9 +78,9 @@ enum Model {
 /**
  * Enum for any of the supported hydrodynamics types
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case", tag = "type")]
-enum AgnosticHydrodynamics {
+enum AgnosticHydro {
     Euler,
     Relativistic(RelativisticHydrodynamics),
 }
@@ -89,7 +89,7 @@ enum AgnosticHydrodynamics {
 /**
  * Enum for the solution state of any of the supported hydrodynamics types
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 enum AgnosticState {
     Euler,
     Relativistic(State<hydro_srhd::srhd_2d::Conserved>),
@@ -100,7 +100,7 @@ enum AgnosticState {
  * Simulation control: how long to run for, how frequently to perform side
  * effects, etc.
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Control {
     pub final_time: f64,
@@ -111,10 +111,10 @@ struct Control {
 /**
  * User configuration
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Configuration {
-    pub hydro: AgnosticHydrodynamics,
+    pub hydro: AgnosticHydro,
     pub model: Model,
     pub mesh: Mesh,
     pub control: Control,
@@ -124,11 +124,26 @@ struct Configuration {
 /**
  * App state
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct App {
     state: AgnosticState,
     tasks: Tasks,
     config: Configuration,
+}
+
+
+
+// ============================================================================
+impl From<State<hydro_srhd::srhd_2d::Conserved>> for AgnosticState {
+    fn from(state: State<hydro_srhd::srhd_2d::Conserved>) -> Self {
+        Self::Relativistic(state)
+    }
+}
+
+impl From<RelativisticHydrodynamics> for AgnosticHydro {
+    fn from(hydro: RelativisticHydrodynamics) -> Self {
+        Self::Relativistic(hydro)
+    }
 }
 
 
@@ -143,11 +158,12 @@ impl App {
     fn from_config(config: Configuration) -> anyhow::Result<Self> {
         let geometry = config.mesh.grid_blocks_geometry()?;
         let state = match &config.hydro {
-            AgnosticHydrodynamics::Euler => anyhow::bail!("hydro: euler is not implemented yet"),
-            AgnosticHydrodynamics::Relativistic(hydro) => {
-                let state = State::from_model(&config.model, hydro, &geometry);
-                AgnosticState::Relativistic(state)
-            }
+            AgnosticHydro::Euler => {
+                anyhow::bail!("hydro: euler is not implemented yet")
+            },
+            AgnosticHydro::Relativistic(hydro) => {
+                AgnosticState::from(State::from_model(&config.model, hydro, &geometry))
+            },
         };
         let tasks = Tasks::new();
         Ok(Self{state, tasks, config})
@@ -173,13 +189,42 @@ impl App {
 
 
 // ============================================================================
-fn side_effects<C: Conserved>(state: &State<C>, tasks: &mut Tasks, _control: &Control) {
+fn side_effects<C, H>(
+    state: &State<C>,
+    tasks: &mut Tasks,
+    hydro: &H,
+    model: &Model,
+    mesh: &Mesh,
+    control: &Control) -> anyhow::Result<()>
+where
+    H: Hydrodynamics<Conserved = C>,
+    C: Conserved,
+    AgnosticState: From<State<C>>,
+    AgnosticHydro: From<H> {
 
     let mzps = 1e-6 * state.total_zones() as f64 / tasks.iteration_message.lap_seconds();
 
     println!("[{:05}] t={:.3} blocks={} mzps={:.2})", state.iteration, state.time, state.solution.len(), mzps);
 
-    tasks.write_checkpoint.advance(1.0);
+    if tasks.write_checkpoint.next_time <= state.time {
+
+        tasks.write_checkpoint.advance(control.checkpoint_interval);
+
+        let app = App{
+            state: AgnosticState::from(state.clone()),
+            tasks: tasks.clone(),
+            config: Configuration{
+                hydro: AgnosticHydro::from(hydro.clone()),
+                model: model.clone(),
+                mesh: mesh.clone(),
+                control: control.clone(),
+            },
+        };
+
+        let mut buffer = std::io::BufWriter::new(File::create("chkpt.0000.pk")?);
+        serde_pickle::to_writer(&mut buffer, &app, true)?;
+    }
+    Ok(())
 }
 
 
@@ -189,16 +234,21 @@ fn side_effects<C: Conserved>(state: &State<C>, tasks: &mut Tasks, _control: &Co
 fn run<H, C>(
     mut state: State<C>,
     mut tasks: Tasks,
-    mesh: Mesh,
     hydro: H,
+    model: Model,
+    mesh: Mesh,
     control: Control) -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
-    C: Conserved {
+    C: Conserved,
+    AgnosticState: From<State<C>>,
+    AgnosticHydro: From<H> {
+
     while state.time < control.final_time {
         scheme::advance(&mut state, &hydro, &mesh);
-        side_effects(&state, &mut tasks, &control);
+        side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
     }
+
     Ok(())
 }
 
@@ -209,7 +259,7 @@ where
 fn main() -> anyhow::Result<()> {
 
     let App{state, tasks, config} = App::build()?;
-    let Configuration{hydro, mesh, control, ..} = config;
+    let Configuration{hydro, model, mesh, control} = config;
 
     println!("{}", DESCRIPTION);
     println!("{}", VERSION_AND_BUILD);
@@ -218,8 +268,8 @@ fn main() -> anyhow::Result<()> {
         (AgnosticState::Euler, _) => {
             anyhow::bail!("Euler hydrodynamics not implemented")
         },
-        (AgnosticState::Relativistic(state), AgnosticHydrodynamics::Relativistic(hydro)) => {
-            run(state, tasks, mesh, hydro, control)
+        (AgnosticState::Relativistic(state), AgnosticHydro::Relativistic(hydro)) => {
+            run(state, tasks, hydro, model, mesh, control)
         },
         _ => unreachable!(),
     }

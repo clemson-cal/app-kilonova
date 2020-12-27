@@ -29,7 +29,7 @@ pub struct AgnosticPrimitive {
 /**
  * Interface implementation for relativistic hydrodynamics
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, tag = "type")]
 pub struct RelativisticHydrodynamics {
     pub gamma_law_index: f64,

@@ -11,14 +11,14 @@ use serde::{Serialize, Deserialize};
 pub struct RecurringTask {
 
     /// The number of times this task has been performed
-    count: usize,
+    pub count: usize,
 
     /// The next simulation time at which this task is set to be performed
-    next_time: f64,
+    pub next_time: f64,
 
     /// The last clock time when this task was performed
     #[serde(skip, default = "Instant::now")]
-    last_performed: Instant,
+    pub last_performed: Instant,
 }
 
 
