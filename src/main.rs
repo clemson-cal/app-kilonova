@@ -16,6 +16,7 @@ static VERSION_AND_BUILD: &str = git_version::git_version!(prefix=concat!("v", e
 mod mesh;
 mod models;
 mod physics;
+mod products;
 mod scheme;
 mod state;
 mod tasks;
@@ -37,6 +38,9 @@ use serde::{
     Serialize,
     Deserialize,
 };
+use enum_dispatch::{
+    enum_dispatch,
+};
 use mesh::{
     Mesh,
 };
@@ -47,6 +51,9 @@ use models::{
 use physics::{
     AgnosticPrimitive,
     RelativisticHydrodynamics,
+};
+use products::{
+    Products,
 };
 use state::{
     State,
@@ -66,10 +73,10 @@ use tasks::{
 /**
  * Model choice
  */
-#[enum_dispatch::enum_dispatch(InitialModel)]
+#[enum_dispatch(InitialModel)]
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case", tag = "type")]
-enum Model {
+pub enum Model {
     JetInCloud(JetInCloud),
     HaloKilonova(HaloKilonova),
 }
@@ -80,7 +87,7 @@ enum Model {
  */
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case", tag = "type")]
-enum AgnosticHydro {
+pub enum AgnosticHydro {
     Euler,
     Relativistic(RelativisticHydrodynamics),
 }
@@ -90,7 +97,7 @@ enum AgnosticHydro {
  * Enum for the solution state of any of the supported hydrodynamics types
  */
 #[derive(Clone, Serialize, Deserialize)]
-enum AgnosticState {
+pub enum AgnosticState {
     Euler,
     Relativistic(State<hydro_srhd::srhd_2d::Conserved>),
 }
@@ -102,9 +109,10 @@ enum AgnosticState {
  */
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Control {
+pub struct Control {
     pub final_time: f64,
     pub checkpoint_interval: f64,
+    pub products_interval: f64,
 }
 
 
@@ -113,7 +121,7 @@ struct Control {
  */
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Configuration {
+pub struct Configuration {
     pub hydro: AgnosticHydro,
     pub model: Model,
     pub mesh: Mesh,
@@ -125,11 +133,12 @@ struct Configuration {
  * App state
  */
 #[derive(Clone, Serialize, Deserialize)]
-struct App {
+pub struct App {
     state: AgnosticState,
     tasks: Tasks,
     config: Configuration,
 }
+
 
 
 
@@ -143,6 +152,24 @@ impl From<State<hydro_srhd::srhd_2d::Conserved>> for AgnosticState {
 impl From<RelativisticHydrodynamics> for AgnosticHydro {
     fn from(hydro: RelativisticHydrodynamics) -> Self {
         Self::Relativistic(hydro)
+    }
+}
+
+
+
+
+// ============================================================================
+impl Configuration {
+    fn package<H>(hydro: &H, model: &Model, mesh: &Mesh, control: &Control) -> Self
+    where
+        H: Hydrodynamics,
+        AgnosticHydro: From<H> {
+        Configuration{
+            hydro: AgnosticHydro::from(hydro.clone()),
+            model: model.clone(),
+            mesh: mesh.clone(),
+            control: control.clone(),
+        }
     }
 }
 
@@ -183,47 +210,58 @@ impl App {
             }
         }
     }
+
+    fn package<C, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &Model, mesh: &Mesh, control: &Control) -> Self
+    where
+        H: Hydrodynamics<Conserved = C>,
+        C: Conserved,
+        AgnosticState: From<State<C>>,
+        AgnosticHydro: From<H> {
+        Self{
+            state: AgnosticState::from(state.clone()),
+            tasks: tasks.clone(),
+            config: Configuration::package(hydro, model, mesh, control),
+        }
+    }
 }
 
 
 
 
 // ============================================================================
-fn side_effects<C, H>(
-    state: &State<C>,
-    tasks: &mut Tasks,
-    hydro: &H,
-    model: &Model,
-    mesh: &Mesh,
-    control: &Control) -> anyhow::Result<()>
+fn side_effects<C, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &Model, mesh: &Mesh, control: &Control)
+    -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
     C: Conserved,
     AgnosticState: From<State<C>>,
     AgnosticHydro: From<H> {
 
-    let mzps = 1e-6 * state.total_zones() as f64 / tasks.iteration_message.lap_seconds();
-
-    println!("[{:05}] t={:.3} blocks={} mzps={:.2})", state.iteration, state.time, state.solution.len(), mzps);
+    if tasks.iteration_message.next_time <= state.time {
+        let time = tasks.iteration_message.advance(0.0);
+        let mzps = 1e-6 * state.total_zones() as f64 / time;
+        println!("[{:05}] t={:.3} blocks={} Mzps={:.2})", state.iteration, state.time, state.solution.len(), mzps);
+    }
 
     if tasks.write_checkpoint.next_time <= state.time {
-
         tasks.write_checkpoint.advance(control.checkpoint_interval);
-
-        let app = App{
-            state: AgnosticState::from(state.clone()),
-            tasks: tasks.clone(),
-            config: Configuration{
-                hydro: AgnosticHydro::from(hydro.clone()),
-                model: model.clone(),
-                mesh: mesh.clone(),
-                control: control.clone(),
-            },
-        };
-
-        let mut buffer = std::io::BufWriter::new(File::create("chkpt.0000.pk")?);
+        let filename = format!("chkpt.{:04}.pk", tasks.write_checkpoint.count - 1);
+        let app = App::package(state, tasks, hydro, model, mesh, control);
+        let mut buffer = std::io::BufWriter::new(File::create(&filename)?);
+        println!("write {}", filename);
         serde_pickle::to_writer(&mut buffer, &app, true)?;
     }
+
+    if tasks.write_products.next_time <= state.time {
+        tasks.write_products.advance(control.products_interval);
+        let filename = format!("prods.{:04}.pk", tasks.write_products.count - 1);
+        let config = Configuration::package(hydro, model, mesh, control);
+        let products = Products::from_state(state, hydro, mesh, &config)?;
+        let mut buffer = std::io::BufWriter::new(File::create(&filename)?);
+        println!("write {}", filename);
+        serde_pickle::to_writer(&mut buffer, &products, true)?;
+    }
+
     Ok(())
 }
 
@@ -231,13 +269,8 @@ where
 
 
 // ============================================================================
-fn run<H, C>(
-    mut state: State<C>,
-    mut tasks: Tasks,
-    hydro: H,
-    model: Model,
-    mesh: Mesh,
-    control: Control) -> anyhow::Result<()>
+fn run<C, H>(mut state: State<C>, mut tasks: Tasks, hydro: H, model: Model, mesh: Mesh, control: Control)
+    -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
     C: Conserved,

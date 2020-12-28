@@ -1,11 +1,13 @@
 use std::ops::{Add, Sub, Mul, Div};
+use serde::Serialize;
 use crate::physics::AgnosticPrimitive;
 
 
 /**
  * Implemented by types vector-like types
  */
-pub trait Arithmetic: Add<Output=Self> + Sub<Output=Self> + Mul<f64, Output=Self> + Div<f64, Output=Self> + Sized {}
+pub trait Arithmetic: Add<Output=Self> + Sub<Output=Self> + Mul<f64, Output=Self> + Div<f64, Output=Self> + Sized {
+}
 
 
 /**
@@ -19,7 +21,7 @@ pub trait Conserved: 'static + Clone + Copy + Send + Sync + Arithmetic {
 /**
  * Primitive field type for the hydrodynamics system
  */
-pub trait Primitive: Clone + Copy + Send + Sync {
+pub trait Primitive: 'static + Clone + Copy + Send + Sync + Serialize {
 } 
 
 

@@ -152,13 +152,6 @@ impl SphericalPolarExtent {
 impl SphericalPolarGrid {
 
     /**
-     * Return the dimensions of an array of cells in this grid.
-     */
-    pub fn _dim(&self) -> (usize, usize) {
-        (self.num_zones_r, self.num_zones_q)
-    }
-
-    /**
      * Return the r-theta vertex coordinate for index (i, j). For this function,
      * (i, j) are allowed to be outside the formal extent of this grid,
      * including being negative.

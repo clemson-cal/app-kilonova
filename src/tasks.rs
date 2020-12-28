@@ -35,7 +35,7 @@ pub struct Tasks {
 
     /// Output the primitive and geometric quantities for plotting and
     /// post-processing
-    pub write_primitives: RecurringTask,
+    pub write_products: RecurringTask,
 
     /// Print the loop message
     pub iteration_message: RecurringTask,
@@ -64,16 +64,13 @@ impl RecurringTask
 
     /**
      * Mark the task as having just been performed, and schedule it to happen
-     * again after the given time interval.
+     * again after the given time interval. Return the length of WALL time that
+     * elapsed since the task was last performed.
      */
-    pub fn advance(&mut self, interval: f64) {
+    pub fn advance(&mut self, interval: f64) -> f64 {
+        let seconds = self.last_performed.elapsed().as_secs_f64();
         self.count += 1;
         self.next_time += interval;
-        self.last_performed = Instant::now();
-    }
-
-    pub fn lap_seconds(&mut self) -> f64 {
-        let seconds = self.last_performed.elapsed().as_secs_f64();
         self.last_performed = Instant::now();
         seconds
     }
@@ -88,7 +85,7 @@ impl Tasks
     pub fn new() -> Self {
         Self{
             write_checkpoint: RecurringTask::new(),
-            write_primitives: RecurringTask::new(),
+            write_products: RecurringTask::new(),
             iteration_message: RecurringTask::new(),
             report_progress: RecurringTask::new(),
         }
