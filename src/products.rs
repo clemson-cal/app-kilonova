@@ -31,6 +31,7 @@ pub struct Products<P: Primitive> {
 	time: f64,
 	blocks: HashMap<BlockIndex, BlockProducts<P>>,
 	config: Configuration,
+	version: String,
 }
 
 
@@ -76,6 +77,7 @@ impl<P: Primitive> Products<P> {
 			time: state.time,
 			blocks: blocks,
 			config: config.clone(),
+			version: crate::VERSION_AND_BUILD.to_string(),
 		})
 	}
 }

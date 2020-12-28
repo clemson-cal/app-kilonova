@@ -137,6 +137,7 @@ pub struct App {
     state: AgnosticState,
     tasks: Tasks,
     config: Configuration,
+    version: String,
 }
 
 
@@ -193,7 +194,7 @@ impl App {
             },
         };
         let tasks = Tasks::new();
-        Ok(Self{state, tasks, config})
+        Ok(Self{state, tasks, config, version: VERSION_AND_BUILD.to_string()})
     }
 
     /**
@@ -215,7 +216,7 @@ impl App {
     fn build() -> anyhow::Result<Self> {
         match std::env::args().skip(1).next() {
             None => anyhow::bail!("no input file given"),
-            Some(filename) => Self::from_file(&filename)
+            Some(filename) => Self::from_file(&filename),
         }
     }
 
@@ -232,6 +233,7 @@ impl App {
             state: AgnosticState::from(state.clone()),
             tasks: tasks.clone(),
             config: Configuration::package(hydro, model, mesh, control),
+            version: VERSION_AND_BUILD.to_string(),
         }
     }
 }
@@ -306,7 +308,7 @@ where
 // ============================================================================
 fn main() -> anyhow::Result<()> {
 
-    let App{state, tasks, config} = App::build()?;
+    let App{state, tasks, config, ..} = App::build()?;
     let Configuration{hydro, model, mesh, control} = config;
 
     println!("{}", DESCRIPTION);
