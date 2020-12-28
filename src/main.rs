@@ -197,20 +197,31 @@ impl App {
     }
 
     /**
+     * Construct a new App instance from a file: may be a config.toml,
+     * config.yaml, or a chkpt.0000.pk
+     */
+    fn from_file(filename: &str) -> anyhow::Result<Self> {
+        match Path::new(&filename).extension().and_then(OsStr::to_str) {
+            Some("yaml") => Self::from_config(serde_yaml::from_reader(File::open(filename)?)?),
+            Some("toml") => Self::from_config(toml::from_str(&read_to_string(filename)?)?),
+            Some("pk") => Ok(serde_pickle::from_reader(File::open(filename)?)?),
+            _ => anyhow::bail!("unknown input file type '{}'", filename),
+        }
+    }
+
+    /**
      * Construct a new App instance from the command line arguments
      */
     fn build() -> anyhow::Result<Self> {
         match std::env::args().skip(1).next() {
             None => anyhow::bail!("no input file given"),
-            Some(input_file) => match Path::new(&input_file).extension().and_then(OsStr::to_str) {
-                Some("yaml") => Self::from_config(serde_yaml::from_reader(File::open(input_file)?)?),
-                Some("toml") => Self::from_config(toml::from_str(&read_to_string(input_file)?)?),
-                Some("pk") => Ok(serde_pickle::from_reader(File::open(input_file)?)?),
-                _ => anyhow::bail!("unknown input file type '{}'", input_file),
-            }
+            Some(filename) => Self::from_file(&filename)
         }
     }
 
+    /**
+     * Construct a new App instance from references to the member variables
+     */
     fn package<C, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &Model, mesh: &Mesh, control: &Control) -> Self
     where
         H: Hydrodynamics<Conserved = C>,

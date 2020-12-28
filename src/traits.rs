@@ -29,12 +29,25 @@ pub trait Primitive: 'static + Clone + Copy + Send + Sync + Serialize {
  * Interface to a hydrodynamics system: either euler_2d or srhd_2d
  */
 pub trait Hydrodynamics: Clone {
+
+    /// The type of the conserved struct: mass, momentum, energy
     type Conserved: Conserved;
+
+    /// The type of the primitive struct: comoving density, (four)-velocity, pressure
     type Primitive: Primitive;
 
-    fn plm_gradient(&self, theta: f64, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive;
+    /// Compute the PLM difference from a stencil of colinear primitive states
+    fn plm_difference(&self, theta: f64, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive;
+
+    /// Convert from a primitive to a conserved state
     fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive;
+
+    /// Convert from a conserved to a primitive state (signature may be
+    /// changed to return Result)
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved;
+
+    /// Convert from an agnostic primitive state to the one specific to this
+    /// hydrodynamics system
     fn interpret(&self, agnostic: &AgnosticPrimitive) -> Self::Primitive;
 }
 

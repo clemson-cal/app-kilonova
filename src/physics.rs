@@ -43,7 +43,7 @@ impl Hydrodynamics for RelativisticHydro {
     type Conserved = hydro_srhd::srhd_2d::Conserved;
     type Primitive = hydro_srhd::srhd_2d::Primitive;
 
-    fn plm_gradient(&self, theta: f64, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
+    fn plm_difference(&self, theta: f64, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
         piecewise_linear::plm_gradient4(theta, a, b, c)
     }
 
