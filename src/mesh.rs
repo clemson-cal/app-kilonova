@@ -240,7 +240,7 @@ impl Mesh {
         while r < self.outer_radius {
             let extent = SphericalPolarExtent{
                 inner_radius: r,
-                outer_radius: r * block_dlogr,
+                outer_radius: r * (1.0 + block_dlogr),
                 lower_theta: 0.0,
                 upper_theta: std::f64::consts::PI,
             };
