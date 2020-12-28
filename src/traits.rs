@@ -64,10 +64,10 @@ pub trait InitialModel: Clone {
      * [`AgnosticPrimitive`] must be converted to the appropriate [`Primitive`]
      * type by the [`Hydrodynamics::interpret`] method.
      */
-     fn primitive_at(&self, coordinate: (f64, f64)) -> AgnosticPrimitive;
+     fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AgnosticPrimitive;
 
      /**
       * Return the scalar concentration at the given r-theta coordinate.
       */
-     fn scalar_at(&self, coordinate: (f64, f64)) -> f64;
+     fn scalar_at(&self, coordinate: (f64, f64), time: f64) -> f64;
 }

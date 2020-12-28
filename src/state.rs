@@ -54,8 +54,9 @@ impl<C: Conserved> BlockState<C> {
         M: InitialModel,
         H: Hydrodynamics<Conserved = C> {
 
-        let scalar      = geometry.cell_centers.mapv(|c| model.scalar_at(c));
-        let primitive   = geometry.cell_centers.mapv(|c| hydro.interpret(&model.primitive_at(c)));
+        let t = 1.0; // TODO: load initial time
+        let scalar      = geometry.cell_centers.mapv(|c| model.scalar_at(c, t));
+        let primitive   = geometry.cell_centers.mapv(|c| hydro.interpret(&model.primitive_at(c, t)));
         let conserved   = primitive.mapv(|p| hydro.to_conserved(p)) * &geometry.cell_volumes;
         let scalar_mass = conserved.mapv(|u| u.lab_frame_mass()) * scalar;
 

@@ -19,7 +19,7 @@ pub struct HaloKilonova {
 
 // ============================================================================
 impl InitialModel for HaloKilonova {
-    fn primitive_at(&self, _coordinate: (f64, f64)) -> AgnosticPrimitive {
+    fn primitive_at(&self, _coordinate: (f64, f64), _time: f64) -> AgnosticPrimitive {
     	AgnosticPrimitive{
     		velocity_r: 0.0,
     		velocity_q: 0.0,
@@ -28,7 +28,7 @@ impl InitialModel for HaloKilonova {
     	}
     }
 
-    fn scalar_at(&self, _coordinate: (f64, f64)) -> f64 {
+    fn scalar_at(&self, _coordinate: (f64, f64), _time: f64) -> f64 {
         0.0
     }
 }
