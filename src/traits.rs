@@ -1,6 +1,6 @@
 use std::ops::{Add, Sub, Mul, Div};
 use serde::Serialize;
-use crate::physics::AgnosticPrimitive;
+use crate::physics::{AgnosticPrimitive, Direction};
 
 
 /**
@@ -21,7 +21,7 @@ pub trait Conserved: 'static + Clone + Copy + Send + Sync + Arithmetic {
 /**
  * Primitive field type for the hydrodynamics system
  */
-pub trait Primitive: 'static + Clone + Copy + Send + Sync + Serialize {
+pub trait Primitive: 'static + Clone + Copy + Send + Sync + Arithmetic + Serialize + Default {
 } 
 
 
@@ -37,7 +37,7 @@ pub trait Hydrodynamics: Clone {
     type Primitive: Primitive;
 
     /// Compute the PLM difference from a stencil of colinear primitive states
-    fn plm_difference(&self, theta: f64, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive;
+    fn plm_gradient(&self, theta: f64, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive;
 
     /// Convert from a primitive to a conserved state
     fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive;
@@ -49,6 +49,9 @@ pub trait Hydrodynamics: Clone {
     /// Convert from an agnostic primitive state to the one specific to this
     /// hydrodynamics system
     fn interpret(&self, agnostic: &AgnosticPrimitive) -> Self::Primitive;
+
+
+    fn intercell_flux(&self, pl: Self::Primitive, pr: Self::Primitive, sl: f64, sr: f64, direction: Direction) -> Self::Conserved;
 }
 
 

@@ -5,6 +5,14 @@ use crate::traits::Hydrodynamics;
 
 
 
+pub enum Direction {
+    Polar,
+    Radial,
+}
+
+
+
+
 /**
  * Primitive variable state that is agnostic to the hydrodynamics system
  */
@@ -43,7 +51,7 @@ impl Hydrodynamics for RelativisticHydro {
     type Conserved = hydro_srhd::srhd_2d::Conserved;
     type Primitive = hydro_srhd::srhd_2d::Primitive;
 
-    fn plm_difference(&self, theta: f64, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
+    fn plm_gradient(&self, theta: f64, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
         piecewise_linear::plm_gradient4(theta, a, b, c)
     }
 
@@ -58,6 +66,11 @@ impl Hydrodynamics for RelativisticHydro {
     fn interpret(&self, a: &AgnosticPrimitive) -> Self::Primitive {
         hydro_srhd::srhd_2d::Primitive(a.mass_density, a.velocity_r, a.velocity_q, a.gas_pressure)
     }
+
+    #[allow(unused)]
+    fn intercell_flux(&self, pl: Self::Primitive, pr: Self::Primitive, sl: f64, sr: f64, direction: Direction) -> Self::Conserved {
+        todo!()
+    }
 }
 
 
@@ -71,6 +84,9 @@ impl crate::traits::Conserved for hydro_srhd::srhd_2d::Conserved {
     fn lab_frame_mass(&self) -> f64 {
         self.lab_frame_density()
     }
+}
+
+impl crate::traits::Arithmetic for hydro_srhd::srhd_2d::Primitive {
 }
 
 impl crate::traits::Primitive for hydro_srhd::srhd_2d::Primitive {
