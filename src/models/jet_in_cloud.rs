@@ -3,8 +3,9 @@ use serde::{Serialize, Deserialize};
 use crate::physics::AgnosticPrimitive;
 use crate::traits::InitialModel;
 
+static LIGHT_SPEED: f64 = 3e10;
 static UNIFORM_ENTROPY: f64 = 1e-6;
-static MAX_VELOCITY: f64 = 0.99;
+static MAX_BETA: f64 = 0.97;
 static GAMMA_LAW_INDEX: f64 = 4.0 / 3.0;
 
 
@@ -17,16 +18,36 @@ static GAMMA_LAW_INDEX: f64 = 4.0 / 3.0;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JetInCloud {
-    pub launch_radius   : f64, // radius where the inflow starts from [cm]
-    pub cloud_mass      : f64, // mass of the merger ejecta cloud
-    pub engine_delay    : f64, // time following the cloud onset when the jet begins
-    pub engine_duration : f64, // duration of the engine
-    pub engine_strength : f64, // E / M c^2: M = cloud mass, E = isotropic-equivalent jet energy
-    pub engine_theta    : f64, // engine opening angle
-    pub engine_u        : f64, // engine four-velocity
-    pub envelop_mass    : f64, // mass of the relativistic envelop
-    pub psi             : f64, // index psi in u(m) ~ m^-psi
-    pub u_min           : f64, // four-velocity of the slowest envelop shell
+
+    /// Four-velocity of the slowest envelop shell
+    pub launch_radius: f64,
+
+    /// Index psi in u(m) ~ m^-psi
+    pub cloud_mass: f64,
+
+    /// Mass of the relativistic envelop
+    pub engine_delay: f64,
+
+    /// Engine four-velocity
+    pub engine_duration: f64,
+
+    /// Engine opening angle
+    pub engine_strength: f64,
+
+    /// E / M c^2: M = cloud mass, E = isotropic-equivalent jet energy
+    pub engine_theta: f64,
+
+    /// Duration of the engine
+    pub engine_u: f64,
+
+    /// Time following the cloud onset when the jet begins
+    pub envelop_mass: f64,
+
+    /// Mass of the merger ejecta cloud
+    pub psi: f64,
+
+    /// Radius where the inflow starts from [cm]
+    pub u_min: f64,
 }
 
 
@@ -89,7 +110,7 @@ impl JetInCloud
      * The time when the slowest envelop shell comes through the launch radius
      */
     pub fn get_t1(&self) -> f64 {
-        let v_min = self.u_min / f64::sqrt(1.0 + self.u_min * self.u_min);
+        let v_min = self.u_min / f64::sqrt(1.0 + self.u_min * self.u_min) * LIGHT_SPEED;
         self.launch_radius / v_min
     }
 
@@ -135,10 +156,11 @@ impl JetInCloud
     /**
      * Determine the zone of the ambient medium for a given radius and time
      *
-     * * `r` - The radius * `t` - The time
+     * * `r` - The radius
+     * * `t` - The time
      */
     pub fn get_zone(&self, r: f64, t: f64) -> usize {
-        let v_min = self.u_min / f64::sqrt(1.0 + self.u_min * self.u_min);
+        let v_min = self.u_min / f64::sqrt(1.0 + self.u_min * self.u_min) * LIGHT_SPEED;
 
         if t <= r / v_min {
             1
@@ -164,8 +186,8 @@ impl JetInCloud
      */
     pub fn gamma_beta(&self, r: f64, q: f64, t: f64) -> f64 {
         if self.get_zone(r, t) == 1 {
-            let v = f64::min(r / t, MAX_VELOCITY);
-            let u = v / f64::sqrt(1.0 - v * v);
+            let b = f64::min(r / t / LIGHT_SPEED, MAX_BETA);
+            let u = b / f64::sqrt(1.0 - b * b);
             u
         }
         else if self.get_zone(r, t) == 2 {
@@ -196,7 +218,7 @@ impl JetInCloud
         let mc = self.cloud_mass;
 
         if self.get_zone(r, t) == 1 {
-            let s = f64::min(r / t, MAX_VELOCITY);
+            let s = f64::min(r / t / LIGHT_SPEED, MAX_BETA);
             let f = f64::powf(s / self.u_min, -1.0 / self.psi) * f64::powf(1.0 - s * s, 0.5 / self.psi - 1.0);
             m0 / (4.0 * PI * self.psi * t) * f
         }
