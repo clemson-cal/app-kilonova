@@ -163,7 +163,7 @@ impl SphericalPolarGrid {
         let dq = (q1 - q0) / self.num_zones_q as f64;
         let y = y0 + dy * i as f64;
         let q = q0 + dq * j as f64;
-        (y.powf(10.0), q)
+        (f64::powf(10.0, y), q)
     }
 
     /**
