@@ -295,7 +295,7 @@ where
 
     while state.time < control.final_time {
         side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
-        scheme::advance(&mut state, &hydro, &mesh);
+        scheme::advance(&mut state, &hydro, &model, &mesh)?;
     }
 
     side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;

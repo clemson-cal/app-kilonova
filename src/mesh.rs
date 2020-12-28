@@ -7,7 +7,7 @@ use serde::{Serialize, Deserialize};
 /**
  * Type alias for a 2D block index
  */
-pub type BlockIndex = (usize, usize);
+pub type BlockIndex = (i32, usize);
 
 
 /**
@@ -234,9 +234,7 @@ impl Mesh {
         if self.outer_radius <= self.inner_radius {
             anyhow::bail!("outer_radius <= inner_radius")
         }
-
         let block_dlogr = self.block_size as f64 * std::f64::consts::PI / self.num_polar_zones as f64;
-
         Ok(SphericalPolarExtent{
             inner_radius: self.inner_radius * (1.0 + block_dlogr).powf(index.0 as f64),
             outer_radius: self.inner_radius * (1.0 + block_dlogr).powf(index.0 as f64 + 1.0),
@@ -256,9 +254,7 @@ impl Mesh {
      * Return a map of the subgrid objects on this mesh
      */
     pub fn grid_blocks(&self) -> anyhow::Result<HashMap<BlockIndex, SphericalPolarGrid>> {
-
         let mut blocks = HashMap::new();
-
         for i in 0.. {
             let index = (i, 0);
             let extent = self.subgrid_extent(index)?;
