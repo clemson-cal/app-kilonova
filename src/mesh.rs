@@ -228,36 +228,57 @@ impl SphericalPolarGrid {
 impl Mesh {
 
     /**
-     * Return a map of the grid blocks on this mesh.
+     * Return the extent of the subgrid at this index
      */
-    fn grid_blocks(&self) -> HashMap<BlockIndex, SphericalPolarGrid> {
-        assert!(self.inner_radius < self.outer_radius);
-        let block_dlogr = self.block_size as f64 * std::f64::consts::PI / self.num_polar_zones as f64;
-        let mut i = 0;
-        let mut r = self.inner_radius;
-        let mut blocks = HashMap::new();
-
-        while r < self.outer_radius {
-            let extent = SphericalPolarExtent{
-                inner_radius: r,
-                outer_radius: r * (1.0 + block_dlogr),
-                lower_theta: 0.0,
-                upper_theta: std::f64::consts::PI,
-            };
-            blocks.insert((i, 0), extent.grid(self.block_size, self.num_polar_zones));
-            r += r * block_dlogr;
-            i += 1;
-        }
-        blocks
-    }
-
-    pub fn grid_blocks_geometry(&self) -> anyhow::Result<HashMap<BlockIndex, GridGeometry>> {
+    pub fn subgrid_extent(&self, index: BlockIndex) -> anyhow::Result<SphericalPolarExtent> {
         if self.outer_radius <= self.inner_radius {
             anyhow::bail!("outer_radius <= inner_radius")
         }
-        Ok(self.grid_blocks()
-               .iter()
-               .map(|(&index, grid)| (index, grid.geometry()))
-               .collect())
+
+        let block_dlogr = self.block_size as f64 * std::f64::consts::PI / self.num_polar_zones as f64;
+
+        Ok(SphericalPolarExtent{
+            inner_radius: self.inner_radius * (1.0 + block_dlogr).powf(index.0 as f64),
+            outer_radius: self.inner_radius * (1.0 + block_dlogr).powf(index.0 as f64 + 1.0),
+            lower_theta: 0.0,
+            upper_theta: std::f64::consts::PI,
+        })
+    }
+
+    /**
+     * Return the subgrid object at the given index
+     */
+    pub fn subgrid(&self, index: BlockIndex) -> anyhow::Result<SphericalPolarGrid> {
+        Ok(self.subgrid_extent(index)?.grid(self.block_size, self.num_polar_zones))
+    }
+
+    /**
+     * Return a map of the subgrid objects on this mesh
+     */
+    pub fn grid_blocks(&self) -> anyhow::Result<HashMap<BlockIndex, SphericalPolarGrid>> {
+
+        let mut blocks = HashMap::new();
+
+        for i in 0.. {
+            let index = (i, 0);
+            let extent = self.subgrid_extent(index)?;
+
+            if extent.inner_radius >= self.outer_radius {
+                break
+            } else {
+                blocks.insert(index, extent.grid(self.block_size, self.num_polar_zones));
+            }
+        }
+        Ok(blocks)
+    }
+
+    /**
+     * Return a map of the subgrid geometry objects on this mesh (for convenience)
+     */
+    pub fn grid_blocks_geometry(&self) -> anyhow::Result<HashMap<BlockIndex, GridGeometry>> {
+        Ok(self.grid_blocks()?
+            .iter()
+            .map(|(&index, grid)| (index, grid.geometry()))
+            .collect())
     }
 }
