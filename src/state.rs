@@ -49,14 +49,13 @@ impl<C: Conserved> BlockState<C> {
      * Generate a block state from the given initial model, hydrodynamics
      * instance and grid geometry.
      */
-    pub fn from_model<M, H>(model: &M, hydro: &H, geometry: &GridGeometry) -> Self
+    pub fn from_model<M, H>(model: &M, hydro: &H, geometry: &GridGeometry, time: f64) -> Self
     where
         M: InitialModel,
         H: Hydrodynamics<Conserved = C> {
 
-        let t = 1.0; // TODO: load initial time
-        let scalar      = geometry.cell_centers.mapv(|c| model.scalar_at(c, t));
-        let primitive   = geometry.cell_centers.mapv(|c| hydro.interpret(&model.primitive_at(c, t)));
+        let scalar      = geometry.cell_centers.mapv(|c| model.scalar_at(c, time));
+        let primitive   = geometry.cell_centers.mapv(|c| hydro.interpret(&model.primitive_at(c, time)));
         let conserved   = primitive.mapv(|p| hydro.to_conserved(p)) * &geometry.cell_volumes;
         let scalar_mass = conserved.mapv(|u| u.lab_frame_mass()) * scalar;
 
@@ -77,14 +76,13 @@ impl<C: Conserved> State<C> {
      * Generate a state from the given initial model, hydrodynamics instance,
      * and map of grid geometry.
      */
-    pub fn from_model<M, H>(model: &M, hydro: &H, geometry: &HashMap<BlockIndex, GridGeometry>) -> Self
+    pub fn from_model<M, H>(model: &M, hydro: &H, geometry: &HashMap<BlockIndex, GridGeometry>, time: f64) -> Self
     where
         M: InitialModel,
         H: Hydrodynamics<Conserved = C> {
 
-        let time = 0.0;
         let iteration = Rational64::new(0, 1);
-        let solution = geometry.iter().map(|(&i, g)| (i, BlockState::from_model(model, hydro, g))).collect();
+        let solution = geometry.iter().map(|(&i, g)| (i, BlockState::from_model(model, hydro, g, time))).collect();
 
         Self{time, iteration, solution}
     }

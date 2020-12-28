@@ -111,6 +111,7 @@ pub enum AgnosticState {
 #[serde(deny_unknown_fields)]
 pub struct Control {
     pub final_time: f64,
+    pub start_time: f64,
     pub checkpoint_interval: f64,
     pub products_interval: f64,
 }
@@ -190,7 +191,7 @@ impl App {
                 anyhow::bail!("hydro: euler is not implemented yet")
             },
             AgnosticHydro::Relativistic(hydro) => {
-                AgnosticState::from(State::from_model(&config.model, hydro, &geometry))
+                AgnosticState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
             },
         };
         let tasks = Tasks::new();

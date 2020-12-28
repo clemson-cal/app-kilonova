@@ -3,6 +3,10 @@ use serde::{Serialize, Deserialize};
 use crate::physics::AgnosticPrimitive;
 use crate::traits::InitialModel;
 
+static UNIFORM_ENTROPY: f64 = 1e-6;
+static MAX_VELOCITY: f64 = 0.99;
+static GAMMA_LAW_INDEX: f64 = 4.0 / 3.0;
+
 
 
 
@@ -13,16 +17,16 @@ use crate::traits::InitialModel;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JetInCloud {
-    pub r_in            : f64, // inner boundary radius (light-crossing times)
-    pub envelop_mass    : f64, // mass of the relativistic envelop (solar mass)
-    pub cloud_mass      : f64, // mass of the merger ejecta cloud (solar mass)
-    pub psi             : f64, // index psi in u(m) ~ m^-psi
-    pub u_min           : f64, // four-velocity of the slowest envelop shell
+    pub launch_radius   : f64, // radius where the inflow starts from [cm]
+    pub cloud_mass      : f64, // mass of the merger ejecta cloud
     pub engine_delay    : f64, // time following the cloud onset when the jet begins
     pub engine_duration : f64, // duration of the engine
+    pub engine_strength : f64, // E / M c^2: M = cloud mass, E = isotropic-equivalent jet energy
     pub engine_theta    : f64, // engine opening angle
     pub engine_u        : f64, // engine four-velocity
-    pub engine_strength : f64, // E / M c^2: M = cloud mass, E = isotropic-equivalent jet energy
+    pub envelop_mass    : f64, // mass of the relativistic envelop
+    pub psi             : f64, // index psi in u(m) ~ m^-psi
+    pub u_min           : f64, // four-velocity of the slowest envelop shell
 }
 
 
@@ -33,18 +37,20 @@ impl InitialModel for JetInCloud {
 
     fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AgnosticPrimitive {
         let (r, q) = coordinate;
-        let mdot = self.mass_flux(r, q, t);
+        let f = self.mass_flux(r, q, t);
         let u = self.gamma_beta(r, q, t);
-        let d = mdot / (r * r * u);
-        let s = 1e-6; // p / rho^(4/3)
-        // let p = d * 1e-6;
-        let p = s * f64::powf(d, 4.0 / 3.0); // TODO: load gamma from hydro
-        AgnosticPrimitive{
+        let d = f / (r * r * u);
+        let d0 = f * self.engine_duration / self.launch_radius.powi(3);
+        let s = UNIFORM_ENTROPY;
+        let p = s * f64::powf(d / d0, GAMMA_LAW_INDEX); // TODO: load gamma from hydro
+
+        let result = AgnosticPrimitive{
             velocity_r: u,
             velocity_q: 0.0,
             mass_density: d,
             gas_pressure: p,
-        }
+        };
+        result
     }
 
     fn scalar_at(&self, coordinate: (f64, f64), t: f64) -> f64 {
@@ -80,11 +86,11 @@ impl JetInCloud
 
 
     /**
-     * The time when the slowest envelop shell comes through r = 1.0
+     * The time when the slowest envelop shell comes through the launch radius
      */
     pub fn get_t1(&self) -> f64 {
         let v_min = self.u_min / f64::sqrt(1.0 + self.u_min * self.u_min);
-        self.r_in / v_min
+        self.launch_radius / v_min
     }
 
 
@@ -117,7 +123,7 @@ impl JetInCloud
 
 
     /**
-     * true of a polar angle is within theta_jet of either pol
+     * Return the true of a polar angle is within theta_jet of either pole
      *
      * * `q` - The polar angle theta
      */
@@ -150,7 +156,7 @@ impl JetInCloud
 
 
     /**
-     * the radial four-velocity (gamma-beta
+     * Return the radial four-velocity (gamma-beta)
      *
      * * `r` - The radius
      * * `q` - The polar angle theta
@@ -158,10 +164,7 @@ impl JetInCloud
      */
     pub fn gamma_beta(&self, r: f64, q: f64, t: f64) -> f64 {
         if self.get_zone(r, t) == 1 {
-            if r >= t {
-                panic!("model is invalid at radii r >= c t; r={} t={}", r, t);
-            }
-            let v = r / t;
+            let v = f64::min(r / t, MAX_VELOCITY);
             let u = v / f64::sqrt(1.0 - v * v);
             u
         }
@@ -182,7 +185,7 @@ impl JetInCloud
 
 
     /**
-     * the mass flux per solid angl
+     * Return the mass flux per solid angle
      *
      * * `r` - The radius
      * * `q` - The polar angle theta
@@ -193,18 +196,18 @@ impl JetInCloud
         let mc = self.cloud_mass;
 
         if self.get_zone(r, t) == 1 {
-            let s = r / t;
+            let s = f64::min(r / t, MAX_VELOCITY);
             let f = f64::powf(s / self.u_min, -1.0 / self.psi) * f64::powf(1.0 - s * s, 0.5 / self.psi - 1.0);
             m0 / (4.0 * PI * self.psi * t) * f
         }
         else if self.get_zone(r, t) == 2 {
-            mc / (self.engine_delay * 4.0 * PI)
+            mc / (4.0 * PI * self.engine_delay)
         }
         else if self.get_zone(r, t) == 3 && self.in_nozzle(q) {
             self.get_engine_mass_flux()
         }
         else {
-            mc / (self.engine_delay * 4.0 * PI)
+            mc / (4.0 * PI * self.engine_delay)
         }
     }
 }

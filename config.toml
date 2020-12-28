@@ -4,16 +4,25 @@ gamma_law_index = 1.333
 
 [model]
 setup = "jet_in_cloud"
-engine_duration = 1.0
-engine_strength = 1.0
+launch_radius   = 1e8   # radius where the inflow starts from [cm]
+cloud_mass      = 1e32  # mass of the merger ejecta cloud
+engine_delay    = 1.0   # time following the cloud onset when the jet begins
+engine_duration = 1.0   # duration of the engine
+engine_strength = 1.0   # E / M c^2: M = cloud mass, E = isotropic-equivalent jet energy
+engine_theta    = 0.1   # engine opening angle
+engine_u        = 30.0  # engine four-velocity
+envelop_mass    = 1e30  # mass of the relativistic envelop
+psi             = 0.25  # index psi in u(m) ~ m^-psi
+u_min           = 0.1   # four-velocity of the slowest envelop shell
 
 [mesh]
-inner_radius = 1.0
-outer_radius = 1e6
-num_polar_zones = 128
+inner_radius = 1e8
+outer_radius = 1e9
+num_polar_zones = 32
 block_size = 32
 
 [control]
-final_time = 10.0
+final_time = 1.0
+start_time = 1.0
 checkpoint_interval = 1.0
 products_interval = 1.0
