@@ -15,6 +15,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     entry_points={
         'console_scripts': [
+            'knc-plot = knc_tools.plot:main',
         ]
     },
     classifiers=[
