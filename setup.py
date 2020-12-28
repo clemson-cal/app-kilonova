@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="kilonova_tools",
+    name="knc_tools",
     version="0.1.0",
     author="J. Zrake",
     author_email="jzrake@clemson.edu",
