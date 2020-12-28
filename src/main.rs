@@ -50,7 +50,7 @@ use models::{
 };
 use physics::{
     AgnosticPrimitive,
-    RelativisticHydrodynamics,
+    RelativisticHydro,
 };
 use products::{
     Products,
@@ -75,7 +75,7 @@ use tasks::{
  */
 #[enum_dispatch(InitialModel)]
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "snake_case", tag = "type")]
+#[serde(deny_unknown_fields, rename_all = "snake_case", tag = "setup")]
 pub enum Model {
     JetInCloud(JetInCloud),
     HaloKilonova(HaloKilonova),
@@ -86,10 +86,10 @@ pub enum Model {
  * Enum for any of the supported hydrodynamics types
  */
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "snake_case", tag = "type")]
+#[serde(deny_unknown_fields, rename_all = "snake_case", tag = "system")]
 pub enum AgnosticHydro {
     Euler,
-    Relativistic(RelativisticHydrodynamics),
+    Relativistic(RelativisticHydro),
 }
 
 
@@ -149,8 +149,8 @@ impl From<State<hydro_srhd::srhd_2d::Conserved>> for AgnosticState {
     }
 }
 
-impl From<RelativisticHydrodynamics> for AgnosticHydro {
-    fn from(hydro: RelativisticHydrodynamics) -> Self {
+impl From<RelativisticHydro> for AgnosticHydro {
+    fn from(hydro: RelativisticHydro) -> Self {
         Self::Relativistic(hydro)
     }
 }
@@ -240,7 +240,9 @@ where
     if tasks.iteration_message.next_time <= state.time {
         let time = tasks.iteration_message.advance(0.0);
         let mzps = 1e-6 * state.total_zones() as f64 / time;
-        println!("[{:05}] t={:.3} blocks={} Mzps={:.2})", state.iteration, state.time, state.solution.len(), mzps);
+        if tasks.iteration_message.count_this_run > 1 {
+            println!("[{:05}] t={:.3} blocks={} Mzps={:.2})", state.iteration, state.time, state.solution.len(), mzps);
+        }
     }
 
     if tasks.write_checkpoint.next_time <= state.time {
@@ -278,9 +280,11 @@ where
     AgnosticHydro: From<H> {
 
     while state.time < control.final_time {
-        scheme::advance(&mut state, &hydro, &mesh);
         side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
+        scheme::advance(&mut state, &hydro, &mesh);
     }
+
+    side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
 
     Ok(())
 }

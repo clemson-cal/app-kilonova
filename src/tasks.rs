@@ -19,6 +19,9 @@ pub struct RecurringTask {
     /// The last clock time when this task was performed
     #[serde(skip, default = "Instant::now")]
     pub last_performed: Instant,
+
+    #[serde(skip, default = "usize::default")]
+    pub count_this_run: usize,
 }
 
 
@@ -59,6 +62,7 @@ impl RecurringTask
             count: 0,
             next_time: 0.0,
             last_performed: Instant::now(),
+            count_this_run: 0,
         }
     }
 
@@ -70,6 +74,7 @@ impl RecurringTask
     pub fn advance(&mut self, interval: f64) -> f64 {
         let seconds = self.last_performed.elapsed().as_secs_f64();
         self.count += 1;
+        self.count_this_run += 1;
         self.next_time += interval;
         self.last_performed = Instant::now();
         seconds

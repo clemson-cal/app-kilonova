@@ -30,8 +30,8 @@ pub struct AgnosticPrimitive {
  * Interface implementation for relativistic hydrodynamics
  */
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, tag = "type")]
-pub struct RelativisticHydrodynamics {
+#[serde(deny_unknown_fields)]
+pub struct RelativisticHydro {
     pub gamma_law_index: f64,
 }
 
@@ -39,7 +39,7 @@ pub struct RelativisticHydrodynamics {
 
 
 // ============================================================================
-impl Hydrodynamics for RelativisticHydrodynamics {
+impl Hydrodynamics for RelativisticHydro {
     type Conserved = hydro_srhd::srhd_2d::Conserved;
     type Primitive = hydro_srhd::srhd_2d::Primitive;
 
