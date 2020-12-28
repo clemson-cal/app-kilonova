@@ -203,8 +203,8 @@ impl SphericalPolarGrid {
     pub fn geometry(&self) -> GridGeometry {
         let nr = self.num_zones_r;
         let nq = self.num_zones_q;
-        let radial_vertices   = ArcArray::from_shape_fn(nr, |i| self.vertex_coordinate(i, 0).0);
-        let polar_vertices    = ArcArray::from_shape_fn(nq, |j| self.vertex_coordinate(0, j).1);
+        let radial_vertices   = ArcArray::from_shape_fn(nr + 1, |i| self.vertex_coordinate(i, 0).0);
+        let polar_vertices    = ArcArray::from_shape_fn(nq + 1, |j| self.vertex_coordinate(0, j).1);
         let radial_face_areas = ArcArray::from_shape_fn((nr + 1, nq), |index| self.zone(index).face_area_r());
         let polar_face_areas  = ArcArray::from_shape_fn((nr, nq + 1), |index| self.zone(index).face_area_q());
         let cell_volumes      = ArcArray::from_shape_fn((nr, nq), |index| self.zone(index).volume());
