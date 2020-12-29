@@ -1,7 +1,7 @@
 #![allow(unused)]
 use std::collections::HashMap;
 use ndarray::{ArcArray, Array, Ix2, Axis, concatenate, s};
-use crate::mesh::{GridGeometry, Mesh};
+use crate::mesh::{BlockIndex, GridGeometry, Mesh};
 use crate::Model;
 use crate::physics::Direction;
 use crate::state::{State, BlockState};
@@ -14,12 +14,12 @@ static PLM_THETA: f64 = 1.5;
 
 // ============================================================================
 #[allow(unused)]
-pub fn advance<H, C>(state: &mut State<C>, hydro: &H, model: &Model, mesh: &Mesh) -> anyhow::Result<()>
+pub fn advance<H, C>(state: &mut State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>)
+	-> anyhow::Result<()>
 where
 	H: Hydrodynamics<Conserved = C>,
 	C: Conserved {
 
-	let block_geometry = mesh.grid_blocks_geometry()?;
 	let mut primitive_map = HashMap::new();
 	let mut scalar_map = HashMap::new();
 
@@ -31,7 +31,7 @@ where
 	};
 
 	for (&index, state) in &state.solution {
-		insert_into_map(index, state, &block_geometry[&index]);
+		insert_into_map(index, state, &geometry[&index]);
 	}
 
 	let (inner_bnd_index, outer_bnd_index) = state.inner_outer_boundary_indexes();
@@ -88,12 +88,12 @@ where
 		let hyl = hy.slice(s![2..-2,  ..-1]);
 		let hyr = hy.slice(s![2..-2, 1..  ]);
 
-		let godunov_x = Array::from_shape_fn(pxl.dim(), |i| {
-		    hydro.intercell_flux(pxl[i] + gxl[i] * 0.5, pxr[i] - gxr[i] * 0.5, sxl[i] + hxl[i] * 0.5, sxr[i] - hxr[i] * 0.5, Direction::Radial)
-		});
-		let godunov_y = Array::from_shape_fn(pxl.dim(), |i| {
-		    hydro.intercell_flux(pxl[i] + gxl[i] * 0.5, pxr[i] - gxr[i] * 0.5, sxl[i] + hxl[i] * 0.5, sxr[i] - hxr[i] * 0.5, Direction::Polar)
-		});
+		// let godunov_x = Array::from_shape_fn(pxl.dim(), |i| {
+		//     hydro.intercell_flux(pxl[i] + gxl[i] * 0.5, pxr[i] - gxr[i] * 0.5, sxl[i] + hxl[i] * 0.5, sxr[i] - hxr[i] * 0.5, Direction::Radial)
+		// });
+		// let godunov_y = Array::from_shape_fn(pxl.dim(), |i| {
+		//     hydro.intercell_flux(pxl[i] + gxl[i] * 0.5, pxr[i] - gxr[i] * 0.5, sxl[i] + hxl[i] * 0.5, sxr[i] - hxr[i] * 0.5, Direction::Polar)
+		// });
 	}
 
 	state.time += 0.1;

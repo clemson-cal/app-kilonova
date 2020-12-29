@@ -293,9 +293,11 @@ where
     AgnosticState: From<State<C>>,
     AgnosticHydro: From<H> {
 
+    let block_geometry = mesh.grid_blocks_geometry()?;
+
     while state.time < control.final_time {
         side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
-        scheme::advance(&mut state, &hydro, &model, &mesh)?;
+        scheme::advance(&mut state, &hydro, &model, &mesh, &block_geometry)?;
     }
 
     side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
