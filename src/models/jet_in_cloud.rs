@@ -4,7 +4,7 @@ use crate::physics::AgnosticPrimitive;
 use crate::traits::InitialModel;
 
 static LIGHT_SPEED: f64 = 3e10;
-static UNIFORM_ENTROPY: f64 = 1e-6;
+static UNIFORM_ENTROPY: f64 = 1e-4;
 static MAX_BETA: f64 = 0.97;
 static GAMMA_LAW_INDEX: f64 = 4.0 / 3.0;
 
@@ -61,17 +61,16 @@ impl InitialModel for JetInCloud {
         let f = self.mass_flux(r, q, t);
         let u = self.gamma_beta(r, q, t);
         let d = f / (r * r * u);
-        let d0 = f * self.engine_duration / self.launch_radius.powi(3);
+        let d0 = self.cloud_mass / self.launch_radius.powi(3);
         let s = UNIFORM_ENTROPY;
         let p = s * f64::powf(d / d0, GAMMA_LAW_INDEX); // TODO: load gamma from hydro
 
-        let result = AgnosticPrimitive{
+        AgnosticPrimitive{
             velocity_r: u,
             velocity_q: 0.0,
             mass_density: d,
             gas_pressure: p,
-        };
-        result
+        }
     }
 
     fn scalar_at(&self, coordinate: (f64, f64), t: f64) -> f64 {
