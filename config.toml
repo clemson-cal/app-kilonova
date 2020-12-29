@@ -1,6 +1,7 @@
 [hydro]
 system = "relativistic"
 gamma_law_index = 1.333
+plm_theta = 1.25
 
 [model]
 setup = "jet_in_cloud"
