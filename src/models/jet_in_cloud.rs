@@ -1,9 +1,8 @@
 use std::f64::consts::PI;
 use serde::{Serialize, Deserialize};
-use crate::physics::AgnosticPrimitive;
+use crate::physics::{AgnosticPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 
-static LIGHT_SPEED: f64 = 3e10;
 static UNIFORM_ENTROPY: f64 = 1e-4;
 static MAX_BETA: f64 = 0.97;
 static GAMMA_LAW_INDEX: f64 = 4.0 / 3.0;

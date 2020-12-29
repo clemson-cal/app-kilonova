@@ -16,7 +16,7 @@ where
 	H: Hydrodynamics<Conserved = C>,
 	C: Conserved {
 
-	let dt = 0.0; // TODO: compute real dt
+	let dt = hydro.time_step(state, mesh);
 
 	let mut primitive_map = HashMap::new();
 	let mut scalar_map = HashMap::new();

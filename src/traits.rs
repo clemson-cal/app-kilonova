@@ -1,5 +1,7 @@
 use std::ops::{Add, Sub, Mul, Div};
 use serde::Serialize;
+use crate::mesh::Mesh;
+use crate::state::State;
 use crate::physics::{AgnosticPrimitive, Direction};
 
 
@@ -36,6 +38,10 @@ pub trait Hydrodynamics: Clone {
     /// The type of the primitive struct: comoving density, (four)-velocity,
     /// pressure.
     type Primitive: Primitive;
+
+    fn validate(&self) -> anyhow::Result<()>;
+
+    fn time_step(&self, state: &State<Self::Conserved>, mesh: &Mesh) -> f64;
 
     /// Compute the PLM difference from a stencil of colinear primitive
     /// states

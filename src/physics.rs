@@ -1,10 +1,17 @@
 use serde::{Serialize, Deserialize};
 use godunov_core::piecewise_linear;
+use crate::mesh::Mesh;
+use crate::state::State;
 use crate::traits::Hydrodynamics;
 
+pub static LIGHT_SPEED: f64 = 3e10;
 
 
 
+
+/**
+ * Enum for the cardinal grid axes
+ */
 pub enum Direction {
     Polar,
     Radial,
@@ -42,6 +49,7 @@ pub struct AgnosticPrimitive {
 pub struct RelativisticHydro {
     pub gamma_law_index: f64,
     pub plm_theta: f64,
+    pub cfl_number: f64,
 }
 
 
@@ -51,6 +59,23 @@ pub struct RelativisticHydro {
 impl Hydrodynamics for RelativisticHydro {
     type Conserved = hydro_srhd::srhd_2d::Conserved;
     type Primitive = hydro_srhd::srhd_2d::Primitive;
+
+    fn validate(&self) -> anyhow::Result<()> {
+        if (self.gamma_law_index - 4.0 / 3.0).abs() > 1e-3 {
+            anyhow::bail!("gamma_law_index != 4/3")
+        }
+        if self.plm_theta < 1.0 || self.plm_theta > 2.0 {
+            anyhow::bail!("plm_theta must be in the range [1, 2]")            
+        }
+        if self.cfl_number < 0.0 || self.cfl_number > 0.7 {
+            anyhow::bail!("cfl_number must be in the range [0.0, 0.7]")
+        }
+        Ok(())
+    }
+
+    fn time_step(&self, _state: &State<Self::Conserved>, mesh: &Mesh) -> f64 {
+        self.cfl_number * mesh.smallest_spacing() / LIGHT_SPEED
+    }
 
     fn plm_gradient_primitive(&self, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
         piecewise_linear::plm_gradient4(self.plm_theta, a, b, c)

@@ -157,10 +157,15 @@ impl From<RelativisticHydro> for AgnosticHydro {
     }
 }
 
+impl AgnosticHydro {
+    fn validate(&self) -> anyhow::Result<()> {
+        match self {
+            AgnosticHydro::Euler => Ok(()),
+            AgnosticHydro::Relativistic(hydro) => hydro.validate(),
+        }        
+    }
+}
 
-
-
-// ============================================================================
 impl Control {
     fn validate(&self) -> anyhow::Result<()> {
         Ok(())
@@ -185,6 +190,7 @@ impl Configuration {
     }
 
     fn validate(&self) -> anyhow::Result<()> {
+        self.hydro.validate()?;
         self.model.validate()?;
         self.mesh.validate()?;
         self.control.validate()?;

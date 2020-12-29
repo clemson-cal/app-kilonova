@@ -2,6 +2,7 @@
 system = "relativistic"
 gamma_law_index = 1.333
 plm_theta = 1.25
+cfl_number = 0.4
 
 [model]
 setup = "jet_in_cloud"

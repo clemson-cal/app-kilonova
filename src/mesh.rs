@@ -235,7 +235,15 @@ impl Mesh {
     }
 
     /**
-     * Return the extent of the subgrid at this index
+     * Return the smallest grid spacing on the mesh.
+     */
+    pub fn smallest_spacing(&self) -> f64 {
+        let zone = self.subgrid((0, 0)).zone((0, 0));
+        zone.outer_radius - zone.inner_radius
+    }
+
+    /**
+     * Return the extent of the subgrid at this index.
      */
     pub fn subgrid_extent(&self, index: BlockIndex) -> SphericalPolarExtent {
         assert!(self.outer_radius > self.inner_radius);
@@ -249,14 +257,14 @@ impl Mesh {
     }
 
     /**
-     * Return the subgrid object at the given index
+     * Return the subgrid object at the given index.
      */
     pub fn subgrid(&self, index: BlockIndex) -> SphericalPolarGrid {
         self.subgrid_extent(index).grid(self.block_size, self.num_polar_zones)
     }
 
     /**
-     * Return a map of the subgrid objects on this mesh
+     * Return a map of the subgrid objects on this mesh.
      */
     pub fn grid_blocks(&self) -> HashMap<BlockIndex, SphericalPolarGrid> {
         let mut blocks = HashMap::new();
@@ -274,7 +282,7 @@ impl Mesh {
     }
 
     /**
-     * Return a map of the subgrid geometry objects on this mesh (for convenience)
+     * Return a map of the subgrid geometry objects on this mesh (for convenience).
      */
     pub fn grid_blocks_geometry(&self) -> HashMap<BlockIndex, GridGeometry> {
         self.grid_blocks()
