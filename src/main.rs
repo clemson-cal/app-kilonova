@@ -194,7 +194,7 @@ impl App {
                 AgnosticState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
             },
         };
-        let tasks = Tasks::new();
+        let tasks = Tasks::new(config.control.start_time);
         Ok(Self{state, tasks, config, version: VERSION_AND_BUILD.to_string()})
     }
 
@@ -259,15 +259,6 @@ where
         }
     }
 
-    if tasks.write_checkpoint.next_time <= state.time {
-        tasks.write_checkpoint.advance(control.checkpoint_interval);
-        let filename = format!("chkpt.{:04}.pk", tasks.write_checkpoint.count - 1);
-        let app = App::package(state, tasks, hydro, model, mesh, control);
-        let mut buffer = std::io::BufWriter::new(File::create(&filename)?);
-        println!("write {}", filename);
-        serde_pickle::to_writer(&mut buffer, &app, true)?;
-    }
-
     if tasks.write_products.next_time <= state.time {
         tasks.write_products.advance(control.products_interval);
         let filename = format!("prods.{:04}.pk", tasks.write_products.count - 1);
@@ -276,6 +267,15 @@ where
         let mut buffer = std::io::BufWriter::new(File::create(&filename)?);
         println!("write {}", filename);
         serde_pickle::to_writer(&mut buffer, &products, true)?;
+    }
+
+    if tasks.write_checkpoint.next_time <= state.time {
+        tasks.write_checkpoint.advance(control.checkpoint_interval);
+        let filename = format!("chkpt.{:04}.pk", tasks.write_checkpoint.count - 1);
+        let app = App::package(state, tasks, hydro, model, mesh, control);
+        let mut buffer = std::io::BufWriter::new(File::create(&filename)?);
+        println!("write {}", filename);
+        serde_pickle::to_writer(&mut buffer, &app, true)?;
     }
 
     Ok(())
