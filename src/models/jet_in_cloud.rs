@@ -56,6 +56,10 @@ pub struct JetInCloud {
 // ============================================================================
 impl InitialModel for JetInCloud {
 
+    fn validate(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AgnosticPrimitive {
         let (r, q) = coordinate;
         let f = self.mass_flux(r, q, t);

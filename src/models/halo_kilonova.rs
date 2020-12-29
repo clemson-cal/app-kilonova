@@ -19,6 +19,11 @@ pub struct HaloKilonova {
 
 // ============================================================================
 impl InitialModel for HaloKilonova {
+    
+    fn validate(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     fn primitive_at(&self, _coordinate: (f64, f64), _time: f64) -> AgnosticPrimitive {
     	AgnosticPrimitive{
     		velocity_r: 0.0,

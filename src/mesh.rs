@@ -227,37 +227,42 @@ impl SphericalPolarGrid {
 // ============================================================================
 impl Mesh {
 
-    /**
-     * Return the extent of the subgrid at this index
-     */
-    pub fn subgrid_extent(&self, index: BlockIndex) -> anyhow::Result<SphericalPolarExtent> {
+    pub fn validate(&self) -> anyhow::Result<()> {
         if self.outer_radius <= self.inner_radius {
             anyhow::bail!("outer_radius <= inner_radius")
         }
+        Ok(())
+    }
+
+    /**
+     * Return the extent of the subgrid at this index
+     */
+    pub fn subgrid_extent(&self, index: BlockIndex) -> SphericalPolarExtent {
+        assert!(self.outer_radius > self.inner_radius);
         let block_dlogr = self.block_size as f64 * std::f64::consts::PI / self.num_polar_zones as f64;
-        Ok(SphericalPolarExtent{
+        SphericalPolarExtent{
             inner_radius: self.inner_radius * (1.0 + block_dlogr).powf(index.0 as f64),
             outer_radius: self.inner_radius * (1.0 + block_dlogr).powf(index.0 as f64 + 1.0),
             lower_theta: 0.0,
             upper_theta: std::f64::consts::PI,
-        })
+        }
     }
 
     /**
      * Return the subgrid object at the given index
      */
-    pub fn subgrid(&self, index: BlockIndex) -> anyhow::Result<SphericalPolarGrid> {
-        Ok(self.subgrid_extent(index)?.grid(self.block_size, self.num_polar_zones))
+    pub fn subgrid(&self, index: BlockIndex) -> SphericalPolarGrid {
+        self.subgrid_extent(index).grid(self.block_size, self.num_polar_zones)
     }
 
     /**
      * Return a map of the subgrid objects on this mesh
      */
-    pub fn grid_blocks(&self) -> anyhow::Result<HashMap<BlockIndex, SphericalPolarGrid>> {
+    pub fn grid_blocks(&self) -> HashMap<BlockIndex, SphericalPolarGrid> {
         let mut blocks = HashMap::new();
         for i in 0.. {
             let index = (i, 0);
-            let extent = self.subgrid_extent(index)?;
+            let extent = self.subgrid_extent(index);
 
             if extent.inner_radius >= self.outer_radius {
                 break
@@ -265,16 +270,16 @@ impl Mesh {
                 blocks.insert(index, extent.grid(self.block_size, self.num_polar_zones));
             }
         }
-        Ok(blocks)
+        blocks
     }
 
     /**
      * Return a map of the subgrid geometry objects on this mesh (for convenience)
      */
-    pub fn grid_blocks_geometry(&self) -> anyhow::Result<HashMap<BlockIndex, GridGeometry>> {
-        Ok(self.grid_blocks()?
+    pub fn grid_blocks_geometry(&self) -> HashMap<BlockIndex, GridGeometry> {
+        self.grid_blocks()
             .iter()
             .map(|(&index, grid)| (index, grid.geometry()))
-            .collect())
+            .collect()
     }
 }

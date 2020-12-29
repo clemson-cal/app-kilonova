@@ -161,6 +161,16 @@ impl From<RelativisticHydro> for AgnosticHydro {
 
 
 // ============================================================================
+impl Control {
+    fn validate(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
+
+
+
+// ============================================================================
 impl Configuration {
     fn package<H>(hydro: &H, model: &Model, mesh: &Mesh, control: &Control) -> Self
     where
@@ -172,6 +182,13 @@ impl Configuration {
             mesh: mesh.clone(),
             control: control.clone(),
         }
+    }
+
+    fn validate(&self) -> anyhow::Result<()> {
+        self.model.validate()?;
+        self.mesh.validate()?;
+        self.control.validate()?;
+        Ok(())
     }
 }
 
@@ -185,7 +202,8 @@ impl App {
      * Construct a new App instance from a user configuration
      */
     fn from_config(config: Configuration) -> anyhow::Result<Self> {
-        let geometry = config.mesh.grid_blocks_geometry()?;
+        config.validate()?;
+        let geometry = config.mesh.grid_blocks_geometry();
         let state = match &config.hydro {
             AgnosticHydro::Euler => {
                 anyhow::bail!("hydro: euler is not implemented yet")
@@ -293,7 +311,7 @@ where
     AgnosticState: From<State<C>>,
     AgnosticHydro: From<H> {
 
-    let block_geometry = mesh.grid_blocks_geometry()?;
+    let block_geometry = mesh.grid_blocks_geometry();
 
     while state.time < control.final_time {
         side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;

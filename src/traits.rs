@@ -63,6 +63,12 @@ pub trait Hydrodynamics: Clone {
 pub trait InitialModel: Clone {
 
     /**
+     * Return an error if this model was not configured to yield acceptable
+     * data.
+     */
+    fn validate(&self) -> anyhow::Result<()>;
+
+    /**
      * Return an agnostic primitive state at the give r-theta coordinate. An
      * [`AgnosticPrimitive`] must be converted to the appropriate [`Primitive`]
      * type by the [`Hydrodynamics::interpret`] method.

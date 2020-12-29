@@ -36,8 +36,8 @@ where
 
 	let (inner_bnd_index, outer_bnd_index) = state.inner_outer_boundary_indexes();
 
-	let inner_bnd_geom = mesh.subgrid(inner_bnd_index)?.geometry();
-	let outer_bnd_geom = mesh.subgrid(outer_bnd_index)?.geometry();
+	let inner_bnd_geom = mesh.subgrid(inner_bnd_index).geometry();
+	let outer_bnd_geom = mesh.subgrid(outer_bnd_index).geometry();
 
 	let inner_bnd_state = BlockState::from_model(model, hydro, &inner_bnd_geom, state.time);
 	let outer_bnd_state = BlockState::from_model(model, hydro, &outer_bnd_geom, state.time);
