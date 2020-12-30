@@ -104,7 +104,7 @@ impl Hydrodynamics for RelativisticHydro {
             Direction::Polar  => hydro_srhd::geometry::Direction::Y,
         };
         let (f, g, _) = hydro_srhd::srhd_2d::riemann_hllc_scalar(pl, pr, sl, sr, axis, self.gamma_law_index, mode);
-        (f, g)
+        (f * LIGHT_SPEED, g * LIGHT_SPEED)
     }
 
     fn geometrical_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved {
