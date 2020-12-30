@@ -167,11 +167,12 @@ dependencies = [
 [[package]]
 name = "godunov-core"
 version = "0.1.0"
-source = "git+https://github.com/clemson-cal/godunov-core#4032de5e278a71a2ac2d6782b2bcfb2f7ae7d29d"
+source = "git+https://github.com/clemson-cal/godunov-core#db3fd7a7480343ae0a49d100454900da802eb4e3"
 dependencies = [
  "async-trait",
  "ndarray",
  "num",
+ "serde",
 ]
 
 [[package]]

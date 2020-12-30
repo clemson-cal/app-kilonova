@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use godunov_core::piecewise_linear;
+use godunov_core::runge_kutta::RungeKuttaOrder;
 use crate::mesh::Mesh;
 use crate::state::State;
 use crate::traits::Hydrodynamics;
@@ -56,6 +57,9 @@ pub struct RelativisticHydro {
 
     /// Time step size: [0.0, 0.7]
     pub cfl_number: f64,
+
+    /// Runge-Kutta order: [rk1, rk2, rk3]
+    pub runge_kutta_order: RungeKuttaOrder,
 }
 
 
@@ -77,6 +81,10 @@ impl Hydrodynamics for RelativisticHydro {
             anyhow::bail!("cfl_number must be in the range [0.0, 0.7]")
         }
         Ok(())
+    }
+
+    fn runge_kutta_order(&self) -> RungeKuttaOrder {
+        self.runge_kutta_order
     }
 
     fn time_step(&self, _state: &State<Self::Conserved>, mesh: &Mesh) -> f64 {

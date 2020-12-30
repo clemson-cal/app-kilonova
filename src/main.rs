@@ -3,16 +3,10 @@
  */
 
 
-
-
-// ============================================================================
 static DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 static VERSION_AND_BUILD: &str = git_version::git_version!(prefix=concat!("v", env!("CARGO_PKG_VERSION"), " "));
 
 
-
-
-// ============================================================================
 mod mesh;
 mod models;
 mod physics;
@@ -23,9 +17,9 @@ mod tasks;
 mod traits;
 
 
-
-
-// ============================================================================
+/**
+ * Standard and external dependencies
+ */
 use std::{
     ffi::OsStr,
     fs::{
@@ -40,6 +34,11 @@ use serde::{
     Deserialize,
 };
 use enum_dispatch::enum_dispatch;
+
+
+/**
+ * Imports from crate modules
+ */
 use mesh::Mesh;
 use models::{
     JetInCloud,
@@ -57,8 +56,6 @@ use traits::{
     InitialModel,
 };
 use tasks::Tasks;
-
-
 
 
 /**
@@ -96,7 +93,7 @@ pub enum AgnosticState {
 
 /**
  * Simulation control: how long to run for, how frequently to perform side
- * effects, etc.
+ * effects, etc
  */
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -201,7 +198,7 @@ impl App {
     }
 
     /**
-     * Construct a new App instance from a user configuration
+     * Construct a new App instance from a user configuration.
      */
     fn from_config(config: Configuration) -> anyhow::Result<Self> {
         let geometry = config.mesh.grid_blocks_geometry();
@@ -219,7 +216,7 @@ impl App {
 
     /**
      * Construct a new App instance from a file: may be a config.toml,
-     * config.yaml, or a chkpt.0000.pk
+     * config.yaml, or a chkpt.0000.pk.
      */
     fn from_file(filename: &str) -> anyhow::Result<Self> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
@@ -231,7 +228,7 @@ impl App {
     }
 
     /**
-     * Construct a new App instance from references to the member variables
+     * Construct a new App instance from references to the member variables.
      */
     fn package<C, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &Model, mesh: &Mesh, control: &Control) -> Self
     where
@@ -318,7 +315,7 @@ where
 
     while state.time < control.final_time {
         side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
-        scheme::advance(&mut state, &hydro, &model, &mesh, &block_geometry)?;
+        state = scheme::advance(state, &hydro, &model, &mesh, &block_geometry)?;
     }
 
     side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
