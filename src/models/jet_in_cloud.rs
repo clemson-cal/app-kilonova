@@ -21,31 +21,31 @@ pub struct JetInCloud {
     /// Radius where the inflow starts from [cm]
     pub launch_radius: f64,
 
-    /// Index psi in u(m) ~ m^-psi
+    /// Mass of the merger ejecta cloud
     pub cloud_mass: f64,
 
-    /// Mass of the relativistic envelop
+    /// Time following the cloud onset when the jet begins
     pub engine_delay: f64,
 
-    /// Engine four-velocity
+    /// Duration of the engine
     pub engine_duration: f64,
 
-    /// Engine opening angle
+    /// E / M c^2: M = cloud mass, E = isotropic-equivalent jet energy
     pub engine_strength: f64,
 
-    /// E / M c^2: M = cloud mass, E = isotropic-equivalent jet energy
+    /// Engine opening angle
     pub engine_theta: f64,
 
-    /// Duration of the engine
+    /// Engine four-velocity
     pub engine_u: f64,
 
-    /// Time following the cloud onset when the jet begins
-    pub envelop_mass: f64,
+    /// Mass coordinate of the u=1 shell
+    pub relativistic_mass: f64,
 
     /// Beta (v/c) of the slowest envelop shell
     pub envelop_slowest_beta: f64,
 
-    /// Mass of the merger ejecta cloud
+    /// Index psi in u(m) ~ m^-psi
     pub psi: f64,
 }
 
@@ -68,7 +68,7 @@ pub enum Zone {
 impl InitialModel for JetInCloud {
 
     fn validate(&self) -> anyhow::Result<()> {
-        self.print();
+        self.print(&mut std::io::stdout());
         Ok(())
     }
 
@@ -91,11 +91,13 @@ impl InitialModel for JetInCloud {
 
     fn scalar_at(&self, coordinate: (f64, f64), t: f64) -> f64 {
         let (r, q) = coordinate;
+        let m1 = self.relativistic_mass;
+        let mc = self.cloud_mass;
 
         match self.zone(r, q, t) {
-            Zone::Cloud => self.envelop_mass * 1e2,
-            Zone::Envelop => self.envelop_mass * (self.gamma_beta(r, q, t) / self.envelop_slowest_u()).powf(-1.0 / self.psi),
-            Zone::Jet => self.envelop_mass * 1e-12
+            Zone::Cloud   => mc * 1e3,
+            Zone::Jet     => mc * 1e6,
+            Zone::Envelop => m1 * self.gamma_beta(r, q, t).powf(-1.0 / self.psi),
         }
     }
 }
@@ -107,23 +109,21 @@ impl InitialModel for JetInCloud {
 impl JetInCloud
 {
 
-    pub fn print(&self) {
-        println!();
-        println!("jet_in_cloud model description:");
-        println!("t1 (slowest envelop shell comes through launch_radius) = {:.04}", self.get_t1());
-        println!("t2 (the jet turns on)                                  = {:.04}", self.get_t2());
-        println!("t3 (jet head comes through launch_radius)              = {:.04}", self.get_t3());
-        println!("t4 (time when the jet turns off)                       = {:.04}", self.get_t4());
-        println!();
-    }
-
-    pub fn envelop_slowest_u(&self) -> f64 {
-        let b = self.envelop_slowest_beta;
-        b / (1.0 - b * b).sqrt()
-    }
-
-    pub fn engine_beta(&self) -> f64 {
-        self.engine_u / (1.0 + self.engine_u.powi(2)).sqrt()
+    /**
+     * Print a summary of the relevant times in the model
+     */
+    pub fn print<Writer: std::io::Write>(&self, writer: &mut Writer) {
+        writeln!(writer,
+            r#"
+        jet_in_cloud model description:
+        t1 (slowest envelop shell comes through launch_radius) = {:.04}
+        t2 (the jet turns on)                                  = {:.04}
+        t3 (jet head comes through launch_radius)              = {:.04}
+        t4 (time when the jet turns off)                       = {:.04}
+        "#, self.get_t1(),
+            self.get_t2(),
+            self.get_t3(),
+            self.get_t4()).unwrap();
     }
 
     /**
@@ -152,6 +152,21 @@ impl JetInCloud
      */
     pub fn get_t4(&self) -> f64 {
         self.get_t2() + self.engine_duration
+    }
+
+    /**
+     * Four-velocity gamma-beta of the slowest envelop shell
+     */
+    pub fn envelop_slowest_u(&self) -> f64 {
+        let b = self.envelop_slowest_beta;
+        b / (1.0 - b * b).sqrt()
+    }
+
+    /**
+     * Jet velocity: v_jet / c
+     */
+    pub fn engine_beta(&self) -> f64 {
+        self.engine_u / (1.0 + self.engine_u.powi(2)).sqrt()
     }
 
     /**
@@ -230,7 +245,7 @@ impl JetInCloud
      * * `t` - The time
      */
     pub fn mass_flux(&self, r: f64, q: f64, t: f64) -> f64 {
-        let m0 = self.envelop_mass;
+        let m1 = self.relativistic_mass;
         let mc = self.cloud_mass;
 
         match self.zone(r, q, t) {
@@ -239,8 +254,8 @@ impl JetInCloud
             },
             Zone::Envelop => {
                 let s = f64::min(r / t / LIGHT_SPEED, MAX_BETA);
-                let f = f64::powf(s / self.envelop_slowest_u(), -1.0 / self.psi) * f64::powf(1.0 - s * s, 0.5 / self.psi - 1.0);
-                m0 / (4.0 * PI * self.psi * t) * f
+                let f = f64::powf(s, -1.0 / self.psi) * f64::powf(1.0 - s * s, 0.5 / self.psi - 1.0);
+                m1 / (4.0 * PI * self.psi * t) * f
             },
             Zone::Jet => {
                 self.get_engine_mass_flux()                

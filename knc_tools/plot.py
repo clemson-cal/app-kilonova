@@ -19,6 +19,8 @@ class Block:
             return self.primitive[key]
         elif key == 's':
             return self.field('pre') / self.field('rho')**(4/3)
+        elif key == 'scalar':
+            return self.scalar
 
     def pcolormesh_data(self, field, log=False):
         R, Q = [x.T for x in np.meshgrid(self.radial_vertices, self.polar_vertices)]
@@ -36,7 +38,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("filenames", nargs='+')
     parser.add_argument('-r', '--range', default='None,None', help='vmin and vmax parameters for the relief plot')
-    parser.add_argument('-f', '--field', default='rho', choices=list(primitive_dtype.fields) + ['s'])
+    parser.add_argument('-f', '--field', default='rho', choices=list(primitive_dtype.fields) + ['s', 'scalar'])
     parser.add_argument('-l', '--log', action='store_true')
     args = parser.parse_args()
 

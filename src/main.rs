@@ -27,23 +27,20 @@ mod traits;
 
 // ============================================================================
 use std::{
+    ffi::OsStr,
     fs::{
         File,
         read_to_string,
     },
+    io::BufWriter,
     path::Path,
-    ffi::OsStr,
 };
 use serde::{
     Serialize,
     Deserialize,
 };
-use enum_dispatch::{
-    enum_dispatch,
-};
-use mesh::{
-    Mesh,
-};
+use enum_dispatch::enum_dispatch;
+use mesh::Mesh;
 use models::{
     JetInCloud,
     HaloKilonova,
@@ -52,20 +49,14 @@ use physics::{
     AgnosticPrimitive,
     RelativisticHydro,
 };
-use products::{
-    Products,
-};
-use state::{
-    State,
-};
+use products::Products;
+use state::State;
 use traits::{
     Conserved,
     Hydrodynamics,
     InitialModel,
 };
-use tasks::{
-    Tasks,
-};
+use tasks::Tasks;
 
 
 
@@ -294,7 +285,7 @@ where
         let filename = format!("{}/prods.{:04}.pk", outdir, tasks.write_products.count - 1);
         let config = Configuration::package(hydro, model, mesh, control);
         let products = Products::from_state(state, hydro, mesh, &config)?;
-        let mut buffer = std::io::BufWriter::new(File::create(&filename)?);
+        let mut buffer = BufWriter::new(File::create(&filename)?);
         println!("write {}", filename);
         serde_pickle::to_writer(&mut buffer, &products, true)?;
     }
@@ -303,7 +294,7 @@ where
         tasks.write_checkpoint.advance(control.checkpoint_interval);
         let filename = format!("{}/chkpt.{:04}.pk", outdir, tasks.write_checkpoint.count - 1);
         let app = App::package(state, tasks, hydro, model, mesh, control);
-        let mut buffer = std::io::BufWriter::new(File::create(&filename)?);
+        let mut buffer = BufWriter::new(File::create(&filename)?);
         println!("write {}", filename);
         serde_pickle::to_writer(&mut buffer, &app, true)?;
     }
@@ -347,11 +338,12 @@ fn main() -> anyhow::Result<()> {
     };
     let outdir = parent_directory(&input);
 
-    println!("{}", DESCRIPTION);
-    println!("{}", VERSION_AND_BUILD);
     println!();
-    println!("input file ........ {}", input);
-    println!("output drectory ... {}", outdir);
+    println!("\t{}", DESCRIPTION);
+    println!("\t{}", VERSION_AND_BUILD);
+    println!();
+    println!("\tinput file ........ {}", input);
+    println!("\toutput drectory ... {}", outdir);
 
     let App{state, tasks, config, ..} = App::from_file(&input)?;
     let Configuration{hydro, model, mesh, control} = config;

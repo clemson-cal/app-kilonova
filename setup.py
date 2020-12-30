@@ -12,7 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/clemson-cal/app-kilonova",
-    packages=setuptools.find_packages(),
+    packages=['knc_tools'],
     entry_points={
         'console_scripts': [
             'knc-plot = knc_tools.plot:main',
