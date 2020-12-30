@@ -47,6 +47,8 @@ def main():
         ax1 = fig.add_subplot(1, 1, 1)
         prods = pickle.load(open(filename, 'rb'))
 
+        fig.suptitle(r'$t = {:.4}s$'.format(prods['time']))
+
         pcolormesh_data = [Block(**block).pcolormesh_data(args.field, log=args.log) for block in prods['blocks'].values()]
         vmin = min([c.min() for _, _, c in pcolormesh_data]) if vmin is None else vmin
         vmax = max([c.max() for _, _, c in pcolormesh_data]) if vmax is None else vmax

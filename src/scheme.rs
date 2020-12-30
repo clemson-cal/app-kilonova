@@ -86,10 +86,14 @@ where
 		let hyr = hy.slice(s![2..-2, 1..  ]);
 
 		let godunov_x = Array::from_shape_fn(pxl.dim(), |i| {
-		    hydro.intercell_flux(pxl[i] + gxl[i] * 0.5, pxr[i] - gxr[i] * 0.5, sxl[i] + hxl[i] * 0.5, sxr[i] - hxr[i] * 0.5, Direction::Radial)
+		    hydro.intercell_flux(
+		    	pxl[i] + gxl[i] * 0.5, pxr[i] - gxr[i] * 0.5,
+		    	sxl[i] + hxl[i] * 0.5, sxr[i] - hxr[i] * 0.5, Direction::Radial)
 		});
 		let godunov_y = Array::from_shape_fn(pyl.dim(), |i| {
-		    hydro.intercell_flux(pyl[i] + gyl[i] * 0.5, pyr[i] - gyr[i] * 0.5, syl[i] + hyl[i] * 0.5, syr[i] - hyr[i] * 0.5, Direction::Polar)
+		    hydro.intercell_flux(
+		    	pyl[i] + gyl[i] * 0.5, pyr[i] - gyr[i] * 0.5,
+		    	syl[i] + hyl[i] * 0.5, syr[i] - hyr[i] * 0.5, Direction::Polar)
 		});
 		let geometry = &geometry[&index];
 
@@ -121,7 +125,7 @@ where
 
 		let new_state = BlockState{
 			conserved: (&state.conserved + &du).to_shared(),
-			scalar_mass: (&state.scalar_mass + & ds).to_shared(),
+			scalar_mass: (&state.scalar_mass + &ds).to_shared(),
 		};
 		new_solution.insert(*index, new_state);
 	}

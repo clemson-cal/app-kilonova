@@ -279,7 +279,7 @@ where
         let time = tasks.iteration_message.advance(0.0);
         let mzps = 1e-6 * state.total_zones() as f64 / time;
         if tasks.iteration_message.count_this_run > 1 {
-            println!("[{:05}] t={:.3} blocks={} Mzps={:.2})", state.iteration, state.time, state.solution.len(), mzps);
+            println!("[{:05}] t={:.5} blocks={} Mzps={:.2})", state.iteration, state.time, state.solution.len(), mzps);
         }
     }
 
