@@ -87,10 +87,17 @@ impl<C: Conserved> State<C> {
         Self{time, iteration, solution}
     }
 
+    /**
+     * Return the total number of grid zones in this state.
+     */
     pub fn total_zones(&self) -> usize {
         self.solution.values().map(|solution| solution.conserved.len()).sum()
     }
 
+    /**
+     * Return the indexes of "ghost blocks" just inside and outside the mesh
+     * radial extent.
+     */
     pub fn inner_outer_boundary_indexes(&self) -> (BlockIndex, BlockIndex) {
         let mut min = (i32::MAX, 0);
         let mut max = (i32::MIN, 0);

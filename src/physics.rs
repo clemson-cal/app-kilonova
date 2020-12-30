@@ -47,8 +47,14 @@ pub struct AgnosticPrimitive {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RelativisticHydro {
+
+    /// Index for the gamma-law equation of state, must be 4/3 for now
     pub gamma_law_index: f64,
+
+    /// Parameter for gradient estimation: [1, 2]
     pub plm_theta: f64,
+
+    /// Time step size: [0.0, 0.7]
     pub cfl_number: f64,
 }
 
