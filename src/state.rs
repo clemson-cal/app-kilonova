@@ -126,6 +126,25 @@ impl<C: Conserved> runge_kutta::WeightedAverage for BlockState<C> {
 
 
 // ============================================================================
+impl<C: Conserved> runge_kutta::WeightedAverage for State<C> {
+    fn weighted_average(self, br: Rational64, s0: &Self) -> Self {
+        let bf = br.to_f64().unwrap();
+        let s_avg = self.solution
+            .into_iter()
+            .map(|(index, s1)| (index, s1.weighted_average(br, &s0.solution[&index])));
+
+        Self{
+            time:      self.time      * (-bf + 1.) + s0.time      * bf,
+            iteration: self.iteration * (-br + 1 ) + s0.iteration * br,
+            solution: s_avg.into_iter().collect(),
+        }
+    }
+}
+
+
+
+
+// ============================================================================
 #[async_trait::async_trait]
 impl<C: Conserved> runge_kutta::WeightedAverageAsync for State<C> {
 
@@ -147,7 +166,7 @@ impl<C: Conserved> runge_kutta::WeightedAverageAsync for State<C> {
             }
         });
 
-        State{
+        Self{
             time:      self.time      * (-bf + 1.) + s0.time      * bf,
             iteration: self.iteration * (-br + 1 ) + s0.iteration * br,
             solution: join_all(s_avg).await.into_iter().collect(),
