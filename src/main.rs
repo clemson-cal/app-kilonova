@@ -335,11 +335,11 @@ where
 // ============================================================================
 fn main() -> anyhow::Result<()> {
 
-    let App{state, tasks, config, ..} = App::build()?;
-    let Configuration{hydro, model, mesh, control} = config;
-
     println!("{}", DESCRIPTION);
     println!("{}", VERSION_AND_BUILD);
+
+    let App{state, tasks, config, ..} = App::build()?;
+    let Configuration{hydro, model, mesh, control} = config;
 
     match (state, hydro) {
         (AgnosticState::Euler, _) => {

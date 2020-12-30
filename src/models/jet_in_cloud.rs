@@ -18,7 +18,7 @@ static GAMMA_LAW_INDEX: f64 = 4.0 / 3.0;
 #[serde(deny_unknown_fields)]
 pub struct JetInCloud {
 
-    /// Four-velocity of the slowest envelop shell
+    /// Radius where the inflow starts from [cm]
     pub launch_radius: f64,
 
     /// Index psi in u(m) ~ m^-psi
@@ -42,11 +42,11 @@ pub struct JetInCloud {
     /// Time following the cloud onset when the jet begins
     pub envelop_mass: f64,
 
+    /// Beta (v/c) of the slowest envelop shell
+    pub envelop_slowest_beta: f64,
+
     /// Mass of the merger ejecta cloud
     pub psi: f64,
-
-    /// Radius where the inflow starts from [cm]
-    pub u_min: f64,
 }
 
 
@@ -94,7 +94,7 @@ impl InitialModel for JetInCloud {
 
         match self.zone(r, q, t) {
             Zone::Cloud => self.envelop_mass * 1e2,
-            Zone::Envelop => self.envelop_mass * (self.gamma_beta(r, q, t) / self.u_min).powf(-1.0 / self.psi),
+            Zone::Envelop => self.envelop_mass * (self.gamma_beta(r, q, t) / self.envelop_slowest_u()).powf(-1.0 / self.psi),
             Zone::Jet => self.envelop_mass * 1e-12
         }
     }
@@ -108,12 +108,18 @@ impl JetInCloud
 {
 
     pub fn print(&self) {
-        println!("\tjet_in_cloud model description:\n");
-        println!("\tt1 (slowest envelop shell comes through launch_radius) = {:.04}", self.get_t1());
-        println!("\tt2 (the jet turns on)                                  = {:.04}", self.get_t2());
-        println!("\tt3 (jet head comes through launch_radius)              = {:.04}", self.get_t3());
-        println!("\tt4 (time when the jet turns off)                       = {:.04}", self.get_t4());
         println!();
+        println!("jet_in_cloud model description:");
+        println!("t1 (slowest envelop shell comes through launch_radius) = {:.04}", self.get_t1());
+        println!("t2 (the jet turns on)                                  = {:.04}", self.get_t2());
+        println!("t3 (jet head comes through launch_radius)              = {:.04}", self.get_t3());
+        println!("t4 (time when the jet turns off)                       = {:.04}", self.get_t4());
+        println!();
+    }
+
+    pub fn envelop_slowest_u(&self) -> f64 {
+        let b = self.envelop_slowest_beta;
+        b / (1.0 - b * b).sqrt()
     }
 
     pub fn engine_beta(&self) -> f64 {
@@ -124,8 +130,7 @@ impl JetInCloud
      * The time when the slowest envelop shell comes through the launch radius
      */
     pub fn get_t1(&self) -> f64 {
-        let v_min = self.u_min / (1.0 + self.u_min.powi(2)).sqrt() * LIGHT_SPEED;
-        self.launch_radius / v_min
+        self.launch_radius / self.envelop_slowest_beta / LIGHT_SPEED
     }
 
     /**
@@ -177,7 +182,7 @@ impl JetInCloud
      * * `t` - Time
      */
     pub fn zone(&self, r: f64, q: f64, t: f64) -> Zone {
-        let v_min = self.u_min / f64::sqrt(1.0 + self.u_min * self.u_min) * LIGHT_SPEED;
+        let v_min = self.envelop_slowest_beta * LIGHT_SPEED;
         let v_jet = self.engine_beta() * LIGHT_SPEED;
 
         let r_cloud_envelop_interface = v_min * t;
@@ -204,7 +209,7 @@ impl JetInCloud
 
         match self.zone(r, q, t) {
             Zone::Cloud => {
-                self.u_min
+                self.envelop_slowest_u()
             },
             Zone::Envelop => {
                 let b = f64::min(r / t / LIGHT_SPEED, MAX_BETA);
@@ -234,7 +239,7 @@ impl JetInCloud
             },
             Zone::Envelop => {
                 let s = f64::min(r / t / LIGHT_SPEED, MAX_BETA);
-                let f = f64::powf(s / self.u_min, -1.0 / self.psi) * f64::powf(1.0 - s * s, 0.5 / self.psi - 1.0);
+                let f = f64::powf(s / self.envelop_slowest_u(), -1.0 / self.psi) * f64::powf(1.0 - s * s, 0.5 / self.psi - 1.0);
                 m0 / (4.0 * PI * self.psi * t) * f
             },
             Zone::Jet => {

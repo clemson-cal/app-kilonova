@@ -18,15 +18,15 @@ where
 
 	let dt = hydro.time_step(state, mesh);
 
-	let mut primitive_map = HashMap::new();
-	let mut scalar_map = HashMap::new();
-	let mut new_solution = HashMap::new();
+	let mut primitive_map = HashMap::with_capacity(state.solution.len() + 2);
+	let mut scalar_map    = HashMap::with_capacity(state.solution.len() + 2);
+	let mut new_solution  = HashMap::with_capacity(state.solution.len());
 
 	let mut insert_into_map = |index, state: &BlockState<C>, geometry: &GridGeometry| {
 		let scalar = &state.scalar_mass / &state.conserved.mapv(|u| u.lab_frame_mass());
 		let primitive = (&state.conserved / &geometry.cell_volumes).mapv(|q| hydro.to_primitive(q));
-		primitive_map.insert(index, primitive);
 		scalar_map.insert(index, scalar);
+		primitive_map.insert(index, primitive);
 	};
 
 	for (&index, state) in &state.solution {
