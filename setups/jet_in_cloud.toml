@@ -2,29 +2,29 @@
 system = "relativistic"
 gamma_law_index = 1.333
 plm_theta = 1.25
-cfl_number = 0.4
+cfl_number = 0.2
 
 [model]
 setup = "jet_in_cloud"
-launch_radius = 1e8
-cloud_mass = 1e32
+launch_radius = 3e8
+cloud_mass = 2e31
 engine_delay = 1.0
 engine_duration = 1.0
 engine_strength = 1.0
 engine_theta = 0.1
 engine_u = 30.0
 envelop_mass = 1e30
+envelop_slowest_beta = 0.1
 psi = 0.25
-u_min = 0.1
 
 [mesh]
-inner_radius = 1e8
-outer_radius = 3e10
-num_polar_zones = 1024
-block_size = 32
+inner_radius = 3e8
+outer_radius = 2e10
+num_polar_zones = 256
+block_size = 16
 
 [control]
-final_time = 1.0
-start_time = 1.0
+final_time = 1.03
+start_time = 1.02
 checkpoint_interval = 1.0
-products_interval = 1.0
+products_interval = 0.001

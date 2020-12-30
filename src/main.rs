@@ -204,11 +204,15 @@ impl Configuration {
 // ============================================================================
 impl App {
 
+    fn validate(self) -> anyhow::Result<Self> {
+        self.config.validate()?;
+        Ok(self)
+    }
+
     /**
      * Construct a new App instance from a user configuration
      */
     fn from_config(config: Configuration) -> anyhow::Result<Self> {
-        config.validate()?;
         let geometry = config.mesh.grid_blocks_geometry();
         let state = match &config.hydro {
             AgnosticHydro::Euler => {
@@ -228,20 +232,10 @@ impl App {
      */
     fn from_file(filename: &str) -> anyhow::Result<Self> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
-            Some("yaml") => Self::from_config(serde_yaml::from_reader(File::open(filename)?)?),
-            Some("toml") => Self::from_config(toml::from_str(&read_to_string(filename)?)?),
+            Some("yaml") => Self::from_config(serde_yaml::from_reader(File::open(filename)?)?)?.validate(),
+            Some("toml") => Self::from_config(toml::from_str(&read_to_string(filename)?)?)?.validate(),
             Some("pk") => Ok(serde_pickle::from_reader(File::open(filename)?)?),
             _ => anyhow::bail!("unknown input file type '{}'", filename),
-        }
-    }
-
-    /**
-     * Construct a new App instance from the command line arguments
-     */
-    fn build() -> anyhow::Result<Self> {
-        match std::env::args().skip(1).next() {
-            None => anyhow::bail!("no input file given"),
-            Some(filename) => Self::from_file(&filename),
         }
     }
 
@@ -267,7 +261,19 @@ impl App {
 
 
 // ============================================================================
-fn side_effects<C, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &Model, mesh: &Mesh, control: &Control)
+fn parent_directory(path_str: &str) -> String {
+    match Path::new(&path_str).parent().and_then(Path::to_str) {
+        None     => ".",
+        Some("") => ".",
+        Some(parent) => parent,
+    }.into()
+}
+
+
+
+
+// ============================================================================
+fn side_effects<C, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &Model, mesh: &Mesh, control: &Control, outdir: &str)
     -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
@@ -285,7 +291,7 @@ where
 
     if tasks.write_products.next_time <= state.time {
         tasks.write_products.advance(control.products_interval);
-        let filename = format!("prods.{:04}.pk", tasks.write_products.count - 1);
+        let filename = format!("{}/prods.{:04}.pk", outdir, tasks.write_products.count - 1);
         let config = Configuration::package(hydro, model, mesh, control);
         let products = Products::from_state(state, hydro, mesh, &config)?;
         let mut buffer = std::io::BufWriter::new(File::create(&filename)?);
@@ -295,7 +301,7 @@ where
 
     if tasks.write_checkpoint.next_time <= state.time {
         tasks.write_checkpoint.advance(control.checkpoint_interval);
-        let filename = format!("chkpt.{:04}.pk", tasks.write_checkpoint.count - 1);
+        let filename = format!("{}/chkpt.{:04}.pk", outdir, tasks.write_checkpoint.count - 1);
         let app = App::package(state, tasks, hydro, model, mesh, control);
         let mut buffer = std::io::BufWriter::new(File::create(&filename)?);
         println!("write {}", filename);
@@ -309,7 +315,7 @@ where
 
 
 // ============================================================================
-fn run<C, H>(mut state: State<C>, mut tasks: Tasks, hydro: H, model: Model, mesh: Mesh, control: Control)
+fn run<C, H>(mut state: State<C>, mut tasks: Tasks, hydro: H, model: Model, mesh: Mesh, control: Control, outdir: String)
     -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
@@ -320,11 +326,11 @@ where
     let block_geometry = mesh.grid_blocks_geometry();
 
     while state.time < control.final_time {
-        side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
+        side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
         scheme::advance(&mut state, &hydro, &model, &mesh, &block_geometry)?;
     }
 
-    side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
+    side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
 
     Ok(())
 }
@@ -335,10 +341,19 @@ where
 // ============================================================================
 fn main() -> anyhow::Result<()> {
 
+    let input = match std::env::args().skip(1).next() {
+        None => anyhow::bail!("no input file given"),
+        Some(input) => input,
+    };
+    let outdir = parent_directory(&input);
+
     println!("{}", DESCRIPTION);
     println!("{}", VERSION_AND_BUILD);
+    println!();
+    println!("input file ........ {}", input);
+    println!("output drectory ... {}", outdir);
 
-    let App{state, tasks, config, ..} = App::build()?;
+    let App{state, tasks, config, ..} = App::from_file(&input)?;
     let Configuration{hydro, model, mesh, control} = config;
 
     match (state, hydro) {
@@ -346,7 +361,7 @@ fn main() -> anyhow::Result<()> {
             anyhow::bail!("Euler hydrodynamics not implemented")
         },
         (AgnosticState::Relativistic(state), AgnosticHydro::Relativistic(hydro)) => {
-            run(state, tasks, hydro, model, mesh, control)
+            run(state, tasks, hydro, model, mesh, control, outdir)
         },
         _ => unreachable!(),
     }
