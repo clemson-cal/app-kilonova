@@ -215,12 +215,11 @@ impl App {
     }
 
     /**
-     * Construct a new App instance from a file: may be a config.toml,
-     * config.yaml, or a chkpt.0000.pk.
+     * Construct a new App instance from a file: may be a config.toml or a
+     * chkpt.0000.pk.
      */
     fn from_file(filename: &str) -> anyhow::Result<Self> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
-            Some("yaml") => Self::from_config(serde_yaml::from_reader(File::open(filename)?)?)?.validate(),
             Some("toml") => Self::from_config(toml::from_str(&read_to_string(filename)?)?)?.validate(),
             Some("pk") => Ok(serde_pickle::from_reader(File::open(filename)?)?),
             _ => anyhow::bail!("unknown input file type '{}'", filename),
