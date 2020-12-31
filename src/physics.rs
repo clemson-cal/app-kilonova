@@ -25,7 +25,7 @@ pub enum Direction {
  * Enum for Riemann solver type
  */
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case", tag = "type")]
 pub enum RiemannSolver {
     Hlle,
     Hllc,
