@@ -22,6 +22,19 @@ pub enum Direction {
 
 
 /**
+ * Enum for Riemann solver type
+ */
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RiemannSolver {
+    Hlle,
+    Hllc,
+}
+
+
+
+
+/**
  * Primitive variable state that is agnostic to the hydrodynamics system
  */
 pub struct AgnosticPrimitive {
@@ -58,8 +71,11 @@ pub struct RelativisticHydro {
     /// Time step size: [0.0, 0.7]
     pub cfl_number: f64,
 
-    /// Runge-Kutta order: [rk1, rk2, rk3]
+    /// Runge-Kutta order: [RK1|RK2|RK3]
     pub runge_kutta_order: RungeKuttaOrder,
+
+    /// Riemann solver: [hlle|hllc]
+    pub riemann_solver: RiemannSolver,
 }
 
 
@@ -112,7 +128,10 @@ impl Hydrodynamics for RelativisticHydro {
     }
 
     fn intercell_flux(&self, pl: Self::Primitive, pr: Self::Primitive, sl: f64, sr: f64, direction: Direction) -> (Self::Conserved, f64) {
-        let mode = hydro_srhd::srhd_2d::RiemannSolverMode::HlleFlux;
+        let mode = match self.riemann_solver {
+            RiemannSolver::Hlle => hydro_srhd::srhd_2d::RiemannSolverMode::HlleFlux,
+            RiemannSolver::Hllc => hydro_srhd::srhd_2d::RiemannSolverMode::HllcFlux,
+        };            
         let axis = match direction {
             Direction::Radial => hydro_srhd::geometry::Direction::X,
             Direction::Polar  => hydro_srhd::geometry::Direction::Y,
