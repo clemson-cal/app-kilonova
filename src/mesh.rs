@@ -97,8 +97,8 @@ fn face_area(c0: (f64, f64), c1: (f64, f64)) -> f64
 impl SphericalPolarExtent {
 
     /**
-     * Create a grid from this r-theta area with the given number of zones in the
-     * polar and radial directions
+     * Create a grid from this r-theta area with the given number of zones in
+     * the radial and polar directions.
      */
     pub fn grid(&self, num_zones_r: usize, num_zones_q: usize) -> SphericalPolarGrid {
         SphericalPolarGrid{
@@ -109,7 +109,7 @@ impl SphericalPolarExtent {
     }
 
     /**
-     * Return the geometric centroid of this r-theta area
+     * Return the geometric centroid of this r-theta area.
      */
     pub fn centroid(&self) -> (f64, f64) {
         let q = 0.5 * (self.lower_theta + self.upper_theta);
@@ -118,7 +118,7 @@ impl SphericalPolarExtent {
     }
 
     /**
-     * Return the 3D volume of this extent
+     * Return the 3D volume of this extent.
      */
     pub fn volume(&self) -> f64 {
         let c0 = (self.inner_radius, self.lower_theta);
@@ -127,7 +127,7 @@ impl SphericalPolarExtent {
     }
 
     /**
-     * Return the area of the inner radial surface
+     * Return the area of the inner radial surface.
      */
     pub fn face_area_r(&self) -> f64 {
         let c0 = (self.inner_radius, self.lower_theta);
@@ -136,7 +136,7 @@ impl SphericalPolarExtent {
     }
 
     /**
-     * Return the area of the lower theta surface
+     * Return the area of the lower theta surface.
      */
     pub fn face_area_q(&self) -> f64 {
         let c0 = (self.inner_radius, self.lower_theta);

@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 primitive_dtype = np.dtype([('rho', float), ('ur', float), ('uq', float), ('pre', float)])
 
 
+def array(d, dtype=float):
+    return np.array(d['data'], dtype=dtype).reshape(d['dim'])
+
+
 class Block:
     def __init__(self, radial_vertices=None, polar_vertices=None, scalar=None, primitive=None):
         self.radial_vertices = array(radial_vertices)
@@ -17,7 +21,7 @@ class Block:
     def field(self, key):
         if key in primitive_dtype.fields:
             return self.primitive[key]
-        elif key == 's':
+        elif key == 'entropy':
             return self.field('pre') / self.field('rho')**(4/3)
         elif key == 'scalar':
             return self.scalar
@@ -30,15 +34,11 @@ class Block:
         return x, z, np.log10(c) if log else c
 
 
-def array(d, dtype=float):
-    return np.array(d['data'], dtype=dtype).reshape(d['dim'])
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("filenames", nargs='+')
     parser.add_argument('-r', '--range', default='None,None', help='vmin and vmax parameters for the relief plot')
-    parser.add_argument('-f', '--field', default='rho', choices=list(primitive_dtype.fields) + ['s', 'scalar'])
+    parser.add_argument('-f', '--field', default='rho', choices=list(primitive_dtype.fields) + ['entropy', 'scalar'])
     parser.add_argument('-l', '--log', action='store_true')
     args = parser.parse_args()
 
