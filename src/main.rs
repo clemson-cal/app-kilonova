@@ -192,6 +192,10 @@ impl Configuration {
 // ============================================================================
 impl App {
 
+    /**
+     * Return self as a result, which will be in an error state if any of the
+     * configuration items did not pass validation.
+     */
     fn validate(self) -> anyhow::Result<Self> {
         self.config.validate()?;
         Ok(self)
@@ -220,9 +224,20 @@ impl App {
      */
     fn from_file(filename: &str) -> anyhow::Result<Self> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
-            Some("toml") => Self::from_config(toml::from_str(&read_to_string(filename)?)?)?.validate(),
+            Some("toml") => Self::from_config(toml::from_str(&read_to_string(filename)?)?),
             Some("pk") => Ok(serde_pickle::from_reader(File::open(filename)?)?),
             _ => anyhow::bail!("unknown input file type '{}'", filename),
+        }
+    }
+
+    /**
+     * Construct a new App instance from a preset (hard-coded) configuration
+     * name, or otherwise an input file if no matching preset is found.
+     */
+    fn from_preset_or_file(input: &str) -> anyhow::Result<Self> {
+        match input {
+            "jet_in_cloud" => Self::from_config(toml::from_str(std::include_str!("../setups/jet_in_cloud.toml"))?),
+            _ => Self::from_file(input),
         }
     }
 
@@ -341,7 +356,7 @@ fn main() -> anyhow::Result<()> {
     println!("\tinput file ........ {}", input);
     println!("\toutput drectory ... {}", outdir);
 
-    let App{state, tasks, config, ..} = App::from_file(&input)?;
+    let App{state, tasks, config, ..} = App::from_preset_or_file(&input)?.validate()?;
     let Configuration{hydro, model, mesh, control} = config;
 
     match (state, hydro) {
