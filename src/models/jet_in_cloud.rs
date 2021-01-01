@@ -18,7 +18,7 @@ static GAMMA_LAW_INDEX: f64 = 4.0 / 3.0;
 #[serde(deny_unknown_fields)]
 pub struct JetInCloud {
 
-    /// Radius where the inflow starts from [cm]
+    /// Radius where the inflow starts from
     pub launch_radius: f64,
 
     /// Mass of the merger ejecta cloud

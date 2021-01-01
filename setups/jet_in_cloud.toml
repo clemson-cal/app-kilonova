@@ -22,6 +22,8 @@ psi = 0.25
 [mesh]
 inner_radius = 3e8
 outer_radius = 2e10
+inner_excision_speed = 0.1
+outer_excision_speed = 1.0
 num_polar_zones = 256
 block_size = 16
 

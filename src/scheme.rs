@@ -141,11 +141,42 @@ where
 
 
 // ============================================================================
-pub fn advance<H, C>(mut state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>)
+fn add_remove_blocks<H, C>(state: &mut State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>)
+where
+    H: Hydrodynamics<Conserved = C>,
+    C: Conserved {
+
+    let (inner_index, outer_index) = state.inner_outer_block_indexes();
+    let solution = &mut state.solution;
+
+    if mesh.subgrid_extent(inner_index).outer_radius < mesh.inner_excision_surface(state.time) {
+        geometry.remove(&inner_index);
+        solution.remove(&inner_index);
+    }
+
+    if mesh.subgrid_extent(outer_index).outer_radius < mesh.outer_excision_surface(state.time) {
+        let new_block_index = (outer_index.0 + 1, outer_index.1);
+        let new_block_geometry = mesh.subgrid(new_block_index).geometry();
+        let new_block_state = BlockState::from_model(model, hydro, &new_block_geometry, state.time);
+
+        geometry.insert(new_block_index, new_block_geometry);
+        solution.insert(new_block_index, new_block_state);
+    }    
+}
+
+
+
+
+// ============================================================================
+pub fn advance<H, C>(mut state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>)
     -> anyhow::Result<State<C>>
 where
     H: Hydrodynamics<Conserved = C>,
     C: Conserved {
+
+    if mesh.moving_excision_surfaces() {
+        add_remove_blocks(&mut state, hydro, model, mesh, geometry);
+    }
 
     let update = |state| advance_rk(state, hydro, model, mesh, geometry).unwrap();
     let runge_kutta = hydro.runge_kutta_order();

@@ -62,6 +62,12 @@ pub struct Mesh {
     /// Outer radius; the grid may extend up to one block past this
     pub outer_radius: f64,
 
+    /// Speed of the inner excision surface (IES)
+    pub inner_excision_speed: f64,
+
+    /// Speed of the outer excision surface (OES)
+    pub outer_excision_speed: f64,
+
     /// Number of zones from pole to pole
     pub num_polar_zones: usize,
 
@@ -231,6 +237,15 @@ impl Mesh {
         if self.outer_radius <= self.inner_radius {
             anyhow::bail!("outer_radius <= inner_radius")
         }
+        if self.inner_excision_speed < 0.0 {
+            anyhow::bail!("inner_excision_speed < 0.0")            
+        }
+        if self.outer_excision_speed < 0.0 {
+            anyhow::bail!("outer_excision_speed < 0.0")            
+        }
+        if self.outer_excision_speed < self.inner_excision_speed {
+            anyhow::bail!("outer_excision_speed < inner_excision_speed (the IES will eventually overtake the OES)")            
+        }
         Ok(())
     }
 
@@ -243,10 +258,36 @@ impl Mesh {
     }
 
     /**
+     * Return true if either of the IES or the OES have non-zero speeds.
+     */
+    pub fn moving_excision_surfaces(&self) -> bool {
+        self.inner_excision_speed > 0.0 || self.outer_excision_speed > 0.0
+    }
+
+    /**
+     * Radius of the inner excision surface (IES). The IES is at the
+     * `inner_radius` at t=0, and moves outwards at the speed
+     * `inner_excision_speed`. Mesh blocks are removed from the mesh if they are
+     * fully within the IES.
+     */
+    pub fn inner_excision_surface(&self, time: f64) -> f64 {
+        self.inner_radius + time * self.inner_excision_speed
+    }
+
+    /**
+     * Radius of the outer excision surface (OES). The OES is at the
+     * `outer_radius` at t=0, and moves outwards at the speed
+     * `outer_excision_speed`. Mesh blocks are added to the mesh if they are
+     * fully within by the OES, but not fully within the IES.
+     */
+    pub fn outer_excision_surface(&self, time: f64) -> f64 {
+        self.outer_radius + time * self.outer_excision_speed
+    }
+
+    /**
      * Return the extent of the subgrid at this index.
      */
     pub fn subgrid_extent(&self, index: BlockIndex) -> SphericalPolarExtent {
-        assert!(self.outer_radius > self.inner_radius);
         let block_dlogr = self.block_size as f64 * std::f64::consts::PI / self.num_polar_zones as f64;
         SphericalPolarExtent{
             inner_radius: self.inner_radius * (1.0 + block_dlogr).powf(index.0 as f64),

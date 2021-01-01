@@ -99,11 +99,22 @@ impl<C: Conserved> State<C> {
      * radial extent.
      */
     pub fn inner_outer_boundary_indexes(&self) -> (BlockIndex, BlockIndex) {
+        self.min_max_block_indexes_offset_by(1)
+    }
+
+    /**
+     * Return the indexes of the innermost and outermost block indexes.
+     */
+    pub fn inner_outer_block_indexes(&self) -> (BlockIndex, BlockIndex) {
+        self.min_max_block_indexes_offset_by(0)
+    }
+
+    fn min_max_block_indexes_offset_by(&self, delta: i32) -> (BlockIndex, BlockIndex) {
         let mut min = (i32::MAX, 0);
         let mut max = (i32::MIN, 0);
         for i in self.solution.keys() {
-            min = (min.0.min(i.0 - 1), min.1);
-            max = (max.0.max(i.0 + 1), max.1);
+            min = (min.0.min(i.0 - delta), min.1);
+            max = (max.0.max(i.0 + delta), max.1);
         }
         (min, max)
     }
