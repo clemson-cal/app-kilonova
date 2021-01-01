@@ -66,7 +66,7 @@ impl<P: Primitive> Products<P> {
 		H: Hydrodynamics<Conserved = C, Primitive = P>,
 		C: Conserved {
 
-		let geometry = mesh.grid_blocks_geometry();
+		let geometry = mesh.grid_blocks_geometry(state.time);
 		let mut blocks = HashMap::new();
 
 		for (index, block_state) in &state.solution {

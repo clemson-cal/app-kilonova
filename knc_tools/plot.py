@@ -40,6 +40,7 @@ def main():
     parser.add_argument('-r', '--range', default='None,None', help='vmin and vmax parameters for the relief plot')
     parser.add_argument('-f', '--field', default='rho', choices=list(primitive_dtype.fields) + ['entropy', 'scalar'])
     parser.add_argument('-l', '--log', action='store_true')
+    parser.add_argument('--radius', default=None, type=float)
     args = parser.parse_args()
 
     vmin, vmax = eval(args.range)
@@ -58,6 +59,9 @@ def main():
         for x, z, c in pcolormesh_data:
             cm = ax1.pcolormesh(x, z, c, vmin=vmin, vmax=vmax, edgecolors='none')
 
+        if args.radius is not None:
+            ax1.set_xlim(0, args.radius)
+            ax1.set_ylim(-args.radius, args.radius)
         ax1.set_xlabel(r'$x \ [\rm{cm}]$')
         ax1.set_ylabel(r'$z \ [\rm{cm}]$')
         ax1.set_aspect('equal')

@@ -56,6 +56,9 @@ pub struct SphericalPolarGrid {
 #[serde(deny_unknown_fields)]
 pub struct Mesh {
 
+    /// Radius of the inner surface of the i=0 grid block
+    pub reference_radius: f64,
+
     /// Inner boundary radius; the grid will start precisely here
     pub inner_radius: f64,
 
@@ -233,15 +236,18 @@ impl SphericalPolarGrid {
 // ============================================================================
 impl Mesh {
 
-    pub fn validate(&self) -> anyhow::Result<()> {
-        if self.outer_radius <= self.inner_radius {
-            anyhow::bail!("outer_radius <= inner_radius")
+    pub fn validate(&self, time: f64) -> anyhow::Result<()> {
+        if self.reference_radius <= 0.0 || self.inner_radius < 0.0 || self.outer_radius < 0.0 {
+            anyhow::bail!("all radii must be positive")
         }
-        if self.inner_excision_speed < 0.0 {
-            anyhow::bail!("inner_excision_speed < 0.0")            
+        if self.reference_radius < self.inner_excision_surface(time) {
+            anyhow::bail!("the reference radius is inside the inner excision surface")
         }
-        if self.outer_excision_speed < 0.0 {
-            anyhow::bail!("outer_excision_speed < 0.0")            
+        if self.reference_radius > self.outer_excision_surface(time) {
+            anyhow::bail!("the reference radius is outside the outer excision surface")
+        }
+        if self.inner_excision_speed < 0.0 || self.outer_excision_speed < 0.0 {
+            anyhow::bail!("the excision surface speeds must be non-negative")
         }
         if self.outer_excision_speed < self.inner_excision_speed {
             anyhow::bail!("outer_excision_speed < inner_excision_speed (the IES will eventually overtake the OES)")            
@@ -290,8 +296,8 @@ impl Mesh {
     pub fn subgrid_extent(&self, index: BlockIndex) -> SphericalPolarExtent {
         let block_dlogr = self.block_size as f64 * std::f64::consts::PI / self.num_polar_zones as f64;
         SphericalPolarExtent{
-            inner_radius: self.inner_radius * (1.0 + block_dlogr).powf(index.0 as f64),
-            outer_radius: self.inner_radius * (1.0 + block_dlogr).powf(index.0 as f64 + 1.0),
+            inner_radius: self.reference_radius * (1.0 + block_dlogr).powf(index.0 as f64),
+            outer_radius: self.reference_radius * (1.0 + block_dlogr).powf(index.0 as f64 + 1.0),
             lower_theta: 0.0,
             upper_theta: std::f64::consts::PI,
         }
@@ -307,13 +313,13 @@ impl Mesh {
     /**
      * Return a map of the subgrid objects on this mesh.
      */
-    pub fn grid_blocks(&self) -> HashMap<BlockIndex, SphericalPolarGrid> {
+    pub fn grid_blocks(&self, time: f64) -> HashMap<BlockIndex, SphericalPolarGrid> {
         let mut blocks = HashMap::new();
         for i in 0.. {
             let index = (i, 0);
             let extent = self.subgrid_extent(index);
 
-            if extent.inner_radius >= self.outer_radius {
+            if extent.inner_radius >= self.outer_excision_surface(time) {
                 break
             } else {
                 blocks.insert(index, extent.grid(self.block_size, self.num_polar_zones));
@@ -325,8 +331,8 @@ impl Mesh {
     /**
      * Return a map of the subgrid geometry objects on this mesh (for convenience).
      */
-    pub fn grid_blocks_geometry(&self) -> HashMap<BlockIndex, GridGeometry> {
-        self.grid_blocks()
+    pub fn grid_blocks_geometry(&self, time: f64) -> HashMap<BlockIndex, GridGeometry> {
+        self.grid_blocks(time)
             .iter()
             .map(|(&index, grid)| (index, grid.geometry()))
             .collect()

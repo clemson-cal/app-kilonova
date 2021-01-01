@@ -10,13 +10,11 @@ use crate::traits::{Conserved, Hydrodynamics};
 
 
 // ============================================================================
-fn advance_rk<H, C>(state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>)
+fn advance_rk<H, C>(state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>, dt: f64)
     -> anyhow::Result<State<C>>
 where
     H: Hydrodynamics<Conserved = C>,
     C: Conserved {
-
-    let dt = hydro.time_step(&state, mesh);
 
     let mut primitive_map = HashMap::with_capacity(state.solution.len() + 2);
     let mut scalar_map    = HashMap::with_capacity(state.solution.len() + 2);
@@ -174,11 +172,13 @@ where
     H: Hydrodynamics<Conserved = C>,
     C: Conserved {
 
+    let dt = hydro.time_step(&state, mesh);
+
     if mesh.moving_excision_surfaces() {
         add_remove_blocks(&mut state, hydro, model, mesh, geometry);
     }
 
-    let update = |state| advance_rk(state, hydro, model, mesh, geometry).unwrap();
+    let update = |state| advance_rk(state, hydro, model, mesh, geometry, dt).unwrap();
     let runge_kutta = hydro.runge_kutta_order();
     let fold = 1;
 
