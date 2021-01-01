@@ -256,10 +256,10 @@ impl Mesh {
     }
 
     /**
-     * Return the smallest grid spacing on the mesh.
+     * Return the smallest grid spacing on the given block.
      */
-    pub fn smallest_spacing(&self) -> f64 {
-        let zone = self.subgrid((0, 0)).zone((0, 0));
+    pub fn smallest_spacing(&self, index: BlockIndex) -> f64 {
+        let zone = self.subgrid(index).zone((0, 0));
         zone.outer_radius - zone.inner_radius
     }
 

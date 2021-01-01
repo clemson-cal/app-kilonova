@@ -103,8 +103,9 @@ impl Hydrodynamics for RelativisticHydro {
         self.runge_kutta_order
     }
 
-    fn time_step(&self, _state: &State<Self::Conserved>, mesh: &Mesh) -> f64 {
-        self.cfl_number * mesh.smallest_spacing() / LIGHT_SPEED
+    fn time_step(&self, state: &State<Self::Conserved>, mesh: &Mesh) -> f64 {
+        let (index, ..) = state.inner_outer_block_indexes();
+        self.cfl_number * mesh.smallest_spacing(index) / LIGHT_SPEED
     }
 
     fn plm_gradient_primitive(&self, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
