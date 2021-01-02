@@ -142,7 +142,7 @@ impl Hydrodynamics for RelativisticHydro {
     }
 
     fn geometrical_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved {
-        p.spherical_geometry_source_terms(coordinate.0, coordinate.1, self.gamma_law_index)
+        p.spherical_geometry_source_terms(coordinate.0, coordinate.1, self.gamma_law_index) * LIGHT_SPEED
     }
 }
 
