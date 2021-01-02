@@ -1,18 +1,17 @@
 [hydro]
 system = "relativistic"
 gamma_law_index = 1.333
-plm_theta = 1.25
+plm_theta = 1.8
 cfl_number = 0.4
 runge_kutta_order = { type = "RK2" }
-riemann_solver    = { type = "hlle" }
+riemann_solver    = { type = "hllc" }
 
 [model]
 setup = "jet_in_cloud"
-launch_radius = 3e8
 cloud_mass = 1e32
 engine_delay = 1.0
 engine_duration = 1.0
-engine_strength = 1.0
+engine_strength = 10.0
 engine_theta = 0.1
 engine_u = 30.0
 relativistic_mass = 2e27
@@ -20,15 +19,16 @@ envelop_slowest_beta = 0.1
 psi = 0.25
 
 [mesh]
-inner_radius = 3e8
-outer_radius = 2e10
-inner_excision_speed = 0.1
-outer_excision_speed = 1.0
-num_polar_zones = 256
+inner_radius = 0.0
+outer_radius = 0.0
+inner_excision_speed = 1e8
+outer_excision_speed = 3e10
+reference_radius = 1e8
+num_polar_zones = 512
 block_size = 16
 
 [control]
-final_time = 1.03
-start_time = 1.02
-checkpoint_interval = 1.0
-products_interval = 0.001
+final_time = 5.0
+start_time = 1.0
+checkpoint_interval = 0.1
+products_interval = 0.1
