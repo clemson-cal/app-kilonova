@@ -105,7 +105,7 @@ impl JetInCloud
 {
 
     /**
-     * Print a summary of the relevant times in the model
+     * Print a summary of the relevant times in the model.
      */
     pub fn print<Writer: std::io::Write>(&self, writer: &mut Writer) {
         writeln!(writer,
@@ -158,14 +158,14 @@ impl JetInCloud
     }
 
     /**
-     * Jet velocity: v_jet / c
+     * Dimensionless jet velocity: v_jet / c
      */
     pub fn engine_beta(&self) -> f64 {
         self.engine_u / (1.0 + self.engine_u.powi(2)).sqrt()
     }
 
     /**
-     * Return the true of a polar angle is within theta_jet of either pole
+     * Determine if a polar angle is within theta_jet of either pole.
      *
      * * `q` - The polar angle theta
      */
@@ -174,7 +174,7 @@ impl JetInCloud
     }
 
     /**
-     * Determine the zone of the ambient medium for a given radius and time:
+     * Determine the zone of the ambient medium for a given radius and time.
      *
      * * `r` - Radius
      * * `q` - Polar angle
@@ -198,7 +198,7 @@ impl JetInCloud
     }
 
     /**
-     * Return the radial four-velocity (gamma-beta)
+     * Return the radial four-velocity (gamma-beta).
      *
      * * `r` - The radius
      * * `q` - The polar angle theta
@@ -221,7 +221,7 @@ impl JetInCloud
     }
 
     /**
-     * Return the mass flux per solid angle
+     * Return the mass flux per solid angle.
      *
      * * `r` - The radius
      * * `q` - The polar angle theta
