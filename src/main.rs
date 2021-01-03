@@ -102,6 +102,7 @@ pub struct Control {
     pub start_time: f64,
     pub checkpoint_interval: f64,
     pub products_interval: f64,
+    pub fold: usize,
     pub num_threads: usize,
 }
 
@@ -295,7 +296,7 @@ where
 
     if tasks.iteration_message.next_time <= state.time {
         let time = tasks.iteration_message.advance(0.0);
-        let mzps = 1e-6 * state.total_zones() as f64 / time;
+        let mzps = 1e-6 * state.total_zones() as f64 / time * control.fold as f64;
         if tasks.iteration_message.count_this_run > 1 {
             println!("[{:05}] t={:.5} blocks={} Mzps={:.2})", state.iteration, state.time, state.solution.len(), mzps);
         }
@@ -342,7 +343,7 @@ where
 
     while state.time < control.final_time {
         side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
-        state = scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry, &runtime)?;
+        state = scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry, &runtime, control.fold)?;
     }
 
     side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;

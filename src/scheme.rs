@@ -11,7 +11,7 @@ use crate::traits::{Conserved, Hydrodynamics};
 
 
 // ============================================================================
-pub fn advance_rk<H, C>(state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>, dt: f64, runtime: &Runtime)
+async fn advance_rk<H, C>(state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>, dt: f64, runtime: &Runtime)
     -> anyhow::Result<State<C>>
 where
     H: Hydrodynamics<Conserved = C>,
@@ -140,7 +140,7 @@ where
     Ok(State{
         time: state.time + dt,
         iteration: state.iteration + 1,
-        solution: runtime.block_on(join_all(new_state_vec)).into_iter().collect(),
+        solution: join_all(new_state_vec).await.into_iter().collect(),
     })
 }
 
@@ -175,24 +175,24 @@ where
 
 
 // ============================================================================
-pub fn advance<H, C>(mut state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>, runtime: &Runtime)
+pub fn advance<H, C>(mut state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>, runtime: &Runtime, fold: usize)
     -> anyhow::Result<State<C>>
 where
     H: Hydrodynamics<Conserved = C>,
     C: Conserved {
 
-    let dt = hydro.time_step(&state, mesh);
-
-    if mesh.moving_excision_surfaces() {
-        add_remove_blocks(&mut state, hydro, model, mesh, geometry);
-    }
-
-    let update = |state| advance_rk(state, hydro, model, mesh, geometry, dt, &runtime).unwrap();
     let runge_kutta = hydro.runge_kutta_order();
-    let fold = 1;
 
     for _ in 0..fold {
-        state = runge_kutta.advance(state, update);
+        if mesh.moving_excision_surfaces() {
+            add_remove_blocks(&mut state, hydro, model, mesh, geometry);
+        }
+        let dt = hydro.time_step(&state, mesh);
+        let update = |state| async {
+            advance_rk(state, hydro, model, mesh, geometry, dt, &runtime).await.unwrap()
+        };
+
+        state = runtime.block_on(runge_kutta.advance_async(state, update, runtime));
     }
     Ok(state)
 }
