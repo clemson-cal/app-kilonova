@@ -102,6 +102,7 @@ pub struct Control {
     pub start_time: f64,
     pub checkpoint_interval: f64,
     pub products_interval: f64,
+    pub num_threads: usize,
 }
 
 
@@ -156,6 +157,15 @@ impl AgnosticHydro {
 
 impl Control {
     fn validate(&self) -> anyhow::Result<()> {
+        if self.num_threads == 0 || self.num_threads >= 1024 {
+            anyhow::bail!("num_threads must be > 0 and < 1024")
+        }
+        if self.checkpoint_interval < 0.0 {
+            anyhow::bail!("checkpoint_interval <= 0.0")
+        }
+        if self.products_interval < 0.0 {
+            anyhow::bail!("products_interval <= 0.0")
+        }
         Ok(())
     }
 }
@@ -326,10 +336,13 @@ where
     AgnosticHydro: From<H> {
 
     let mut block_geometry = mesh.grid_blocks_geometry(state.time);
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(control.num_threads)
+        .build()?;
 
     while state.time < control.final_time {
         side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
-        state = scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry)?;
+        state = scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry, &runtime)?;
     }
 
     side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;

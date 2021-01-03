@@ -39,7 +39,7 @@ pub trait Primitive: 'static + Clone + Copy + Send + Sync + Arithmetic + Default
 /**
  * Interface to a hydrodynamics system: either euler_2d or srhd_2d
  */
-pub trait Hydrodynamics: Clone {
+pub trait Hydrodynamics: 'static + Clone + Send {
 
     /**
      * The type of the conserved struct: mass, momentum, energy.

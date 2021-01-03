@@ -250,7 +250,10 @@ impl Mesh {
             anyhow::bail!("the excision surface speeds must be non-negative")
         }
         if self.outer_excision_speed < self.inner_excision_speed {
-            anyhow::bail!("outer_excision_speed < inner_excision_speed (the IES will eventually overtake the OES)")            
+            anyhow::bail!("outer_excision_speed < inner_excision_speed (the IES will eventually overtake the OES)")
+        }
+        if self.block_size < 2 || self.num_polar_zones < 16 {
+            anyhow::bail!("invalid block size, must have at least 2 radial and 16 polar zones per block")
         }
         Ok(())
     }
