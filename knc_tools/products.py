@@ -42,7 +42,7 @@ class Products:
 
     @property
     def blocks(self):
-        return self._products['blocks']
+        return [Block(**self._products['blocks'][k]) for k in sorted(self._products['blocks'].keys())]
 
     @property
     def config(self):
@@ -53,4 +53,10 @@ class Products:
         return self._products['time']
     
     def pcolormesh_data(self, field, log=False):
-        return [Block(**b).pcolormesh_data(field, log=log) for b in self.blocks.values()]
+        return [b.pcolormesh_data(field, log=log) for b in self.blocks]
+
+    def radial_profile(self, field, polar_index=0):
+        return np.concatenate([b.field(field)[:, polar_index] for b in self.blocks])
+
+    def radial_vertices(self):
+        return np.concatenate([b.radial_vertices[:-1] for b in self.blocks])

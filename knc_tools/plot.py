@@ -20,8 +20,8 @@ def main():
         fig = plt.figure(figsize=[7, 10])
         ax1 = fig.add_subplot(1, 1, 1)
 
-        prods = pickle.load(open(filename, 'rb'))
-        pcolormesh_data = [products.Block(**b).pcolormesh_data(args.field, log=args.log) for b in prods['blocks'].values()]
+        prods = products.Products(filename)
+        pcolormesh_data = prods.pcolormesh_data(args.field, log=args.log)
         vmin = min([c.min() for _, _, c in pcolormesh_data]) if vmin is None else vmin
         vmax = max([c.max() for _, _, c in pcolormesh_data]) if vmax is None else vmax
 
@@ -35,7 +35,7 @@ def main():
         ax1.set_ylabel(r'$z \ [\rm{cm}]$')
         ax1.set_aspect('equal')
         fig.colorbar(cm)
-        fig.suptitle(r'$t = {:.4}s$'.format(prods['time']))
+        fig.suptitle(r'$t = {:.4}s$'.format(prods.time))
     plt.show()
 
 
