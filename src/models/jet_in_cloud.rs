@@ -56,6 +56,7 @@ pub enum Zone {
     Envelop,
     Cloud,
     Jet,
+    LateTime(f64),
 }
 
 
@@ -90,9 +91,10 @@ impl InitialModel for JetInCloud {
         let mc = self.cloud_mass;
 
         match self.zone(r, q, t) {
-            Zone::Cloud   => mc * 1e3,
-            Zone::Jet     => mc * 1e6,
-            Zone::Envelop => m1 * self.gamma_beta(r, q, t).powf(-1.0 / self.psi),
+            Zone::Cloud       => mc * 1e3,
+            Zone::Jet         => mc * 1e6,
+            Zone::Envelop     => m1 * self.gamma_beta(r, q, t).powf(-1.0 / self.psi),
+            Zone::LateTime(_) => mc * 1e3,
         }
     }
 }
@@ -192,6 +194,8 @@ impl JetInCloud
             Zone::Jet
         } else if r > r_cloud_envelop_interface {
             Zone::Envelop
+        } else if r < r_jet_tail {
+            Zone::LateTime(r / r_jet_tail)
         } else {
             Zone::Cloud
         }
@@ -216,7 +220,10 @@ impl JetInCloud
             },
             Zone::Jet => {
                 self.engine_u
-            }
+            },
+            Zone::LateTime(f) => {
+                self.envelop_slowest_u().max(self.engine_u * f)
+            },
         }
     }
 
@@ -232,7 +239,7 @@ impl JetInCloud
         let mc = self.cloud_mass;
 
         match self.zone(r, q, t) {
-            Zone::Cloud => {
+            Zone::Cloud | Zone::LateTime(_) => {
                 mc / (4.0 * PI * self.engine_delay)
             },
             Zone::Envelop => {
@@ -245,7 +252,7 @@ impl JetInCloud
                 let e = self.engine_strength * self.cloud_mass;
                 let l = e / (4.0 * PI * self.engine_duration);
                 l / engine_gamma
-            }
+            },
         }
     }
 }
