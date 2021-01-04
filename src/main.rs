@@ -357,7 +357,7 @@ where
 // ============================================================================
 fn main() -> anyhow::Result<()> {
 
-    let input = match std::env::args().skip(1).next() {
+    let input = match std::env::args().nth(1) {
         None => anyhow::bail!("no input file given"),
         Some(input) => input,
     };
@@ -371,7 +371,10 @@ fn main() -> anyhow::Result<()> {
     println!("\toutput drectory ... {}", outdir);
 
     let App{state, tasks, config, ..} = App::from_preset_or_file(&input)?.validate()?;
-    let Configuration{hydro, model, mesh, control} = config;
+    let Configuration{hydro, model, mesh, control} = match std::env::args().nth(2) {
+        Some(extra) => toml::from_str(&read_to_string(extra)?)?,
+        None => config,
+    };
 
     match (state, hydro) {
         (AgnosticState::Euler, _) => {
