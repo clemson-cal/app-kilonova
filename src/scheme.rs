@@ -1,6 +1,8 @@
 use std::collections::HashMap;
-use ndarray::{Array, Axis, concatenate, s};
+use futures::FutureExt;
+use futures::future::join_all;
 use tokio::runtime::Runtime;
+use ndarray::{Array, Axis, concatenate, s};
 use crate::mesh::{BlockIndex, GridGeometry, Mesh};
 use crate::Model;
 use crate::physics::Direction;
@@ -17,25 +19,20 @@ where
     H: Hydrodynamics<Conserved = C>,
     C: Conserved {
 
-    use futures::FutureExt;
-    use futures::future::join_all;
-
     let mut stage_map = HashMap::new();
     let mut new_state_vec = Vec::new();
     let mut stage_primitive_and_scalar = |index: BlockIndex, state: BlockState<C>, hydro: H, geometry: GridGeometry| {
         let stage = async move {
-            let s = (state.scalar_mass / state.conserved.map(Conserved::lab_frame_mass)).to_shared();
-            let p = (state.conserved / geometry.cell_volumes).mapv(|q| hydro.to_primitive(q)).to_shared();
-            (p, s)
+            let s = state.scalar_mass / state.conserved.map(Conserved::lab_frame_mass);
+            let p = (state.conserved / geometry.cell_volumes).mapv(|q| hydro.to_primitive(q));
+            (p.to_shared(), s.to_shared())
         };
         stage_map.insert(index, runtime.spawn(stage).map(|f| f.unwrap()).shared());
     };
 
-
     for (index, state) in &state.solution {
         stage_primitive_and_scalar(index.clone(), state.clone(), hydro.clone(), geometry[index].clone())
     }
-
 
     let (inner_bnd_index, outer_bnd_index) = state.inner_outer_boundary_indexes();
     let inner_bnd_geom = mesh.subgrid(inner_bnd_index).geometry();
@@ -44,7 +41,6 @@ where
     let outer_bnd_state = BlockState::from_model(model, hydro, &outer_bnd_geom, state.time);
     stage_primitive_and_scalar(inner_bnd_index, inner_bnd_state, hydro.clone(), inner_bnd_geom);
     stage_primitive_and_scalar(outer_bnd_index, outer_bnd_state, hydro.clone(), outer_bnd_geom);
-
 
     for (&index, state) in &state.solution {
 
@@ -133,14 +129,13 @@ where
             };
             (index, new_state)
         };
-        new_state_vec.push(runtime.spawn(entry).map(|f| f.unwrap()));
+        new_state_vec.push(runtime.spawn(entry));
     }
-
 
     Ok(State{
         time: state.time + dt,
         iteration: state.iteration + 1,
-        solution: join_all(new_state_vec).await.into_iter().collect(),
+        solution: join_all(new_state_vec).await.into_iter().map(|f| f.unwrap()).collect(),
     })
 }
 
