@@ -117,7 +117,13 @@ impl Hydrodynamics for RelativisticHydro {
     }
 
     fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive {
-        u.to_primitive(self.gamma_law_index).unwrap()
+        match u.to_primitive(self.gamma_law_index) {
+            hydro_srhd::srhd_2d::RecoveredPrimitive::Success(p) => p,
+            hydro_srhd::srhd_2d::RecoveredPrimitive::NegativePressure(p) => {
+                hydro_srhd::srhd_2d::Primitive(p.0, p.1, p.2, 1e-3 * p.0)
+            },
+            hydro_srhd::srhd_2d::RecoveredPrimitive::RootFinderFailed(u) => panic!("c2p root finder failed {:?}", u),
+        }
     }
 
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved {
