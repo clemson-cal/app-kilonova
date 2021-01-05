@@ -201,6 +201,17 @@ impl JetInCloud
         }
     }
 
+    pub fn jet_mass_flux(&self) -> f64 {
+        let engine_gamma = f64::sqrt(1.0 + self.engine_u * self.engine_u);
+        let e = self.engine_strength * self.cloud_mass;
+        let l = e / (4.0 * PI * self.engine_duration);
+        l / engine_gamma
+    }
+
+    pub fn cloud_mass_flux(&self) -> f64 {
+        self.cloud_mass / (4.0 * PI * self.engine_delay)
+    }
+
     /**
      * Return the radial four-velocity (gamma-beta).
      *
@@ -235,23 +246,21 @@ impl JetInCloud
      * * `t` - The time
      */
     pub fn mass_flux(&self, r: f64, q: f64, t: f64) -> f64 {
-        let m1 = self.relativistic_mass;
-        let mc = self.cloud_mass;
 
         match self.zone(r, q, t) {
             Zone::Cloud => {
-                mc / (4.0 * PI * self.engine_delay)
+                self.cloud_mass_flux()
             },
             Zone::Envelop => {
                 let s = f64::min(r / t / LIGHT_SPEED, MAX_BETA);
                 let f = f64::powf(s, -1.0 / self.psi) * f64::powf(1.0 - s * s, 0.5 / self.psi - 1.0);
-                m1 / (4.0 * PI * self.psi * t) * f
+                self.relativistic_mass / (4.0 * PI * self.psi * t) * f
             },
-            Zone::Jet | Zone::PostJet(_) => {
-                let engine_gamma = f64::sqrt(1.0 + self.engine_u * self.engine_u);
-                let e = self.engine_strength * self.cloud_mass;
-                let l = e / (4.0 * PI * self.engine_duration);
-                l / engine_gamma
+            Zone::Jet => {
+                self.jet_mass_flux()
+            },
+            Zone::PostJet(f) => {
+                self.cloud_mass_flux().min(self.jet_mass_flux() / f)
             },
         }
     }
