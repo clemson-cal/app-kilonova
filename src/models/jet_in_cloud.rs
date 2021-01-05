@@ -56,7 +56,7 @@ pub enum Zone {
     Envelop,
     Cloud,
     Jet,
-    LateTime(f64),
+    PostJet(f64),
 }
 
 
@@ -94,7 +94,7 @@ impl InitialModel for JetInCloud {
             Zone::Cloud       => mc * 1e3,
             Zone::Jet         => mc * 1e6,
             Zone::Envelop     => m1 * self.gamma_beta(r, q, t).powf(-1.0 / self.psi),
-            Zone::LateTime(_) => mc * 1e3,
+            Zone::PostJet(_)  => mc * 1e3,
         }
     }
 }
@@ -192,10 +192,10 @@ impl JetInCloud
 
         if self.in_nozzle(q) && r < r_jet_head && r > r_jet_tail {
             Zone::Jet
+        } else if self.in_nozzle(q) && r < r_jet_tail {
+            Zone::PostJet(r / r_jet_tail)
         } else if r > r_cloud_envelop_interface {
             Zone::Envelop
-        } else if r < r_jet_tail {
-            Zone::LateTime(r / r_jet_tail)
         } else {
             Zone::Cloud
         }
@@ -221,7 +221,7 @@ impl JetInCloud
             Zone::Jet => {
                 self.engine_u
             },
-            Zone::LateTime(f) => {
+            Zone::PostJet(f) => {
                 self.envelop_slowest_u().max(self.engine_u * f)
             },
         }
@@ -239,7 +239,7 @@ impl JetInCloud
         let mc = self.cloud_mass;
 
         match self.zone(r, q, t) {
-            Zone::Cloud | Zone::LateTime(_) => {
+            Zone::Cloud => {
                 mc / (4.0 * PI * self.engine_delay)
             },
             Zone::Envelop => {
@@ -247,7 +247,7 @@ impl JetInCloud
                 let f = f64::powf(s, -1.0 / self.psi) * f64::powf(1.0 - s * s, 0.5 / self.psi - 1.0);
                 m1 / (4.0 * PI * self.psi * t) * f
             },
-            Zone::Jet => {
+            Zone::Jet | Zone::PostJet(_) => {
                 let engine_gamma = f64::sqrt(1.0 + self.engine_u * self.engine_u);
                 let e = self.engine_strength * self.cloud_mass;
                 let l = e / (4.0 * PI * self.engine_duration);
