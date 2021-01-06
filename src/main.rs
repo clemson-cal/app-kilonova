@@ -27,6 +27,7 @@ use std::{
         read_to_string,
     },
     io::BufWriter,
+    io::BufReader,
     path::Path,
 };
 use serde::{
@@ -236,7 +237,8 @@ impl App {
     fn from_file(filename: &str) -> anyhow::Result<Self> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
             Some("yaml") => Self::from_config(serde_yaml::from_str(&read_to_string(filename)?)?),
-            Some("cbor") => Ok(serde_cbor::from_reader(File::open(filename)?)?),
+            Some("cbor") => read_cbor(filename),
+            Some("cboz") => read_cbor_snap(filename),
             _ => anyhow::bail!("unknown input file type '{}'", filename),
         }
     }
@@ -282,6 +284,27 @@ fn parent_directory(path_str: &str) -> String {
     }.into()
 }
 
+fn write_cbor_snap<T: Serialize>(value: &T, path_str: &str) -> anyhow::Result<()> {
+    let buffer = BufWriter::new(File::create(&path_str)?);
+    let writer = snap::write::FrameEncoder::new(buffer);
+    println!("write {}", path_str);
+    serde_cbor::to_writer(writer, &value)?;
+    Ok(())
+}
+
+fn read_cbor<T: for<'de> Deserialize<'de>>(path_str: &str) -> anyhow::Result<T> {
+    let file = File::open(path_str)?;
+    let reader = BufReader::new(file);
+    Ok(serde_cbor::from_reader(reader)?)
+}
+
+fn read_cbor_snap<T: for<'de> Deserialize<'de>>(path_str: &str) -> anyhow::Result<T> {
+    let file = File::open(path_str)?;
+    let buffer = BufReader::new(file);
+    let reader = snap::read::FrameDecoder::new(buffer);
+    Ok(serde_cbor::from_reader(reader)?)
+}
+
 
 
 
@@ -304,21 +327,17 @@ where
 
     if tasks.write_products.next_time <= state.time {
         tasks.write_products.advance(control.products_interval);
-        let filename = format!("{}/prods.{:04}.cbor", outdir, tasks.write_products.count - 1);
+        let filename = format!("{}/prods.{:04}.cboz", outdir, tasks.write_products.count - 1);
         let config = Configuration::package(hydro, model, mesh, control);
         let products = Products::from_state(state, hydro, mesh, &config)?;
-        let mut buffer = BufWriter::new(File::create(&filename)?);
-        println!("write {}", filename);
-        serde_cbor::to_writer(&mut buffer, &products)?;
+        write_cbor_snap(&products, &filename)?;
     }
 
     if tasks.write_checkpoint.next_time <= state.time {
         tasks.write_checkpoint.advance(control.checkpoint_interval);
-        let filename = format!("{}/chkpt.{:04}.cbor", outdir, tasks.write_checkpoint.count - 1);
+        let filename = format!("{}/chkpt.{:04}.cboz", outdir, tasks.write_checkpoint.count - 1);
         let app = App::package(state, tasks, hydro, model, mesh, control);
-        let mut buffer = BufWriter::new(File::create(&filename)?);
-        println!("write {}", filename);
-        serde_cbor::to_writer(&mut buffer, &app)?;
+        write_cbor_snap(&app, &filename)?;
     }
 
     Ok(())
