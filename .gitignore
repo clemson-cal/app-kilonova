@@ -1,6 +1,7 @@
 /target
 /data
-todo.md
+/todo.md
+/*.yaml
 *.cbor
 *.pk
 *.pyc
