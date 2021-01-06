@@ -25,10 +25,9 @@ pub enum Direction {
  * Enum for Riemann solver type
  */
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 pub enum RiemannSolver {
-    Hlle,
-    Hllc,
+    HLLE,
+    HLLC,
 }
 
 
@@ -62,7 +61,7 @@ pub struct AgnosticPrimitive {
 #[serde(deny_unknown_fields)]
 pub struct RelativisticHydro {
 
-    /// Index for the gamma-law equation of state, must be 4/3 for now
+    /// Index for the gamma-law equation of state
     pub gamma_law_index: f64,
 
     /// Parameter for gradient estimation: [1, 2]
@@ -71,10 +70,10 @@ pub struct RelativisticHydro {
     /// Time step size: [0.0, 0.7]
     pub cfl_number: f64,
 
-    /// Runge-Kutta order: [RK1|RK2|RK3]
+    /// Runge-Kutta order: [RK1 | RK2 | RK3]
     pub runge_kutta_order: RungeKuttaOrder,
 
-    /// Riemann solver: [hlle|hllc]
+    /// Riemann solver: [HLLE | HLLC]
     pub riemann_solver: RiemannSolver,
 }
 
@@ -87,9 +86,6 @@ impl Hydrodynamics for RelativisticHydro {
     type Primitive = hydro_srhd::srhd_2d::Primitive;
 
     fn validate(&self) -> anyhow::Result<()> {
-        if (self.gamma_law_index - 4.0 / 3.0).abs() > 1e-3 {
-            anyhow::bail!("gamma_law_index != 4/3")
-        }
         if self.plm_theta < 1.0 || self.plm_theta > 2.0 {
             anyhow::bail!("plm_theta must be in the range [1, 2]")            
         }
@@ -136,8 +132,8 @@ impl Hydrodynamics for RelativisticHydro {
 
     fn intercell_flux(&self, pl: Self::Primitive, pr: Self::Primitive, sl: f64, sr: f64, direction: Direction) -> (Self::Conserved, f64) {
         let mode = match self.riemann_solver {
-            RiemannSolver::Hlle => hydro_srhd::srhd_2d::RiemannSolverMode::HlleFlux,
-            RiemannSolver::Hllc => hydro_srhd::srhd_2d::RiemannSolverMode::HllcFlux,
+            RiemannSolver::HLLE => hydro_srhd::srhd_2d::RiemannSolverMode::HlleFlux,
+            RiemannSolver::HLLC => hydro_srhd::srhd_2d::RiemannSolverMode::HllcFlux,
         };            
         let axis = match direction {
             Direction::Radial => hydro_srhd::geometry::Direction::X,

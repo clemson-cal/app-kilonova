@@ -1,5 +1,4 @@
 import numpy as np
-import pickle
 
 
 primitive_dtype = np.dtype([('rho', float), ('ur', float), ('uq', float), ('pre', float)])
@@ -22,7 +21,8 @@ def array(d, dtype=float):
 
 
 class Block:
-    def __init__(self, radial_vertices=None, polar_vertices=None, scalar=None, primitive=None):
+    def __init__(self, gamma_law_index=4/3, radial_vertices=None, polar_vertices=None, scalar=None, primitive=None):
+        self.gamma_law_index = gamma_law_index
         self.radial_vertices = array(radial_vertices)
         self.polar_vertices  = array(polar_vertices)
         self.scalar          = array(scalar)
@@ -47,8 +47,9 @@ class Block:
 class Products:
     def __init__(self, filename):
         file = open(filename, 'rb')
-
+        print(f'loading {filename}... ', end='', flush=True)
         if filename.endswith('.pk'):
+            import pickle
             self._products = pickle.load(file)
         elif filename.endswith('.cbor'):
             import cbor2            
@@ -60,10 +61,15 @@ class Products:
             self._products = cbor2.loads(data)
         else:
             raise IOError(f'unknown file format {filename}')
+        print('done')
+
+    @property
+    def gamma_law_index(self):
+        return self.config['hydro']['relativistic']['gamma_law_index']
 
     @property
     def blocks(self):
-        return [Block(**self._products['blocks'][k]) for k in sorted(self._products['blocks'].keys())]
+        return [Block(self.gamma_law_index, **v) for k, v in sorted(self._products['blocks'].items())]
 
     @property
     def config(self):
