@@ -121,7 +121,6 @@ pub trait Hydrodynamics: 'static + Clone + Send {
  * Implemented by types that can generate primitive fields to be used as an
  * initial or boundary value
  */
-#[enum_dispatch::enum_dispatch]
 pub trait InitialModel: Clone {
 
     /**

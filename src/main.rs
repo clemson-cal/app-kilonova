@@ -29,7 +29,6 @@ use serde::{
     Serialize,
     Deserialize,
 };
-use enum_dispatch::enum_dispatch;
 
 
 /**
@@ -57,7 +56,6 @@ use tasks::Tasks;
 /**
  * Model choice
  */
-#[enum_dispatch(InitialModel)]
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub enum Model {
@@ -165,6 +163,33 @@ impl Control {
             anyhow::bail!("products_interval <= 0.0")
         }
         Ok(())
+    }
+}
+
+
+
+
+// ============================================================================
+impl InitialModel for Model {
+    fn validate(&self) -> anyhow::Result<()> {
+        match self {
+            Model::JetInCloud(m)   => m.validate(),
+            Model::HaloKilonova(m) => m.validate(),
+        }
+    }
+
+    fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AgnosticPrimitive {
+        match self {
+            Model::JetInCloud(m)   => m.primitive_at(coordinate, time),
+            Model::HaloKilonova(m) => m.primitive_at(coordinate, time),
+        }
+    }
+
+    fn scalar_at(&self, coordinate: (f64, f64), time: f64) -> f64 {
+        match self {
+            Model::JetInCloud(m)   => m.scalar_at(coordinate, time),
+            Model::HaloKilonova(m) => m.scalar_at(coordinate, time),
+        }
     }
 }
 
