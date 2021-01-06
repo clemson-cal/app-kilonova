@@ -240,9 +240,6 @@ impl Mesh {
         if self.reference_radius <= 0.0 || self.inner_radius < 0.0 || self.outer_radius < 0.0 {
             anyhow::bail!("all radii must be positive")
         }
-        if self.reference_radius < self.inner_excision_surface(time) {
-            anyhow::bail!("the reference radius is inside the inner excision surface")
-        }
         if self.reference_radius > self.outer_excision_surface(time) {
             anyhow::bail!("the reference radius is outside the outer excision surface")
         }
