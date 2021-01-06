@@ -15,7 +15,7 @@ futures         = "0.3"
 git-version     = "0.3"
 num_cpus        = "1.0"
 serde_cbor      = "0.11"
-toml            = "0.5"
+serde_yaml      = "0.8"
 enum_dispatch   = "0.3"
 ndarray         = { version = "0.14", features = ["serde"] }
 num             = { version = "0.3",  features = ["serde"] }

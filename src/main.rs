@@ -63,7 +63,7 @@ use tasks::Tasks;
  */
 #[enum_dispatch(InitialModel)]
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "snake_case", tag = "setup")]
+#[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub enum Model {
     JetInCloud(JetInCloud),
     HaloKilonova(HaloKilonova),
@@ -74,7 +74,7 @@ pub enum Model {
  * Enum for any of the supported hydrodynamics types
  */
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "snake_case", tag = "system")]
+#[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub enum AgnosticHydro {
     Euler,
     Relativistic(RelativisticHydro),
@@ -230,12 +230,12 @@ impl App {
     }
 
     /**
-     * Construct a new App instance from a file: may be a config.toml or a
+     * Construct a new App instance from a file: may be a config.yaml or a
      * chkpt.0000.cbor.
      */
     fn from_file(filename: &str) -> anyhow::Result<Self> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
-            Some("toml") => Self::from_config(toml::from_str(&read_to_string(filename)?)?),
+            Some("yaml") => Self::from_config(serde_yaml::from_str(&read_to_string(filename)?)?),
             Some("cbor") => Ok(serde_cbor::from_reader(File::open(filename)?)?),
             _ => anyhow::bail!("unknown input file type '{}'", filename),
         }
@@ -247,7 +247,7 @@ impl App {
      */
     fn from_preset_or_file(input: &str) -> anyhow::Result<Self> {
         match input {
-            "jet_in_cloud" => Self::from_config(toml::from_str(std::include_str!("../setups/jet_in_cloud.toml"))?),
+            "jet_in_cloud" => Self::from_config(serde_yaml::from_str(std::include_str!("../setups/jet_in_cloud.yaml"))?),
             _ => Self::from_file(input),
         }
     }
@@ -372,7 +372,7 @@ fn main() -> anyhow::Result<()> {
 
     let App{state, tasks, config, ..} = App::from_preset_or_file(&input)?.validate()?;
     let Configuration{hydro, model, mesh, control} = match std::env::args().nth(2) {
-        Some(extra) => toml::from_str(&read_to_string(extra)?)?,
+        Some(extra) => serde_yaml::from_str(&read_to_string(extra)?)?,
         None => config,
     };
 

@@ -1,0 +1,36 @@
+hydro:
+  relativistic:
+    gamma_law_index: 1.333
+    plm_theta: 1.5
+    cfl_number: 0.4
+    runge_kutta_order: "RK2"
+    riemann_solver: "hllc"
+
+model:
+  jet_in_cloud:
+    cloud_mass: 1e32
+    engine_delay: 1.0
+    engine_duration: 1.0
+    engine_strength: 1.0
+    engine_theta: 0.1
+    engine_u: 30.0
+    relativistic_mass: 2e27
+    envelop_slowest_beta: 0.1
+    psi: 0.25
+
+mesh:
+  inner_radius: 0.0
+  outer_radius: 0.0
+  inner_excision_speed: 3e8
+  outer_excision_speed: 3e10
+  reference_radius: 3e8
+  num_polar_zones: 512
+  block_size: 4
+
+control:
+  final_time: 20.0
+  start_time: 1.0
+  checkpoint_interval: 0.1
+  products_interval: 0.1
+  num_threads: 42
+  fold: 100
