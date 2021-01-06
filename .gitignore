@@ -1,6 +1,7 @@
 /target
 /data
 todo.md
+*.cbor
 *.pk
 *.pyc
 *.mp4

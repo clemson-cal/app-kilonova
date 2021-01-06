@@ -231,12 +231,12 @@ impl App {
 
     /**
      * Construct a new App instance from a file: may be a config.toml or a
-     * chkpt.0000.pk.
+     * chkpt.0000.cbor.
      */
     fn from_file(filename: &str) -> anyhow::Result<Self> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
             Some("toml") => Self::from_config(toml::from_str(&read_to_string(filename)?)?),
-            Some("pk") => Ok(serde_pickle::from_reader(File::open(filename)?)?),
+            Some("cbor") => Ok(serde_cbor::from_reader(File::open(filename)?)?),
             _ => anyhow::bail!("unknown input file type '{}'", filename),
         }
     }
@@ -304,21 +304,21 @@ where
 
     if tasks.write_products.next_time <= state.time {
         tasks.write_products.advance(control.products_interval);
-        let filename = format!("{}/prods.{:04}.pk", outdir, tasks.write_products.count - 1);
+        let filename = format!("{}/prods.{:04}.cbor", outdir, tasks.write_products.count - 1);
         let config = Configuration::package(hydro, model, mesh, control);
         let products = Products::from_state(state, hydro, mesh, &config)?;
         let mut buffer = BufWriter::new(File::create(&filename)?);
         println!("write {}", filename);
-        serde_pickle::to_writer(&mut buffer, &products, true)?;
+        serde_cbor::to_writer(&mut buffer, &products)?;
     }
 
     if tasks.write_checkpoint.next_time <= state.time {
         tasks.write_checkpoint.advance(control.checkpoint_interval);
-        let filename = format!("{}/chkpt.{:04}.pk", outdir, tasks.write_checkpoint.count - 1);
+        let filename = format!("{}/chkpt.{:04}.cbor", outdir, tasks.write_checkpoint.count - 1);
         let app = App::package(state, tasks, hydro, model, mesh, control);
         let mut buffer = BufWriter::new(File::create(&filename)?);
         println!("write {}", filename);
-        serde_pickle::to_writer(&mut buffer, &app, true)?;
+        serde_cbor::to_writer(&mut buffer, &app)?;
     }
 
     Ok(())
