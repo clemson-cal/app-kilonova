@@ -105,6 +105,7 @@ pub struct Control {
     pub products_interval: f64,
     pub fold: usize,
     pub num_threads: usize,
+    pub snappy_compression: bool,
 }
 
 
@@ -237,8 +238,8 @@ impl App {
     fn from_file(filename: &str) -> anyhow::Result<Self> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
             Some("yaml") => Self::from_config(serde_yaml::from_str(&read_to_string(filename)?)?),
-            Some("cbor") => read_cbor(filename),
-            Some("cboz") => read_cbor_snap(filename),
+            Some("cbor") => read_cbor(filename, false),
+            Some("cboz") => read_cbor(filename, true),
             _ => anyhow::bail!("unknown input file type '{}'", filename),
         }
     }
@@ -284,25 +285,28 @@ fn parent_directory(path_str: &str) -> String {
     }.into()
 }
 
-fn write_cbor_snap<T: Serialize>(value: &T, path_str: &str) -> anyhow::Result<()> {
-    let buffer = BufWriter::new(File::create(&path_str)?);
-    let writer = snap::write::FrameEncoder::new(buffer);
+fn write_cbor<T: Serialize>(value: &T, path_str: &str, snappy_compression: bool) -> anyhow::Result<()> {
     println!("write {}", path_str);
-    serde_cbor::to_writer(writer, &value)?;
+    let file = File::create(&path_str)?;
+    let buffer = BufWriter::new(file);
+
+    if snappy_compression {
+        serde_cbor::to_writer(snap::write::FrameEncoder::new(buffer), &value)?;
+    } else {
+        serde_cbor::to_writer(buffer, &value)?;        
+    }
     Ok(())
 }
 
-fn read_cbor<T: for<'de> Deserialize<'de>>(path_str: &str) -> anyhow::Result<T> {
-    let file = File::open(path_str)?;
-    let reader = BufReader::new(file);
-    Ok(serde_cbor::from_reader(reader)?)
-}
-
-fn read_cbor_snap<T: for<'de> Deserialize<'de>>(path_str: &str) -> anyhow::Result<T> {
+fn read_cbor<T: for<'de> Deserialize<'de>>(path_str: &str, snappy_compression: bool) -> anyhow::Result<T> {
     let file = File::open(path_str)?;
     let buffer = BufReader::new(file);
-    let reader = snap::read::FrameDecoder::new(buffer);
-    Ok(serde_cbor::from_reader(reader)?)
+
+    if snappy_compression {
+        Ok(serde_cbor::from_reader(snap::read::FrameDecoder::new(buffer))?)
+    } else {
+        Ok(serde_cbor::from_reader(buffer)?)        
+    }
 }
 
 
@@ -317,6 +321,12 @@ where
     AgnosticState: From<State<C>>,
     AgnosticHydro: From<H> {
 
+    let extension = if control.snappy_compression {
+        "cboz"
+    } else {
+        "cbor"
+    };
+
     if tasks.iteration_message.next_time <= state.time {
         let time = tasks.iteration_message.advance(0.0);
         let mzps = 1e-6 * state.total_zones() as f64 / time * control.fold as f64;
@@ -327,17 +337,17 @@ where
 
     if tasks.write_products.next_time <= state.time {
         tasks.write_products.advance(control.products_interval);
-        let filename = format!("{}/prods.{:04}.cboz", outdir, tasks.write_products.count - 1);
+        let filename = format!("{}/prods.{:04}.{}", outdir, tasks.write_products.count - 1, extension);
         let config = Configuration::package(hydro, model, mesh, control);
         let products = Products::from_state(state, hydro, mesh, &config)?;
-        write_cbor_snap(&products, &filename)?;
+        write_cbor(&products, &filename, control.snappy_compression)?;
     }
 
     if tasks.write_checkpoint.next_time <= state.time {
         tasks.write_checkpoint.advance(control.checkpoint_interval);
-        let filename = format!("{}/chkpt.{:04}.cboz", outdir, tasks.write_checkpoint.count - 1);
+        let filename = format!("{}/chkpt.{:04}.{}", outdir, tasks.write_checkpoint.count - 1, extension);
         let app = App::package(state, tasks, hydro, model, mesh, control);
-        write_cbor_snap(&app, &filename)?;
+        write_cbor(&app, &filename, control.snappy_compression)?;
     }
 
     Ok(())

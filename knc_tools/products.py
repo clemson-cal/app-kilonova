@@ -10,7 +10,15 @@ def fields():
 
 
 def array(d, dtype=float):
-    return np.array(d['data'], dtype=dtype).reshape(d['dim'])
+    if type(d['data'][0]) is float:
+        data = d['data']
+    elif type(d['data'][0]) is tuple:
+        data = d['data']
+    elif type(d['data'][0] is list):
+        data = [tuple(t) for t in d['data']]
+    else:
+        raise IOError('unknown array element format')
+    return np.array(data, dtype=dtype).reshape(d['dim'])
 
 
 class Block:
@@ -38,7 +46,20 @@ class Block:
 
 class Products:
     def __init__(self, filename):
-        self._products = pickle.load(open(filename, 'rb'))
+        file = open(filename, 'rb')
+
+        if filename.endswith('.pk'):
+            self._products = pickle.load(file)
+        elif filename.endswith('.cbor'):
+            import cbor2            
+            self._products = cbor2.load(file)
+        elif filename.endswith('.cboz'):
+            import snappy, cbor2
+            stream = snappy.StreamDecompressor()
+            data = stream.decompress(file.read())
+            self._products = cbor2.loads(data)
+        else:
+            raise IOError(f'unknown file format {filename}')
 
     @property
     def blocks(self):
