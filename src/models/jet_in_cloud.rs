@@ -72,9 +72,9 @@ impl InitialModel for JetInCloud {
 
     fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AgnosticPrimitive {
         let (r, q) = coordinate;
-        let f = self.mass_flux(r, q, t);
+        let f = self.mass_rate_per_steradian(r, q, t);
         let u = self.gamma_beta(r, q, t);
-        let d = f / (r * r * u);
+        let d = f / (r * r * u) / LIGHT_SPEED;
         let p = d * UNIFORM_TEMPERATURE;
 
         AgnosticPrimitive{
@@ -225,17 +225,17 @@ impl JetInCloud
     }
 
     /**
-     * Return the mass flux per solid angle.
+     * Return the mass rate per solid angle.
      *
      * * `r` - The radius
      * * `q` - The polar angle theta
      * * `t` - The time
      */
-    pub fn mass_flux(&self, r: f64, q: f64, t: f64) -> f64 {
+    pub fn mass_rate_per_steradian(&self, r: f64, q: f64, t: f64) -> f64 {
 
         match self.zone(r, q, t) {
             Zone::Cloud | Zone::PostJet(_) => {
-                self.cloud_mass_flux()
+                self.cloud_mass_rate_per_steradian()
             },
             Zone::Envelop => {
                 let s = f64::min(r / t / LIGHT_SPEED, MAX_BETA);
@@ -243,19 +243,19 @@ impl JetInCloud
                 self.relativistic_mass / (4.0 * PI * self.psi * t) * f
             },
             Zone::Jet => {
-                self.jet_mass_flux()
+                self.jet_mass_rate_per_steradian()
             },
         }
     }
 
-    fn jet_mass_flux(&self) -> f64 {
+    fn jet_mass_rate_per_steradian(&self) -> f64 {
         let engine_gamma = f64::sqrt(1.0 + self.engine_u * self.engine_u);
         let e = self.engine_strength * self.cloud_mass;
         let l = e / (4.0 * PI * self.engine_duration);
         l / engine_gamma
     }
 
-    fn cloud_mass_flux(&self) -> f64 {
+    fn cloud_mass_rate_per_steradian(&self) -> f64 {
         self.cloud_mass / (4.0 * PI * self.engine_delay)
     }
 }
