@@ -48,7 +48,7 @@ def main():
         fig.subplots_adjust(left=0, right=1, top=0.9, bottom=0.05)
         fig.suptitle(r'Setup: $\mathtt{{{}}}$   {}   $t = {:.4}s$'.format(prods.setup.replace('_', '-'), variable(args), prods.time))
 
-        if args.hardcopy is not None:
+        if args.hardcopy:
             pngname = format(pathlib.Path(filename).with_suffix('.png'))
             print('save {}'.format(pngname))
             fig.savefig(pngname, dpi=400)
