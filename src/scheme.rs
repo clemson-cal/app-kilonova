@@ -7,24 +7,25 @@ use crate::mesh::{BlockIndex, GridGeometry, Mesh};
 use crate::Model;
 use crate::physics::Direction;
 use crate::state::{State, BlockState};
-use crate::traits::{Conserved, Hydrodynamics};
+use crate::traits::{Conserved, Primitive, Hydrodynamics};
 
 
 
 
 // ============================================================================
-async fn advance_rk<H, C>(state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>, dt: f64, runtime: &Runtime)
+async fn advance_rk<H, C, P>(state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>, dt: f64, runtime: &Runtime)
     -> anyhow::Result<State<C>>
 where
-    H: Hydrodynamics<Conserved = C>,
-    C: Conserved {
+    H: Hydrodynamics<Conserved = C, Primitive = P>,
+    C: Conserved,
+    P: Primitive, {
 
     let mut stage_map = HashMap::new();
     let mut new_state_vec = Vec::new();
     let mut stage_primitive_and_scalar = |index: BlockIndex, state: BlockState<C>, hydro: H, geometry: GridGeometry| {
         let stage = async move {
-            let s = state.scalar_mass / state.conserved.map(Conserved::lab_frame_mass);
-            let p = (state.conserved / geometry.cell_volumes).mapv(|q| hydro.to_primitive(q));
+            let p = (state.conserved / &geometry.cell_volumes).mapv(|q| hydro.to_primitive(q));
+            let s =  state.scalar_mass / &geometry.cell_volumes / p.map(P::lorentz_factor);
             (p.to_shared(), s.to_shared())
         };
         stage_map.insert(index, runtime.spawn(stage).map(|f| f.unwrap()).shared());

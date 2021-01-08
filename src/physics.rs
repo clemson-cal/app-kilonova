@@ -165,4 +165,7 @@ impl crate::traits::Arithmetic for hydro_srhd::srhd_2d::Primitive {
 }
 
 impl crate::traits::Primitive for hydro_srhd::srhd_2d::Primitive {
+    fn lorentz_factor(&self) -> f64 {
+        self.lorentz_factor_squared().sqrt()
+    }
 }

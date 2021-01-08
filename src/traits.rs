@@ -31,6 +31,7 @@ pub trait Conserved: 'static + Clone + Copy + Send + Sync + Arithmetic + Default
  * Primitive field type for the hydrodynamics system
  */
 pub trait Primitive: 'static + Clone + Copy + Send + Sync + Arithmetic + Default + Serialize {
+    fn lorentz_factor(&self) -> f64;
 } 
 
 
