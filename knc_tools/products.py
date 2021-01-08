@@ -89,5 +89,10 @@ class Products:
     def radial_profile(self, field, polar_index=0):
         return np.concatenate([b.field(field)[:, polar_index] for b in self.blocks])
 
+    @property
     def radial_vertices(self):
         return np.concatenate([b.radial_vertices[:-1] for b in self.blocks])
+
+    @property
+    def polar_vertices(self):
+        return self.blocks[0].polar_vertices

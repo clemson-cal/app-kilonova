@@ -11,7 +11,7 @@ def main():
     args = parser.parse_args()
 
     p = products.Products(args.filename)
-    r = p.radial_vertices()
+    r = p.radial_vertices
     s = p.radial_profile('scalar', polar_index=0)
     u = p.radial_profile('ur', polar_index=0)
     i = np.where(u > 1)[0][0]

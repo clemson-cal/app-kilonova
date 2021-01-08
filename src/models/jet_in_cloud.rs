@@ -113,10 +113,10 @@ impl JetInCloud
         writeln!(writer,
             r#"
         jet_in_cloud model description:
-        t1 (slowest envelop shell comes through r=10^8 cm) = {:.04}
-        t2 (the jet turns on)                              = {:.04}
-        t3 (jet head comes through r=10^8 cm)              = {:.04}
-        t4 (time when the jet turns off)                   = {:.04}
+            t1 (slowest envelop shell comes to r=10^8 cm) = {:.04}
+            t2 (jet turns on)                             = {:.04}
+            t3 (jet head comes through r=10^8 cm)         = {:.04}
+            t4 (jet turns off)                            = {:.04}
         "#, self.get_t1(),
             self.get_t2(),
             self.get_t3(),
