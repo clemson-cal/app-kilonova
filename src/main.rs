@@ -443,16 +443,17 @@ fn main() -> anyhow::Result<()> {
     println!("\toutput drectory ... {}", outdir);
 
     let App{state, tasks, config, ..} = App::from_preset_or_file(&input)?.validate()?;
+    let config = match std::env::args().nth(2) {
+        Some(extra) => serde_yaml::from_str(&read_to_string(extra)?)?,
+        None => config,
+    };
 
     for line in serde_yaml::to_string(&config)?.split("\n").skip(1) {
         println!("\t{}", line);
     }
     println!();
 
-    let Configuration{hydro, model, mesh, control} = match std::env::args().nth(2) {
-        Some(extra) => serde_yaml::from_str(&read_to_string(extra)?)?,
-        None => config,
-    };
+    let Configuration{hydro, model, mesh, control} = config;
 
     match (state, hydro) {
         (AgnosticState::Euler, _) => {
