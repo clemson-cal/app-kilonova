@@ -32,7 +32,7 @@ pub trait Conserved: 'static + Clone + Copy + Send + Sync + Arithmetic + Default
  */
 pub trait Primitive: 'static + Clone + Copy + Send + Sync + Arithmetic + Default + Serialize {
     fn lorentz_factor(&self) -> f64;
-} 
+}
 
 
 

@@ -14,9 +14,10 @@ model:
     engine_strength: 1.0
     engine_theta: 0.1
     engine_u: 30.0
-    relativistic_mass: 2e27
+    envelop_m1: 2e27
     envelop_slowest_beta: 0.1
-    psi: 0.25
+    envelop_fastest_beta: 0.995
+    envelop_psi: 0.25
 
 mesh:
   inner_radius: 0.0

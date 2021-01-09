@@ -3,7 +3,6 @@ use serde::{Serialize, Deserialize};
 use crate::physics::{AgnosticPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 
-static MAX_BETA: f64 = 0.97;
 static NOMINAL_LAUNCH_RADIUS: f64 = 1e8;
 static UNIFORM_TEMPERATURE: f64 = 1e-3;
 
@@ -37,13 +36,16 @@ pub struct JetInCloud {
     pub engine_u: f64,
 
     /// Mass coordinate of the u=1 shell
-    pub relativistic_mass: f64,
+    pub envelop_m1: f64,
 
     /// Beta (v/c) of the slowest envelop shell
     pub envelop_slowest_beta: f64,
 
+    /// Beta (v/c) of the outer shell
+    pub envelop_fastest_beta: f64,
+
     /// Index psi in u(m) ~ m^-psi
-    pub psi: f64,
+    pub envelop_psi: f64,
 }
 
 
@@ -56,7 +58,6 @@ pub enum Zone {
     Envelop,
     Cloud,
     Jet,
-    PostJet(f64),
 }
 
 
@@ -87,14 +88,13 @@ impl InitialModel for JetInCloud {
 
     fn scalar_at(&self, coordinate: (f64, f64), t: f64) -> f64 {
         let (r, q) = coordinate;
-        let m1 = self.relativistic_mass;
+        let m1 = self.envelop_m1;
         let mc = self.cloud_mass;
 
         match self.zone(r, q, t) {
             Zone::Cloud       => mc * 1e3,
             Zone::Jet         => mc * 1e6,
-            Zone::Envelop     => m1 * self.gamma_beta(r, q, t).powf(-1.0 / self.psi),
-            Zone::PostJet(_)  => mc * 1e3,
+            Zone::Envelop     => m1 * self.gamma_beta(r, q, t).powf(-1.0 / self.envelop_psi),
         }
     }
 }
@@ -192,8 +192,6 @@ impl JetInCloud
 
         if self.in_nozzle(q) && r < r_jet_head && r > r_jet_tail {
             Zone::Jet
-        } else if self.in_nozzle(q) && r < r_jet_tail {
-            Zone::PostJet(r / r_jet_tail)
         } else if r > r_cloud_envelop_interface {
             Zone::Envelop
         } else {
@@ -210,11 +208,11 @@ impl JetInCloud
      */
     pub fn gamma_beta(&self, r: f64, q: f64, t: f64) -> f64 {
         match self.zone(r, q, t) {
-            Zone::Cloud | Zone::PostJet(_) => {
+            Zone::Cloud => {
                 self.envelop_slowest_u()
             },
             Zone::Envelop => {
-                let b = f64::min(r / t / LIGHT_SPEED, MAX_BETA);
+                let b = f64::min(r / t / LIGHT_SPEED, self.envelop_fastest_beta);
                 let u = b / f64::sqrt(1.0 - b * b);
                 u
             },
@@ -234,13 +232,13 @@ impl JetInCloud
     pub fn mass_rate_per_steradian(&self, r: f64, q: f64, t: f64) -> f64 {
 
         match self.zone(r, q, t) {
-            Zone::Cloud | Zone::PostJet(_) => {
+            Zone::Cloud => {
                 self.cloud_mass_rate_per_steradian()
             },
             Zone::Envelop => {
-                let s = f64::min(r / t / LIGHT_SPEED, MAX_BETA);
-                let f = f64::powf(s, -1.0 / self.psi) * f64::powf(1.0 - s * s, 0.5 / self.psi - 1.0);
-                self.relativistic_mass / (4.0 * PI * self.psi * t) * f
+                let s = f64::min(r / t / LIGHT_SPEED, self.envelop_fastest_beta);
+                let f = f64::powf(s, -1.0 / self.envelop_psi) * f64::powf(1.0 - s * s, 0.5 / self.envelop_psi - 1.0);
+                self.envelop_m1 / (4.0 * PI * self.envelop_psi * t) * f
             },
             Zone::Jet => {
                 self.jet_mass_rate_per_steradian()
