@@ -28,13 +28,15 @@ class Block:
         self.scalar          = array(scalar)
         self.primitive       = array(primitive, dtype=primitive_dtype)
 
-    def field(self, key):
+    def field(self, key, j=...):
         if key in primitive_dtype.fields:
-            return self.primitive[key]
+            return self.primitive[key][:,j]
         elif key == 'entropy':
-            return self.field('pre') / self.field('rho')**(4/3)
+            return self.field('pre', j=j) / self.field('rho', j=j)**(4/3)
         elif key == 'scalar':
-            return self.scalar
+            return self.scalar[:,j]
+        else:
+            raise ValueError(f'unknown key {key}')
 
     def pcolormesh_data(self, field, log=False):
         R, Q = [x.T for x in np.meshgrid(self.radial_vertices, self.polar_vertices)]
@@ -61,6 +63,10 @@ class Products:
             self._products = cbor2.loads(data)
         else:
             raise IOError(f'unknown file format {filename}')
+        print('done. ', end='', flush=True)
+
+        print(f'processing blocks... ', end='', flush=True)
+        self._blocks = [Block(self.gamma_law_index, **v) for k, v in sorted(self._products['blocks'].items())]
         print('done')
 
     @property
@@ -73,7 +79,7 @@ class Products:
 
     @property
     def blocks(self):
-        return [Block(self.gamma_law_index, **v) for k, v in sorted(self._products['blocks'].items())]
+        return self._blocks
 
     @property
     def config(self):
@@ -87,7 +93,7 @@ class Products:
         return [b.pcolormesh_data(field, log=log) for b in self.blocks]
 
     def radial_profile(self, field, polar_index=0):
-        return np.concatenate([b.field(field)[:, polar_index] for b in self.blocks])
+        return np.concatenate([b.field(field, j=polar_index) for b in self.blocks])
 
     @property
     def radial_vertices(self):

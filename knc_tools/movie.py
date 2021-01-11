@@ -1,19 +1,19 @@
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
-from knc_tools import products
+import products
 
 
 light_speed = 3e10
 
 
-def pcolormesh_blocks(ax, pcm, data_range):
+def pcolormesh_blocks(ax, pcm, cmap, data_range):
     vmin = data_range[0] if data_range[0] is not None else min(C.min() for X, Z, C in pcm)
     vmax = data_range[1] if data_range[1] is not None else max(C.max() for X, Z, C in pcm)
 
     for X, Z, C in pcm:
         C[C != C] = vmin
-        cm = ax.pcolormesh(X, Z, C, vmin=vmin, vmax=vmax, edgecolors='none')
+        cm = ax.pcolormesh(X, Z, C, cmap=cmap, vmin=vmin, vmax=vmax, edgecolors='none')
     return cm
 
 
@@ -28,10 +28,12 @@ def plot(fig, filename):
 
     prods = products.Products(filename)
     tstart = prods.config['control']['start_time']
-    rstart = 2e8
-    router = rstart + (prods.time - tstart) * light_speed
-    rho_in = 1e13 * (router / rstart)**-2
-    pre_in = rho_in * 1e-3
+    rinner = prods.config['mesh']['inner_radius'] + tstart * prods.config['mesh']['inner_excision_speed']
+    router = 2e8 + (prods.time - tstart) * light_speed * 0.6
+    reference = prods.config['mesh']['reference_radius']
+    log_rho_in =  1.0 - 2 * np.log10(rinner / reference)
+    log_pre_in = -2.0 - 2 * np.log10(rinner / reference)
+    log_sca_in = 31.0
 
     for ax in [ax1, ax2, ax3]:
         ax.set_aspect('equal')
@@ -41,15 +43,15 @@ def plot(fig, filename):
 
     pcm_d = prods.pcolormesh_data('rho', log=True)
     pcm_p = prods.pcolormesh_data('pre', log=True)
-    pcm_u = prods.pcolormesh_data('ur',  log=False)
+    pcm_s = prods.pcolormesh_data('scalar', log=True)
 
-    cm1 = pcolormesh_blocks(ax1, pcm_d, [np.log10(rho_in), np.log10(rho_in * 1e5)])
-    cm2 = pcolormesh_blocks(ax2, pcm_p, [np.log10(pre_in), np.log10(pre_in * 1e5)])
-    cm3 = pcolormesh_blocks(ax3, pcm_u, [0.0, 10.0])
+    cm1 = pcolormesh_blocks(ax1, pcm_d, 'inferno', [log_rho_in + 0.1, log_rho_in + 4.5])
+    cm2 = pcolormesh_blocks(ax2, pcm_p, 'plasma',  [log_pre_in + 0.1, log_pre_in + 4.5])
+    cm3 = pcolormesh_blocks(ax3, pcm_s, 'viridis', [log_sca_in + 0.1, log_sca_in + 7.5])
 
-    ax1.set_title('Density')
-    ax2.set_title('Pressure')
-    ax3.set_title(r'Radial $\Gamma \beta$')
+    ax1.set_title(r'Density $[\rm{g/cm^3}]$')
+    ax2.set_title(r'Pressure $[\rm{erg/cm^3}]$')
+    ax3.set_title(r'Scalar $[\rm{g}]$')
     fig.colorbar(cm1, cax1, orientation='horizontal')
     fig.colorbar(cm2, cax2, orientation='horizontal')
     fig.colorbar(cm3, cax3, orientation='horizontal')
