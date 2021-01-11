@@ -57,7 +57,7 @@ pub struct JetInCloud {
 pub enum Zone {
     Envelop,
     Cloud,
-    Jet,
+    Jet(f64), // the associated value is (t - engine_delay) / engine_duration
 }
 
 
@@ -93,7 +93,7 @@ impl InitialModel for JetInCloud {
 
         match self.zone(r, q, t) {
             Zone::Cloud       => mc * 1e3,
-            Zone::Jet         => mc * 1e6,
+            Zone::Jet(x)      => if x < 1.0 { mc * 1e6 } else { 0.0 },
             Zone::Envelop     => m1 * self.gamma_beta(r, q, t).powf(-1.0 / self.envelop_psi),
         }
     }
@@ -188,10 +188,9 @@ impl JetInCloud
 
         let r_cloud_envelop_interface = v_min * t;
         let r_jet_head = v_jet * (t - self.engine_delay);
-        let r_jet_tail = v_jet * (t - self.engine_delay - self.engine_duration);
 
-        if self.in_nozzle(q) && r < r_jet_head && r > r_jet_tail {
-            Zone::Jet
+        if self.in_nozzle(q) && r < r_jet_head {
+            Zone::Jet((t - self.engine_delay) / self.engine_duration)
         } else if r > r_cloud_envelop_interface {
             Zone::Envelop
         } else {
@@ -216,8 +215,11 @@ impl JetInCloud
                 let u = b / f64::sqrt(1.0 - b * b);
                 u
             },
-            Zone::Jet => {
-                self.engine_u
+            Zone::Jet(x) => {
+                let uc = self.envelop_slowest_u();
+                let uj = self.engine_u;
+                let f = f64::exp(-x * x);
+                uj * f + uc * (1.0 - f)
             },
         }
     }
@@ -240,12 +242,16 @@ impl JetInCloud
                 let f = f64::powf(s, -1.0 / self.envelop_psi) * f64::powf(1.0 - s * s, 0.5 / self.envelop_psi - 1.0);
                 self.envelop_m1 / (4.0 * PI * self.envelop_psi * t) * f
             },
-            Zone::Jet => {
-                self.jet_mass_rate_per_steradian()
+            Zone::Jet(x) => {
+                let mc = self.cloud_mass_rate_per_steradian();
+                let mj = self.jet_mass_rate_per_steradian();
+                let f = f64::exp(-x * x);
+                mj * f + mc * (1.0 - f)
             },
         }
     }
 
+    // fn taper(x: f64)
     fn jet_mass_rate_per_steradian(&self) -> f64 {
         let engine_gamma = f64::sqrt(1.0 + self.engine_u * self.engine_u);
         let e = self.engine_strength * self.cloud_mass;
