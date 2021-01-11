@@ -117,7 +117,7 @@ impl Hydrodynamics for RelativisticHydro {
             hydro_srhd::srhd_2d::RecoveredPrimitive::Success(p) => p,
             hydro_srhd::srhd_2d::RecoveredPrimitive::NegativePressure(p) => {
                 hydro_srhd::srhd_2d::Primitive(p.0, p.1, p.2, 1e-3 * p.0)
-            },
+            }
             hydro_srhd::srhd_2d::RecoveredPrimitive::RootFinderFailed(u) => panic!("c2p root finder failed {:?}", u),
         }
     }

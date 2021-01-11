@@ -209,18 +209,18 @@ impl JetInCloud
         match self.zone(r, q, t) {
             Zone::Cloud => {
                 self.envelop_slowest_u()
-            },
+            }
             Zone::Envelop => {
                 let b = f64::min(r / t / LIGHT_SPEED, self.envelop_fastest_beta);
                 let u = b / f64::sqrt(1.0 - b * b);
                 u
-            },
+            }
             Zone::Jet(x) => {
                 let uc = self.envelop_slowest_u();
                 let uj = self.engine_u;
                 let f = f64::exp(-x * x);
                 uj * f + uc * (1.0 - f)
-            },
+            }
         }
     }
 
@@ -236,18 +236,18 @@ impl JetInCloud
         match self.zone(r, q, t) {
             Zone::Cloud => {
                 self.cloud_mass_rate_per_steradian()
-            },
+            }
             Zone::Envelop => {
                 let s = f64::min(r / t / LIGHT_SPEED, self.envelop_fastest_beta);
                 let f = f64::powf(s, -1.0 / self.envelop_psi) * f64::powf(1.0 - s * s, 0.5 / self.envelop_psi - 1.0);
                 self.envelop_m1 / (4.0 * PI * self.envelop_psi * t) * f
-            },
+            }
             Zone::Jet(x) => {
                 let mc = self.cloud_mass_rate_per_steradian();
                 let mj = self.jet_mass_rate_per_steradian();
                 let f = f64::exp(-x * x);
                 mj * f + mc * (1.0 - f)
-            },
+            }
         }
     }
 
