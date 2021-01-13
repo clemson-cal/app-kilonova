@@ -15,6 +15,7 @@ mod scheme;
 mod state;
 mod tasks;
 mod traits;
+mod yaml_patch;
 
 
 /**
@@ -22,7 +23,7 @@ mod traits;
  */
 use std::{
     ffi::OsStr,
-    fs::read_to_string,
+    fs::{File, read_to_string},
     path::Path,
 };
 use serde::{
@@ -51,6 +52,7 @@ use traits::{
     InitialModel,
 };
 use tasks::Tasks;
+use yaml_patch::Patch;
 
 
 /**
@@ -237,7 +239,12 @@ impl App {
     /**
      * Construct a new App instance from a user configuration.
      */
-    fn from_config(config: Configuration) -> anyhow::Result<Self> {
+    fn from_config(mut config: Configuration) -> anyhow::Result<Self> {
+
+        for extra_config_files in std::env::args().skip(2) {
+            config.patch_from_reader(File::open(extra_config_files)?)?;
+        }
+
         let geometry = config.mesh.grid_blocks_geometry(config.control.start_time);
         let state = match &config.hydro {
             AgnosticHydro::Euler => {
@@ -443,10 +450,6 @@ fn main() -> anyhow::Result<()> {
     println!("\toutput drectory ... {}", outdir);
 
     let App{state, tasks, config, ..} = App::from_preset_or_file(&input)?.validate()?;
-    let config = match std::env::args().nth(2) {
-        Some(extra) => serde_yaml::from_str(&read_to_string(extra)?)?,
-        None => config,
-    };
 
     for line in serde_yaml::to_string(&config)?.split("\n").skip(1) {
         println!("\t{}", line);
