@@ -93,7 +93,7 @@ impl InitialModel for JetInCloud {
 
         match self.zone(r, q, t) {
             Zone::Cloud       => mc * 1e3,
-            Zone::Jet(x)      => if x < 1.0 { mc * 1e6 } else { 0.0 },
+            Zone::Jet(x)      => if x < 1.0 { mc * 1e6 } else { mc * 1e3 },
             Zone::Envelop     => m1 * self.gamma_beta(r, q, t).powf(-1.0 / self.envelop_psi),
         }
     }
