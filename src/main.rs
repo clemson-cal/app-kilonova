@@ -241,8 +241,12 @@ impl App {
      */
     fn from_config(mut config: Configuration) -> anyhow::Result<Self> {
 
-        for extra_config_files in std::env::args().skip(2) {
-            config.patch_from_reader(File::open(extra_config_files)?)?;
+        for extra_config_str in std::env::args().skip(2) {
+            if extra_config_str.ends_with(".yaml") {
+                config.patch_from_reader(File::open(extra_config_str)?)?
+            } else {
+                config.patch_from_key_val(&extra_config_str)?
+            }
         }
 
         let geometry = config.mesh.grid_blocks_geometry(config.control.start_time);

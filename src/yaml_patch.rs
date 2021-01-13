@@ -77,9 +77,10 @@ pub trait Patch {
     fn patch_from_key_val(&mut self, key_val_str: &str) -> anyhow::Result<()> {
         let tokens: Vec<_> = key_val_str.split('=').collect();
 
-        if tokens.len() != 2 {
-            anyhow::bail!("badly formed key=value {}", key_val_str)
+        if tokens.len() != 2 || tokens[1].is_empty() {
+            anyhow::bail!("badly formed key=value in '{}'", key_val_str)
         }
+
         let mut parts = tokens[0].split('.').rev();
         let value: Value = from_str(tokens[1])?;
         let mapping = single_item_mapping(value, parts.next().unwrap());
