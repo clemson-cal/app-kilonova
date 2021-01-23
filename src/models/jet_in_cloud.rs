@@ -92,8 +92,8 @@ impl InitialModel for JetInCloud {
         // let mc = self.cloud_mass;
 
         match self.zone(r, q, t) {
-            Zone::Cloud       => 1e+2,
-            Zone::Jet(_)      => 1e+0,
+            Zone::Cloud       => 1e+0,
+            Zone::Jet(_)      => 1e+2,
             Zone::Envelop     => 1e-2,
             // Zone::Cloud       => mc * 1e3,
             // Zone::Jet(x)      => if x < 1.0 { mc * 1e6 } else { mc * 1e3 },
