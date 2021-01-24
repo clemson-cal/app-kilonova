@@ -173,6 +173,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "hydro-euler"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "hydro-srhd"
 version = "0.1.0"
 source = "git+https://github.com/clemson-cal/hydro-srhd#e15d07ec8e23ff896add1178e6e2d1cc4b5199be"
@@ -189,6 +196,7 @@ dependencies = [
  "futures",
  "git-version",
  "godunov-core",
+ "hydro-euler",
  "hydro-srhd",
  "ndarray",
  "ndarray-ops",

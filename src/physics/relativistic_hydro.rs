@@ -1,55 +1,11 @@
 use serde::{Serialize, Deserialize};
 use godunov_core::piecewise_linear;
 use godunov_core::runge_kutta::RungeKuttaOrder;
+use crate::AgnosticPrimitive;
 use crate::mesh::Mesh;
+use crate::physics::{RiemannSolver, Direction, LIGHT_SPEED};
 use crate::state::State;
 use crate::traits::Hydrodynamics;
-
-pub static LIGHT_SPEED: f64 = 3e10;
-
-
-
-
-/**
- * Enum for the cardinal grid axes
- */
-pub enum Direction {
-    Polar,
-    Radial,
-}
-
-
-
-
-/**
- * Enum for Riemann solver type
- */
-#[derive(Clone, Serialize, Deserialize)]
-pub enum RiemannSolver {
-    HLLE,
-    HLLC,
-}
-
-
-
-
-/**
- * Primitive variable state that is agnostic to the hydrodynamics system
- */
-pub struct AgnosticPrimitive {
-
-    /// Radial velocity (radial gamma-beta for relativistic hydro)
-    pub velocity_r: f64,
-
-    /// Polar velocity (polar gamma-beta for relativistic hydro)
-    pub velocity_q: f64,
-
-    /// Mass density (comoving for relativistic)
-    pub mass_density: f64,
-
-    /// Gas pressure
-    pub gas_pressure: f64,
-}
 
 
 
