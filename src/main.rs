@@ -43,6 +43,7 @@ use models::{
 use physics::{
     AgnosticPrimitive,
     RelativisticHydro,
+    NewtonianHydro,
 };
 use products::Products;
 use state::State;
@@ -72,7 +73,7 @@ pub enum Model {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub enum AgnosticHydro {
-    Euler,
+    Newtonian(NewtonianHydro),
     Relativistic(RelativisticHydro),
 }
 
@@ -82,7 +83,7 @@ pub enum AgnosticHydro {
  */
 #[derive(Clone, Serialize, Deserialize)]
 pub enum AgnosticState {
-    Euler,
+    Newtonian(State<hydro_euler::euler_2d::Conserved>),
     Relativistic(State<hydro_srhd::srhd_2d::Conserved>),
 }
 
@@ -132,9 +133,21 @@ pub struct App {
 
 
 // ============================================================================
+impl From<State<hydro_euler::euler_2d::Conserved>> for AgnosticState {
+    fn from(state: State<hydro_euler::euler_2d::Conserved>) -> Self {
+        Self::Newtonian(state)
+    }
+}
+
 impl From<State<hydro_srhd::srhd_2d::Conserved>> for AgnosticState {
     fn from(state: State<hydro_srhd::srhd_2d::Conserved>) -> Self {
         Self::Relativistic(state)
+    }
+}
+
+impl From<NewtonianHydro> for AgnosticHydro {
+    fn from(hydro: NewtonianHydro) -> Self {
+        Self::Newtonian(hydro)
     }
 }
 
@@ -147,7 +160,7 @@ impl From<RelativisticHydro> for AgnosticHydro {
 impl AgnosticHydro {
     fn validate(&self) -> anyhow::Result<()> {
         match self {
-            AgnosticHydro::Euler => Ok(()),
+            AgnosticHydro::Newtonian(hydro) => hydro.validate(),
             AgnosticHydro::Relativistic(hydro) => hydro.validate(),
         }        
     }
@@ -251,8 +264,8 @@ impl App {
 
         let geometry = config.mesh.grid_blocks_geometry(config.control.start_time);
         let state = match &config.hydro {
-            AgnosticHydro::Euler => {
-                anyhow::bail!("hydro: euler is not implemented yet")
+            AgnosticHydro::Newtonian(hydro) => {
+                AgnosticState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
             },
             AgnosticHydro::Relativistic(hydro) => {
                 AgnosticState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
@@ -463,8 +476,8 @@ fn main() -> anyhow::Result<()> {
     let Configuration{hydro, model, mesh, control} = config;
 
     match (state, hydro) {
-        (AgnosticState::Euler, _) => {
-            anyhow::bail!("Euler hydrodynamics not implemented")
+        (AgnosticState::Newtonian(state), AgnosticHydro::Newtonian(hydro)) => {
+            run(state, tasks, hydro, model, mesh, control, outdir)
         },
         (AgnosticState::Relativistic(state), AgnosticHydro::Relativistic(hydro)) => {
             run(state, tasks, hydro, model, mesh, control, outdir)
