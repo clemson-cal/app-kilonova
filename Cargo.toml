@@ -27,7 +27,7 @@ serde           = { version = "1.0",  features = ["derive"] }
 tokio           = { version = "1.0",  features = ["rt-multi-thread"] }
 
 hydro-srhd      = { git = "https://github.com/clemson-cal/hydro-srhd",   features = ["serde"] }
-hydro-euler     = { path = "../hydro-euler", features = ["serde"] }
+hydro-euler     = { git = "https://github.com/clemson-cal/hydro-euler",  features = ["serde"] }
 godunov-core    = { git = "https://github.com/clemson-cal/godunov-core", features = ["serde"] }
 ndarray-ops     = { git = "https://github.com/clemson-cal/ndarray-ops" }
 
