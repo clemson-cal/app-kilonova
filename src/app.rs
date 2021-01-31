@@ -26,7 +26,6 @@ use crate::physics::{
     NewtonianHydro,
 };
 use crate::state::State;
-use crate::products::Products;
 use crate::traits::{
     Conserved,
     Hydrodynamics,

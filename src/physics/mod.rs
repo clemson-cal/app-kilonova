@@ -1,6 +1,7 @@
 mod relativistic_hydro;
 mod newtonian_hydro;
 
+use serde::{Serialize, Deserialize};
 pub use relativistic_hydro::RelativisticHydro;
 pub use newtonian_hydro::NewtonianHydro;
 pub static LIGHT_SPEED: f64 = 3e10;
@@ -34,6 +35,7 @@ pub enum RiemannSolver {
 /**
  * Primitive variable state that is agnostic to the hydrodynamics system
  */
+#[derive(Clone, Serialize, Deserialize)]
 pub struct AgnosticPrimitive {
 
     /// Radial velocity (radial gamma-beta for relativistic hydro)

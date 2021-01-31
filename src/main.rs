@@ -54,7 +54,7 @@ where
         tasks.write_products.advance(control.products_interval);
         let filename = format!("{}/prods.{:04}.{}", outdir, tasks.write_products.count - 1, extension);
         let config = Configuration::package(hydro, model, mesh, control);
-        let products = Products::from_state(state, hydro, &config)?;
+        let products = Products::from_state(state, hydro, &config);
         io::write_cbor(&products, &filename, control.snappy_compression)?;
     }
 

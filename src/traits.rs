@@ -101,6 +101,12 @@ pub trait Hydrodynamics: 'static + Clone + Send {
     fn interpret(&self, agnostic: &AgnosticPrimitive) -> Self::Primitive;
 
     /**
+     * Convert from a primitive state specific to this hydrodynamics system to
+     * an agnostic primitive.
+     */
+    fn agnostic(&self, p: &Self::Primitive) -> AgnosticPrimitive;
+
+    /**
      * Return the Godunov flux of the conserved quantities and the passive
      * scalar, given reconstructued values of the primitives (`pl`, `pr`) and
      * the scalar concentration (`sl`, `sr`) to either side of the cell

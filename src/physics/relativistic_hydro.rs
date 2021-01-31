@@ -86,6 +86,15 @@ impl Hydrodynamics for RelativisticHydro {
         hydro_srhd::srhd_2d::Primitive(a.mass_density, a.velocity_r, a.velocity_q, a.gas_pressure)
     }
 
+    fn agnostic(&self, p: &Self::Primitive) -> AgnosticPrimitive {
+        AgnosticPrimitive{
+            velocity_r: p.velocity_1(),
+            velocity_q: p.velocity_2(),
+            mass_density: p.mass_density(),
+            gas_pressure: p.gas_pressure(),
+        }
+    }
+
     fn intercell_flux(&self, pl: Self::Primitive, pr: Self::Primitive, sl: f64, sr: f64, direction: Direction) -> (Self::Conserved, f64) {
         let mode = match self.riemann_solver {
             RiemannSolver::HLLE => hydro_srhd::srhd_2d::RiemannSolverMode::HlleFlux,
