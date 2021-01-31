@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use ndarray::{ArcArray, Ix1, Ix2};
-use crate::app::{self, Configuration};
+use crate::app::{self, Configuration, AgnosticHydro, AgnosticState};
 use crate::mesh::{BlockIndex, GridGeometry};
 use crate::physics::AgnosticPrimitive;
+use crate::products;
 use crate::state::{BlockState, State};
 use crate::traits::{Conserved, Hydrodynamics};
 
@@ -13,7 +14,7 @@ use crate::traits::{Conserved, Hydrodynamics};
 /**
  * Useful per-block data for post-processing and plotting
  */
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct BlockProducts {
 	pub radial_vertices: ArcArray<f64, Ix1>,
 	pub polar_vertices: ArcArray<f64, Ix1>,
@@ -81,6 +82,17 @@ impl Products {
 			blocks: blocks,
 			config: config.clone(),
 			version: app::VERSION_AND_BUILD.to_string(),
+		}
+	}
+	pub fn from_app(app: &app::App) -> Self {
+		match (&app.state, &app.config.hydro) {
+			(AgnosticState::Newtonian(state), AgnosticHydro::Newtonian(hydro)) => {
+				products::Products::from_state(state, hydro, &app.config)
+			},
+			(AgnosticState::Relativistic(state), AgnosticHydro::Relativistic(hydro)) => {
+				products::Products::from_state(state, hydro, &app.config)
+			},
+			_ => unreachable!()
 		}
 	}
 }
