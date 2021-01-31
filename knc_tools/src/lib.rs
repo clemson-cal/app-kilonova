@@ -203,7 +203,7 @@ fn app(filename: &str) -> App {
 
 // ============================================================================
 #[pymodule]
-fn knc_reader(_: Python, m: &PyModule) -> PyResult<()> {
+fn knc_tools(_: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(app, m)?)?;
     Ok(())
 }
