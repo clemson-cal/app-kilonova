@@ -4,7 +4,7 @@ use ndarray::{ArcArray, Ix1, Ix2};
 use crate::app::{self, Configuration};
 use crate::traits::{Conserved, Hydrodynamics, Primitive};
 use crate::state::{BlockState, State};
-use crate::mesh::{BlockIndex, GridGeometry, Mesh};
+use crate::mesh::{BlockIndex, GridGeometry};
 
 
 
@@ -61,12 +61,12 @@ impl<P: Primitive> BlockProducts<P> {
 
 // ============================================================================
 impl<P: Primitive> Products<P> {
-	pub fn from_state<H, C>(state: &State<C>, hydro: &H, mesh: &Mesh, config: &Configuration) -> anyhow::Result<Self>
+	pub fn from_state<H, C>(state: &State<C>, hydro: &H, config: &Configuration) -> anyhow::Result<Self>
 	where
 		H: Hydrodynamics<Conserved = C, Primitive = P>,
 		C: Conserved {
 
-		let geometry = mesh.grid_blocks_geometry(state.time);
+		let geometry = config.mesh.grid_blocks_geometry(state.time);
 		let mut blocks = HashMap::new();
 
 		for (index, block_state) in &state.solution {
