@@ -7,4 +7,5 @@ local
 *.pyc
 *.mp4
 *.png
+*.so
 knc_reader/Cargo.lock

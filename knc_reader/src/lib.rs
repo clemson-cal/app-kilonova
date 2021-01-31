@@ -1,5 +1,5 @@
-use pyo3::exceptions::PyKeyError;
 use pyo3::prelude::*;
+use pyo3::exceptions::PyKeyError;
 use pyo3::PyIterProtocol;
 use pyo3::PyMappingProtocol;
 use pyo3::wrap_pyfunction;
