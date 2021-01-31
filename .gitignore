@@ -1,6 +1,6 @@
-/target
-/data
-/local
+target
+data
+local
 /*.yaml
 *.cbor
 *.pk

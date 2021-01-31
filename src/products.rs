@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use ndarray::{ArcArray, Ix1, Ix2};
-use crate::Configuration;
+use crate::app::{self, Configuration};
 use crate::traits::{Conserved, Hydrodynamics, Primitive};
 use crate::state::{BlockState, State};
 use crate::mesh::{BlockIndex, GridGeometry, Mesh};
@@ -77,7 +77,7 @@ impl<P: Primitive> Products<P> {
 			time: state.time,
 			blocks: blocks,
 			config: config.clone(),
-			version: crate::VERSION_AND_BUILD.to_string(),
+			version: app::VERSION_AND_BUILD.to_string(),
 		})
 	}
 }

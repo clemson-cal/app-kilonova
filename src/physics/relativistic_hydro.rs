@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use godunov_core::piecewise_linear;
 use godunov_core::runge_kutta::RungeKuttaOrder;
-use crate::AgnosticPrimitive;
+use crate::physics::AgnosticPrimitive;
 use crate::mesh::Mesh;
 use crate::physics::{RiemannSolver, Direction, LIGHT_SPEED};
 use crate::state::State;

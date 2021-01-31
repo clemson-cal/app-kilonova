@@ -4,7 +4,7 @@ use futures::future::join_all;
 use tokio::runtime::Runtime;
 use ndarray::{Array, Axis, concatenate, s};
 use crate::mesh::{BlockIndex, GridGeometry, Mesh};
-use crate::Model;
+use crate::app::Model;
 use crate::physics::Direction;
 use crate::state::{State, BlockState};
 use crate::traits::{Conserved, Primitive, Hydrodynamics};
