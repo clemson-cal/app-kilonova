@@ -1,11 +1,8 @@
-target
-data
-local
-/*.yaml
+/target
+/data
+/local
 *.cbor
 *.pk
 *.pyc
 *.mp4
 *.png
-*.so
-knc_reader/Cargo.lock
