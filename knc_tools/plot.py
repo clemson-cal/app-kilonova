@@ -27,7 +27,7 @@ def main():
     vmin, vmax = eval(args.range)
 
     for filename in args.filenames:
-        fig = plt.figure(figsize=[7, 11])
+        fig = plt.figure(figsize=[5, 8])
         ax1 = fig.add_subplot(1, 1, 1)
 
         prods = products.Products(filename)
