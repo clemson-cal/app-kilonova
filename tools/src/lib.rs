@@ -16,17 +16,17 @@ use kilonova::products;
 // ============================================================================
 #[pyclass]
 struct App {
-	app: app::App
+    app: app::App
 }
 
 #[pyclass]
 struct Products {
-	products: products::Products,
+    products: products::Products,
 }
 
 #[pyclass]
 struct BlockProducts {
-	block_products: products::BlockProducts,
+    block_products: products::BlockProducts,
 }
 
 
@@ -36,30 +36,30 @@ struct BlockProducts {
 #[pymethods]
 impl App {
 
-	#[getter]
-	fn version(&self) -> PyResult<PyObject> {
-		Python::with_gil(|py| {
-			Ok(pythonize(py, &self.app.version)?)
-		})
-	}
+    #[getter]
+    fn version(&self) -> PyResult<PyObject> {
+        Python::with_gil(|py| {
+            Ok(pythonize(py, &self.app.version)?)
+        })
+    }
 
-	#[getter]
-	fn config(&self) -> PyResult<PyObject> {
-		Python::with_gil(|py| {
-			Ok(pythonize(py, &self.app.config)?)
-		})
-	}
+    #[getter]
+    fn config(&self) -> PyResult<PyObject> {
+        Python::with_gil(|py| {
+            Ok(pythonize(py, &self.app.config)?)
+        })
+    }
 
-	#[getter]
-	fn tasks(&self) -> PyResult<PyObject> {
-		Python::with_gil(|py| {
-			Ok(pythonize(py, &self.app.tasks)?)
-		})
-	}
+    #[getter]
+    fn tasks(&self) -> PyResult<PyObject> {
+        Python::with_gil(|py| {
+            Ok(pythonize(py, &self.app.tasks)?)
+        })
+    }
 
-	fn make_products(&self) -> Products {
-		Products{products: products::Products::from_app(&self.app)}
-	}
+    fn make_products(&self) -> Products {
+        Products{products: products::Products::from_app(&self.app)}
+    }
 }
 
 
@@ -68,10 +68,10 @@ impl App {
 // ============================================================================
 #[pymethods]
 impl Products {
-	#[getter]
-	fn time(&self) -> f64 {
-		self.products.time
-	}
+    #[getter]
+    fn time(&self) -> f64 {
+        self.products.time
+    }
 }
 
 
@@ -81,25 +81,25 @@ impl Products {
 #[pyproto]
 impl PyMappingProtocol for Products {
 
-	fn __len__(&self) -> usize {
-		self.products.blocks.len()
-	}
+    fn __len__(&self) -> usize {
+        self.products.blocks.len()
+    }
 
-	fn __getitem__(&self, key: mesh::BlockIndex) -> PyResult<BlockProducts> {
-		if let Some(b) = self.products.blocks.get(&key) {
-			Ok(BlockProducts{block_products: b.clone()})
-		} else {
-			Python::with_gil(|py| {
-				Err(PyErr::from_instance(PyKeyError::new_err("invalid block index").instance(py)))
-			})
-		}
-	}
+    fn __getitem__(&self, key: mesh::BlockIndex) -> PyResult<BlockProducts> {
+        if let Some(b) = self.products.blocks.get(&key) {
+            Ok(BlockProducts{block_products: b.clone()})
+        } else {
+            Python::with_gil(|py| {
+                Err(PyErr::from_instance(PyKeyError::new_err("invalid block index").instance(py)))
+            })
+        }
+    }
 }
 
 #[pyproto]
 impl PyIterProtocol for Products {
     fn __iter__(slf: PyRef<Self>) -> PyResult<Py<ProductsIter>> {
-    	let keys: Vec<_> = slf.products.blocks.keys().cloned().collect();
+        let keys: Vec<_> = slf.products.blocks.keys().cloned().collect();
         let iter = ProductsIter {
             inner: keys.into_iter()
         };
@@ -133,59 +133,59 @@ impl PyIterProtocol for ProductsIter {
 
 // ============================================================================
 impl BlockProducts {
-	fn map_primitive<F>(&self, f: F) -> PyObject
-	where
-		F: Fn(&physics::AgnosticPrimitive) -> f64
-	{
-		pyo3::Python::with_gil(|py| {
-			self.block_products.primitive.map(f).to_pyarray(py).to_object(py)
-		})
-	}
+    fn map_primitive<F>(&self, f: F) -> PyObject
+    where
+        F: Fn(&physics::AgnosticPrimitive) -> f64
+    {
+        pyo3::Python::with_gil(|py| {
+            self.block_products.primitive.map(f).to_pyarray(py).to_object(py)
+        })
+    }
 }
 
 #[pymethods]
 impl BlockProducts {
 
-	#[getter]
-	fn radial_vertices(&self) -> PyObject {
-		pyo3::Python::with_gil(|py| {
-			self.block_products.radial_vertices.to_pyarray(py).to_object(py)
-		})
-	}
+    #[getter]
+    fn radial_vertices(&self) -> PyObject {
+        pyo3::Python::with_gil(|py| {
+            self.block_products.radial_vertices.to_pyarray(py).to_object(py)
+        })
+    }
 
-	#[getter]
-	fn polar_vertices(&self) -> PyObject {
-		pyo3::Python::with_gil(|py| {
-			self.block_products.polar_vertices.to_pyarray(py).to_object(py)
-		})
-	}
+    #[getter]
+    fn polar_vertices(&self) -> PyObject {
+        pyo3::Python::with_gil(|py| {
+            self.block_products.polar_vertices.to_pyarray(py).to_object(py)
+        })
+    }
 
-	#[getter]
-	fn scalar(&self) -> PyObject {
-		pyo3::Python::with_gil(|py| {
-			self.block_products.scalar.to_pyarray(py).to_object(py)
-		})
-	}
+    #[getter]
+    fn scalar(&self) -> PyObject {
+        pyo3::Python::with_gil(|py| {
+            self.block_products.scalar.to_pyarray(py).to_object(py)
+        })
+    }
 
-	#[getter]
-	fn radial_four_velocity(&self) -> PyObject {
-		self.map_primitive(|p| p.velocity_r)
-	}
+    #[getter]
+    fn radial_four_velocity(&self) -> PyObject {
+        self.map_primitive(|p| p.velocity_r)
+    }
 
-	#[getter]
-	fn polar_four_velocity(&self) -> PyObject {
-		self.map_primitive(|p| p.velocity_q)
-	}
+    #[getter]
+    fn polar_four_velocity(&self) -> PyObject {
+        self.map_primitive(|p| p.velocity_q)
+    }
 
-	#[getter]
-	fn comoving_mass_density(&self) -> PyObject {
-		self.map_primitive(|p| p.mass_density)
-	}
+    #[getter]
+    fn comoving_mass_density(&self) -> PyObject {
+        self.map_primitive(|p| p.mass_density)
+    }
 
-	#[getter]
-	fn gas_pressure(&self) -> PyObject {
-		self.map_primitive(|p| p.gas_pressure)
-	}
+    #[getter]
+    fn gas_pressure(&self) -> PyObject {
+        self.map_primitive(|p| p.gas_pressure)
+    }
 }
 
 
@@ -194,8 +194,7 @@ impl BlockProducts {
 // ============================================================================
 #[pyfunction]
 fn app(filename: &str) -> App {
-	let app = app::App::from_preset_or_file(filename).unwrap();
-	App{app}
+    App{app: app::App::from_preset_or_file(filename).unwrap()}
 }
 
 
