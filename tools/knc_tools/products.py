@@ -72,7 +72,7 @@ class Products:
     @property
     def setup(self):
         return list(self.config['model'].keys())[0]
-    
+
     @property
     def gamma_law_index(self):
         return self.config['hydro']['relativistic']['gamma_law_index']
