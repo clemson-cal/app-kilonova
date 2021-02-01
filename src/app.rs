@@ -233,7 +233,7 @@ impl App {
      * Construct a new App instance from a user configuration.
      */
     pub fn from_config(mut config: Configuration) -> anyhow::Result<Self> {
-        for extra_config_str in std::env::args().skip(2) {
+        for extra_config_str in std::env::args().skip_while(|s| !s.contains('=')) {
             if extra_config_str.ends_with(".yaml") {
                 config.patch_from_reader(File::open(extra_config_str)?)?
             } else {

@@ -6,6 +6,7 @@ use pyo3::wrap_pyfunction;
 use numpy::ToPyArray;
 use pythonize::pythonize;
 use kilonova::app;
+use kilonova::io;
 use kilonova::mesh;
 use kilonova::physics;
 use kilonova::products;
@@ -71,6 +72,13 @@ impl Products {
     #[getter]
     fn time(&self) -> f64 {
         self.products.time
+    }
+
+    #[getter]
+    fn config(&self) -> PyResult<PyObject> {
+        Python::with_gil(|py| {
+            Ok(pythonize(py, &self.products.config)?)
+        })
     }
 }
 
@@ -197,6 +205,11 @@ fn app(filename: &str) -> App {
     App{app: app::App::from_preset_or_file(filename).unwrap()}
 }
 
+#[pyfunction]
+fn products(filename: &str) -> Products {
+    Products{products: io::read_cbor(filename, false).unwrap()}
+}
+
 
 
 
@@ -204,5 +217,6 @@ fn app(filename: &str) -> App {
 #[pymodule]
 fn knc_tools(_: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(app, m)?)?;
+    m.add_function(wrap_pyfunction!(products, m)?)?;
     Ok(())
 }
