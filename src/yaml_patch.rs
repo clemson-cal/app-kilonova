@@ -6,6 +6,20 @@ use serde_yaml::{Value, Mapping, to_value, from_value, from_str, from_reader};
 
 
 // ============================================================================
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+
+    #[error("{0}")]
+    SerdeYaml(#[from] serde_yaml::Error),
+
+    #[error("badly formed key=value in '{0}'")]
+    KeyVal(String),
+}
+
+
+
+
+// ============================================================================
 fn merge_mapping(value_map: &Mapping, patch_map: &Mapping) -> Mapping {
     let mut result = value_map.clone();
 
@@ -74,11 +88,11 @@ pub trait Patch {
      * within this object, setting the `name` field of the `ceo` field to
      * `"Bob"`.
      */
-    fn patch_from_key_val(&mut self, key_val_str: &str) -> anyhow::Result<()> {
+    fn patch_from_key_val(&mut self, key_val_str: &str) -> Result<(), Error> {
         let tokens: Vec<_> = key_val_str.split('=').collect();
 
         if tokens.len() != 2 || tokens[1].is_empty() {
-            anyhow::bail!("badly formed key=value in '{}'", key_val_str)
+            return Err(Error::KeyVal(key_val_str.to_string()))
         }
 
         let mut parts = tokens[0].split('.').rev();

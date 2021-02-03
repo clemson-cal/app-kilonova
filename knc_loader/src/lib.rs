@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use pyo3::exceptions::PyKeyError;
+use pyo3::exceptions::{PyKeyError, PyValueError};
 use pyo3::PyIterProtocol;
 use pyo3::PyMappingProtocol;
 use pyo3::wrap_pyfunction;
@@ -201,13 +201,19 @@ impl BlockProducts {
 
 // ============================================================================
 #[pyfunction]
-fn app(filename: &str) -> App {
-    App{app: app::App::from_preset_or_file(filename).unwrap()}
+fn app(filename: &str) -> PyResult<App> {
+    match app::App::from_preset_or_file(filename) {
+        Ok(app) => Ok(App{app}),
+        Err(e)  => Err(PyValueError::new_err(format!("{}", e))),
+    }
 }
 
 #[pyfunction]
-fn products(filename: &str) -> Products {
-    Products{products: io::read_cbor(filename, false).unwrap()}
+fn products(filename: &str) -> PyResult<Products> {
+    match io::read_cbor(filename, false) {
+        Ok(products) => Ok(Products{products}),
+        Err(e)       => Err(PyValueError::new_err(format!("{}", e))),
+    }
 }
 
 

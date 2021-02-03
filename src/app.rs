@@ -1,5 +1,3 @@
-
-
 pub static DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 pub static VERSION_AND_BUILD: &str = git_version::git_version!(prefix=concat!("v", env!("CARGO_PKG_VERSION"), " "));
 
@@ -34,6 +32,28 @@ use crate::traits::{
 use crate::tasks::Tasks;
 use crate::yaml_patch::Patch;
 use crate::io;
+use crate::yaml_patch;
+
+
+// ============================================================================
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+
+    #[error("{0}")]
+    IO(#[from] std::io::Error),
+
+    #[error("{0}")]
+    SerdeYaml(#[from] serde_yaml::Error),
+
+    #[error("{0}")]
+    YamlPatch(#[from] yaml_patch::Error),
+
+    #[error("{0}")]
+    AppIO(#[from] io::Error),
+
+    #[error("unknown input file type '{0}'")]
+    UnknownInputType(String),
+}
 
 
 /**
@@ -232,7 +252,7 @@ impl App {
     /**
      * Construct a new App instance from a user configuration.
      */
-    pub fn from_config(mut config: Configuration) -> anyhow::Result<Self> {
+    pub fn from_config(mut config: Configuration) -> Result<Self, Error> {
         for extra_config_str in std::env::args().skip_while(|s| !s.contains('=')) {
             if extra_config_str.ends_with(".yaml") {
                 config.patch_from_reader(File::open(extra_config_str)?)?
@@ -258,12 +278,12 @@ impl App {
      * Construct a new App instance from a file: may be a config.yaml or a
      * chkpt.0000.cbor.
      */
-    pub fn from_file(filename: &str) -> anyhow::Result<Self> {
+    pub fn from_file(filename: &str) -> Result<Self, Error> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
             Some("yaml") => Self::from_config(serde_yaml::from_str(&read_to_string(filename)?)?),
-            Some("cbor") => io::read_cbor(filename, false),
-            Some("cboz") => io::read_cbor(filename, true),
-            _ => anyhow::bail!("unknown input file type '{}'", filename),
+            Some("cbor") => Ok(io::read_cbor(filename, false)?),
+            Some("cboz") => Ok(io::read_cbor(filename, true)?),
+            _ => Err(Error::UnknownInputType(filename.to_string())),
         }
     }
 
@@ -271,7 +291,7 @@ impl App {
      * Construct a new App instance from a preset (hard-coded) configuration
      * name, or otherwise an input file if no matching preset is found.
      */
-    pub fn from_preset_or_file(input: &str) -> anyhow::Result<Self> {
+    pub fn from_preset_or_file(input: &str) -> Result<Self, Error> {
         match input {
             "jet_in_cloud" => Self::from_config(serde_yaml::from_str(std::include_str!("../setups/jet_in_cloud.yaml"))?),
             _ => Self::from_file(input),
