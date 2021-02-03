@@ -215,7 +215,7 @@ fn products(filename: &str) -> Products {
 
 // ============================================================================
 #[pymodule]
-fn knc_tools(_: Python, m: &PyModule) -> PyResult<()> {
+fn knc_loader(_: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(app, m)?)?;
     m.add_function(wrap_pyfunction!(products, m)?)?;
     Ok(())

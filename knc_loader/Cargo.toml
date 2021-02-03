@@ -1,11 +1,11 @@
 [package]
-name = "knc_tools"
+name = "knc_loader"
 version = "0.1.0"
 authors = ["Jonathan Zrake <jonathan.zrake@gmail.com>"]
 edition = "2018"
 
 [lib]
-name = "knc_tools"
+name = "knc_loader"
 crate-type = ["cdylib"]
 
 [dependencies.pyo3]

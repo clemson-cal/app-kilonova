@@ -2,7 +2,20 @@ import argparse
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-from knc_tools import load_products, timed
+import knc_loader
+from timed import timed
+
+
+def load_products(filename):
+    if filename.startswith('prods'):
+        with timed('load products'):
+            p = knc_loader.products(filename)
+    else:
+        with timed('load app'):
+            a = knc_loader.app(filename)
+        with timed('make products'):
+            p = a.make_products()
+    return p
 
 
 def block_vertices(block):
