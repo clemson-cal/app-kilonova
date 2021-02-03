@@ -36,6 +36,7 @@ pub enum RiemannSolver {
  * Primitive variable state that is agnostic to the hydrodynamics system
  */
 #[derive(Clone, Serialize, Deserialize)]
+#[serde(from = "[f64; 4]", into = "[f64; 4]")]
 pub struct AgnosticPrimitive {
 
     /// Radial velocity (radial gamma-beta for relativistic hydro)
@@ -49,4 +50,25 @@ pub struct AgnosticPrimitive {
 
     /// Gas pressure
     pub gas_pressure: f64,
+}
+
+
+
+
+// ============================================================================
+impl Into<[f64; 4]> for AgnosticPrimitive {
+    fn into(self) -> [f64; 4] {
+        [self.velocity_r, self.velocity_q, self.mass_density, self.gas_pressure]
+    }
+}
+
+impl From<[f64; 4]> for AgnosticPrimitive {
+    fn from(d: [f64; 4]) -> Self {
+        AgnosticPrimitive{
+            velocity_r: d[0],
+            velocity_q: d[1],
+            mass_density: d[2],
+            gas_pressure: d[3],
+        }
+    }
 }
