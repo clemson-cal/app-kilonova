@@ -80,6 +80,13 @@ impl Products {
             Ok(pythonize(py, &self.products.config)?)
         })
     }
+
+    fn save(&self, filename: &str) -> PyResult<()> {
+        match io::write_cbor(&self.products, filename, false) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(PyValueError::new_err(format!("{}", e))),
+        }
+    }
 }
 
 

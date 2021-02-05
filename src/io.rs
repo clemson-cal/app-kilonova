@@ -8,6 +8,7 @@ use serde::{Serialize, Deserialize};
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
 
+    #[cfg(feature = "serde_cbor")]
     #[error("{0}")]
     SerdeCbor(#[from] serde_cbor::Error),
 
@@ -19,6 +20,9 @@ pub enum Error {
 
     #[error("snappy_compression = true, but snap is not enabled")]
     CannotWriteSnappy,
+
+    #[error("input file {0} given, but serde_cbor is not enabled")]
+    SerdeCborNotEnabled(String),
 }
 
 
@@ -77,5 +81,5 @@ pub fn read_cbor<T: for<'de> Deserialize<'de>>(path_str: &str, snappy_compressio
 
 #[cfg(not(feature = "serde_cbor"))]
 pub fn read_cbor<T: for<'de> Deserialize<'de>>(path_str: &str, _: bool) -> Result<T, Error> {
-    anyhow::bail!("input file {} given, but serde_cbor is not enabled", path_str)
+    Err(Error::SerdeCborNotEnabled(path_str.to_string()))
 }
