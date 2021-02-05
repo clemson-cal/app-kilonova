@@ -1,4 +1,5 @@
 import argparse
+import pathlib
 import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -68,6 +69,7 @@ def main():
     parser.add_argument('-l', '--log', action='store_true')
     parser.add_argument('-c', '--cmap', default='viridis')
     parser.add_argument('--hardcopy', action='store_true')
+    parser.add_argument('--output', '-o', default=None, type=str)
     parser.add_argument('--radius', default=None, type=float)
     args = parser.parse_args()
 
@@ -82,8 +84,8 @@ def main():
         vertices = mesh_vertices(products)
         field = mesh_field(products, args.field, np.log10 if args.log else lambda x: x)
         setup = next(iter(products.config['model']))
-        vmin = min([c.min() for c in field])
-        vmax = max([c.max() for c in field])
+        vmin = min([c.min() for c in field]) if vmin is None else vmin
+        vmax = max([c.max() for c in field]) if vmax is None else vmax
 
     with timed('load plots'):
         for (x, z), c in zip(vertices, field):
@@ -101,7 +103,16 @@ def main():
     fig.suptitle(r'Setup: $\mathtt{{{}}}$   {}   $t = {:.4}s$'.format(setup.replace('_', '-'), variable(args), products.time))
 
     with timed('show'):
-        plt.show()
+        if args.hardcopy or args.output is not None:
+            if args.output is None:
+                pngname = format(pathlib.Path(filename).with_suffix('.png'))
+            else:
+                pngname = args.output
+            print('save {}'.format(pngname))
+            fig.savefig(pngname, dpi=400)
+            fig.clf()
+        else:
+            plt.show()
 
 
 if __name__ == "__main__":
