@@ -88,8 +88,8 @@ impl Hydrodynamics for RelativisticHydro {
 
     fn agnostic(&self, p: &Self::Primitive) -> AgnosticPrimitive {
         AgnosticPrimitive{
-            velocity_r: p.velocity_1(),
-            velocity_q: p.velocity_2(),
+            velocity_r: p.gamma_beta_1(),
+            velocity_q: p.gamma_beta_2(),
             mass_density: p.mass_density(),
             gas_pressure: p.gas_pressure(),
         }
