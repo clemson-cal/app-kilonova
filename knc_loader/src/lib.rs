@@ -114,7 +114,7 @@ impl RadialProfile {
                 .products
                 .blocks[i]
                 .radial_vertices
-                .view())
+                .slice(ndarray::s![..-1]))
             .collect();
 
         ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap()
