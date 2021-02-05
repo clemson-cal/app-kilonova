@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use pyo3::prelude::*;
 use pyo3::exceptions::{PyKeyError, PyValueError};
 use pyo3::PyIterProtocol;
@@ -22,7 +23,18 @@ struct App {
 
 #[pyclass]
 struct Products {
-    products: products::Products,
+    products: Arc<products::Products>,
+}
+
+#[pyclass]
+struct RadialProfileGetter {
+    products: Arc<products::Products>,
+}
+
+#[pyclass]
+struct RadialProfile {
+    products: Arc<products::Products>,
+    polar_index: usize,
 }
 
 #[pyclass]
@@ -59,7 +71,7 @@ impl App {
     }
 
     fn make_products(&self) -> Products {
-        Products{products: products::Products::from_app(&self.app)}
+        Products{products: Arc::new(products::Products::from_app(&self.app))}
     }
 }
 
@@ -81,11 +93,127 @@ impl Products {
         })
     }
 
+    #[getter]
+    fn radial_profile(&self) -> RadialProfileGetter {
+        RadialProfileGetter{products: self.products.clone()}
+    }
+
     fn save(&self, filename: &str) -> PyResult<()> {
-        match io::write_cbor(&self.products, filename, false) {
+        match io::write_cbor(self.products.as_ref(), filename, false) {
             Ok(()) => Ok(()),
             Err(e) => Err(PyValueError::new_err(format!("{}", e))),
         }
+    }
+}
+
+
+
+
+// ============================================================================
+impl RadialProfile {
+
+    fn concat_vertices(&self) -> PyObject {
+        pyo3::Python::with_gil(|py| {
+            let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
+            block_indexes.sort();
+
+            let arrays: Vec<_> = block_indexes
+                .iter()
+                .map(|i| self
+                    .products
+                    .blocks[i]
+                    .radial_vertices
+                    .view())
+                .collect();
+
+            ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap().to_pyarray(py).to_object(py)
+        })
+    }
+
+    fn concat_scalar(&self) -> PyObject {
+        pyo3::Python::with_gil(|py| {
+            let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
+            block_indexes.sort();
+
+            let arrays: Vec<_> = block_indexes
+                .iter()
+                .map(|i| self
+                    .products
+                    .blocks[i]
+                    .scalar
+                    .slice(ndarray::s![.., self.polar_index]))
+                .collect();
+
+            ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap().to_pyarray(py).to_object(py)
+        })
+    }
+
+    fn concat_map_primitive<F>(&self, f: F) -> PyObject
+    where
+        F: Fn(&physics::AgnosticPrimitive) -> f64
+    {
+        pyo3::Python::with_gil(|py| {
+            let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
+            block_indexes.sort();
+
+            let arrays: Vec<_> = block_indexes
+                .iter()
+                .map(|i| self
+                    .products
+                    .blocks[i]
+                    .primitive
+                    .slice(ndarray::s![.., self.polar_index])
+                    .map(&f))
+                .collect();
+            let arrays: Vec<_> = arrays.iter().map(|a| a.view()).collect();
+
+            ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap().to_pyarray(py).to_object(py)
+        })
+    }
+}
+
+#[pymethods]
+impl RadialProfile {
+
+    #[getter]
+    fn vertices(&self) -> PyObject {
+        self.concat_vertices()
+    }
+
+    #[getter]
+    fn scalar(&self) -> PyObject {
+        self.concat_scalar()
+    }
+
+    #[getter]
+    fn radial_four_velocity(&self) -> PyObject {
+        self.concat_map_primitive(|p| p.velocity_r)
+    }
+
+    #[getter]
+    fn polar_four_velocity(&self) -> PyObject {
+        self.concat_map_primitive(|p| p.velocity_q)
+    }
+
+    #[getter]
+    fn comoving_mass_density(&self) -> PyObject {
+        self.concat_map_primitive(|p| p.mass_density)
+    }
+
+    #[getter]
+    fn gas_pressure(&self) -> PyObject {
+        self.concat_map_primitive(|p| p.gas_pressure)
+    }
+}
+
+
+
+
+// ============================================================================
+#[pyproto]
+impl PyMappingProtocol for RadialProfileGetter {
+    fn __getitem__(&self, polar_index: usize) -> RadialProfile {
+        RadialProfile{products: self.products.clone(), polar_index}
     }
 }
 
@@ -218,7 +346,7 @@ fn app(filename: &str) -> PyResult<App> {
 #[pyfunction]
 fn products(filename: &str) -> PyResult<Products> {
     match io::read_cbor(filename, false) {
-        Ok(products) => Ok(Products{products}),
+        Ok(products) => Ok(Products{products: Arc::new(products)}),
         Err(e)       => Err(PyValueError::new_err(format!("{}", e))),
     }
 }
