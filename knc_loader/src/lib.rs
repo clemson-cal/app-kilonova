@@ -50,24 +50,18 @@ struct BlockProducts {
 impl App {
 
     #[getter]
-    fn version(&self) -> PyResult<PyObject> {
-        Python::with_gil(|py| {
-            Ok(pythonize(py, &self.app.version)?)
-        })
+    fn version(&self, py: Python) -> PyResult<PyObject> {
+        Ok(pythonize(py, &self.app.version)?)
     }
 
     #[getter]
-    fn config(&self) -> PyResult<PyObject> {
-        Python::with_gil(|py| {
-            Ok(pythonize(py, &self.app.config)?)
-        })
+    fn config(&self, py: Python) -> PyResult<PyObject> {
+        Ok(pythonize(py, &self.app.config)?)
     }
 
     #[getter]
-    fn tasks(&self) -> PyResult<PyObject> {
-        Python::with_gil(|py| {
-            Ok(pythonize(py, &self.app.tasks)?)
-        })
+    fn tasks(&self, py: Python) -> PyResult<PyObject> {
+        Ok(pythonize(py, &self.app.tasks)?)
     }
 
     fn make_products(&self) -> Products {
@@ -87,10 +81,8 @@ impl Products {
     }
 
     #[getter]
-    fn config(&self) -> PyResult<PyObject> {
-        Python::with_gil(|py| {
-            Ok(pythonize(py, &self.products.config)?)
-        })
+    fn config(&self, py: Python) -> PyResult<PyObject> {
+        Ok(pythonize(py, &self.products.config)?)
     }
 
     #[getter]
@@ -112,63 +104,57 @@ impl Products {
 // ============================================================================
 impl RadialProfile {
 
-    fn concat_vertices(&self) -> PyObject {
-        pyo3::Python::with_gil(|py| {
-            let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
-            block_indexes.sort();
+    fn concat_vertices(&self) -> ndarray::Array<f64, ndarray::Ix1> {
+        let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
+        block_indexes.sort();
 
-            let arrays: Vec<_> = block_indexes
-                .iter()
-                .map(|i| self
-                    .products
-                    .blocks[i]
-                    .radial_vertices
-                    .view())
-                .collect();
+        let arrays: Vec<_> = block_indexes
+            .iter()
+            .map(|i| self
+                .products
+                .blocks[i]
+                .radial_vertices
+                .view())
+            .collect();
 
-            ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap().to_pyarray(py).to_object(py)
-        })
+        ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap()
     }
 
-    fn concat_scalar(&self) -> PyObject {
-        pyo3::Python::with_gil(|py| {
-            let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
-            block_indexes.sort();
+    fn concat_scalar(&self) -> ndarray::Array<f64, ndarray::Ix1> {
+        let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
+        block_indexes.sort();
 
-            let arrays: Vec<_> = block_indexes
-                .iter()
-                .map(|i| self
-                    .products
-                    .blocks[i]
-                    .scalar
-                    .slice(ndarray::s![.., self.polar_index]))
-                .collect();
+        let arrays: Vec<_> = block_indexes
+            .iter()
+            .map(|i| self
+                .products
+                .blocks[i]
+                .scalar
+                .slice(ndarray::s![.., self.polar_index]))
+            .collect();
 
-            ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap().to_pyarray(py).to_object(py)
-        })
+        ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap()
     }
 
-    fn concat_map_primitive<F>(&self, f: F) -> PyObject
+    fn concat_map_primitive<F>(&self, f: F) -> ndarray::Array<f64, ndarray::Ix1>
     where
         F: Fn(&physics::AgnosticPrimitive) -> f64
     {
-        pyo3::Python::with_gil(|py| {
-            let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
-            block_indexes.sort();
+        let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
+        block_indexes.sort();
 
-            let arrays: Vec<_> = block_indexes
-                .iter()
-                .map(|i| self
-                    .products
-                    .blocks[i]
-                    .primitive
-                    .slice(ndarray::s![.., self.polar_index])
-                    .map(&f))
-                .collect();
-            let arrays: Vec<_> = arrays.iter().map(|a| a.view()).collect();
+        let arrays: Vec<_> = block_indexes
+            .iter()
+            .map(|i| self
+                .products
+                .blocks[i]
+                .primitive
+                .slice(ndarray::s![.., self.polar_index])
+                .map(&f))
+            .collect();
+        let arrays: Vec<_> = arrays.iter().map(|a| a.view()).collect();
 
-            ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap().to_pyarray(py).to_object(py)
-        })
+        ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap()
     }
 }
 
@@ -176,33 +162,33 @@ impl RadialProfile {
 impl RadialProfile {
 
     #[getter]
-    fn vertices(&self) -> PyObject {
-        self.concat_vertices()
+    fn vertices(&self, py: Python) -> PyObject {
+        self.concat_vertices().to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn scalar(&self) -> PyObject {
-        self.concat_scalar()
+    fn scalar(&self, py: Python) -> PyObject {
+        self.concat_scalar().to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn radial_four_velocity(&self) -> PyObject {
-        self.concat_map_primitive(|p| p.velocity_r)
+    fn radial_four_velocity(&self, py: Python) -> PyObject {
+        self.concat_map_primitive(|p| p.velocity_r).to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn polar_four_velocity(&self) -> PyObject {
-        self.concat_map_primitive(|p| p.velocity_q)
+    fn polar_four_velocity(&self, py: Python) -> PyObject {
+        self.concat_map_primitive(|p| p.velocity_q).to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn comoving_mass_density(&self) -> PyObject {
-        self.concat_map_primitive(|p| p.mass_density)
+    fn comoving_mass_density(&self, py: Python) -> PyObject {
+        self.concat_map_primitive(|p| p.mass_density).to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn gas_pressure(&self) -> PyObject {
-        self.concat_map_primitive(|p| p.gas_pressure)
+    fn gas_pressure(&self, py: Python) -> PyObject {
+        self.concat_map_primitive(|p| p.gas_pressure).to_pyarray(py).to_object(py)
     }
 }
 
@@ -232,7 +218,7 @@ impl PyMappingProtocol for Products {
         if let Some(b) = self.products.blocks.get(&key) {
             Ok(BlockProducts{block_products: b.clone()})
         } else {
-            Python::with_gil(|py| {
+            pyo3::Python::with_gil(|py| {
                 Err(PyErr::from_instance(PyKeyError::new_err("invalid block index").instance(py)))
             })
         }
@@ -276,13 +262,11 @@ impl PyIterProtocol for ProductsIter {
 
 // ============================================================================
 impl BlockProducts {
-    fn map_primitive<F>(&self, f: F) -> PyObject
+    fn map_primitive<F>(&self, f: F) -> ndarray::Array<f64, ndarray::Ix2>
     where
         F: Fn(&physics::AgnosticPrimitive) -> f64
     {
-        pyo3::Python::with_gil(|py| {
-            self.block_products.primitive.map(f).to_pyarray(py).to_object(py)
-        })
+        self.block_products.primitive.map(f)
     }
 }
 
@@ -290,44 +274,38 @@ impl BlockProducts {
 impl BlockProducts {
 
     #[getter]
-    fn radial_vertices(&self) -> PyObject {
-        pyo3::Python::with_gil(|py| {
-            self.block_products.radial_vertices.to_pyarray(py).to_object(py)
-        })
+    fn radial_vertices(&self, py: Python) -> PyObject {
+        self.block_products.radial_vertices.to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn polar_vertices(&self) -> PyObject {
-        pyo3::Python::with_gil(|py| {
-            self.block_products.polar_vertices.to_pyarray(py).to_object(py)
-        })
+    fn polar_vertices(&self, py: Python) -> PyObject {
+        self.block_products.polar_vertices.to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn scalar(&self) -> PyObject {
-        pyo3::Python::with_gil(|py| {
-            self.block_products.scalar.to_pyarray(py).to_object(py)
-        })
+    fn scalar(&self, py: Python) -> PyObject {
+        self.block_products.scalar.to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn radial_four_velocity(&self) -> PyObject {
-        self.map_primitive(|p| p.velocity_r)
+    fn radial_four_velocity(&self, py: Python) -> PyObject {
+        self.map_primitive(|p| p.velocity_r).to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn polar_four_velocity(&self) -> PyObject {
-        self.map_primitive(|p| p.velocity_q)
+    fn polar_four_velocity(&self, py: Python) -> PyObject {
+        self.map_primitive(|p| p.velocity_q).to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn comoving_mass_density(&self) -> PyObject {
-        self.map_primitive(|p| p.mass_density)
+    fn comoving_mass_density(&self, py: Python) -> PyObject {
+        self.map_primitive(|p| p.mass_density).to_pyarray(py).to_object(py)
     }
 
     #[getter]
-    fn gas_pressure(&self) -> PyObject {
-        self.map_primitive(|p| p.gas_pressure)
+    fn gas_pressure(&self, py: Python) -> PyObject {
+        self.map_primitive(|p| p.gas_pressure).to_pyarray(py).to_object(py)
     }
 }
 
