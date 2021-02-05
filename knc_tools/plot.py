@@ -7,7 +7,7 @@ from timed import timed
 
 
 def load_products(filename):
-    if filename.startswith('prods'):
+    if 'prods' in filename:
         with timed('load products'):
             p = knc_loader.products(filename)
     else:
@@ -15,6 +15,8 @@ def load_products(filename):
             a = knc_loader.app(filename)
         with timed('make products'):
             p = a.make_products()
+        with timed('cache products'):
+            p.save(filename.replace('chkpt', 'prods'))
     return p
 
 
