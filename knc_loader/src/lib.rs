@@ -120,11 +120,15 @@ impl Products {
 // ============================================================================
 impl RadialProfile {
 
-    fn concat_vertices(&self) -> ndarray::Array<f64, ndarray::Ix1> {
+    fn sorted_keys(&self) -> Vec<&(i32, usize)> {
         let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
         block_indexes.sort();
+        block_indexes
+    }
 
-        let arrays: Vec<_> = block_indexes
+    fn concat_vertices(&self) -> ndarray::Array<f64, ndarray::Ix1> {
+        let arrays: Vec<_> = self
+            .sorted_keys()
             .iter()
             .map(|i| self
                 .products
@@ -132,15 +136,12 @@ impl RadialProfile {
                 .radial_vertices
                 .slice(ndarray::s![..-1]))
             .collect();
-
         ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap()
     }
 
     fn concat_scalar(&self) -> ndarray::Array<f64, ndarray::Ix1> {
-        let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
-        block_indexes.sort();
-
-        let arrays: Vec<_> = block_indexes
+        let arrays: Vec<_> = self
+            .sorted_keys()
             .iter()
             .map(|i| self
                 .products
@@ -148,7 +149,6 @@ impl RadialProfile {
                 .scalar
                 .slice(ndarray::s![.., self.polar_index]))
             .collect();
-
         ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap()
     }
 
@@ -156,10 +156,8 @@ impl RadialProfile {
     where
         F: Fn(&physics::AgnosticPrimitive) -> f64
     {
-        let mut block_indexes: Vec<_> = self.products.blocks.keys().collect();
-        block_indexes.sort();
-
-        let arrays: Vec<_> = block_indexes
+        let arrays: Vec<_> = self
+            .sorted_keys()
             .iter()
             .map(|i| self
                 .products
@@ -169,7 +167,6 @@ impl RadialProfile {
                 .map(&f))
             .collect();
         let arrays: Vec<_> = arrays.iter().map(|a| a.view()).collect();
-
         ndarray::concatenate(ndarray::Axis(0), &arrays).unwrap()
     }
 }
