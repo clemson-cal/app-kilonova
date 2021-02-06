@@ -49,21 +49,27 @@ struct BlockProducts {
 #[pymethods]
 impl App {
 
+    /// The code version number
     #[getter]
     fn version(&self, py: Python) -> PyResult<PyObject> {
         Ok(pythonize(py, &self.app.version)?)
     }
 
+    /// A dict of the runtime configuration. This dict will mirror the
+    /// app::Configuration struct.
     #[getter]
     fn config(&self, py: Python) -> PyResult<PyObject> {
         Ok(pythonize(py, &self.app.config)?)
     }
 
+    /// A dict of the task list
     #[getter]
     fn tasks(&self, py: Python) -> PyResult<PyObject> {
         Ok(pythonize(py, &self.app.tasks)?)
     }
 
+    /// Generate a products::Products instance, from the app state, which
+    /// contains geometric and primitive data to help in post-processing.
     fn make_products(&self) -> Products {
         Products{products: Arc::new(products::Products::from_app(&self.app))}
     }
@@ -75,21 +81,31 @@ impl App {
 // ============================================================================
 #[pymethods]
 impl Products {
+
+    /// The simulation time
     #[getter]
     fn time(&self) -> f64 {
         self.products.time
     }
 
+    /// A dict of the runtime configuration. This dict will mirror the
+    /// app::Configuration struct.
     #[getter]
     fn config(&self, py: Python) -> PyResult<PyObject> {
         Ok(pythonize(py, &self.products.config)?)
     }
 
+    /// A way to access radial profiles of the hydrodynamic data. In Python
+    /// code, typing `products.radial_profile[10].scalar` would return a 1D
+    /// numpy array of the scalar concentration for the zones at polar index
+    /// j=10.
     #[getter]
     fn radial_profile(&self) -> RadialProfileGetter {
         RadialProfileGetter{products: self.products.clone()}
     }
 
+    /// Write this products instance to a CBOR file on disk, with the given
+    /// name.
     fn save(&self, filename: &str) -> PyResult<()> {
         match io::write_cbor(self.products.as_ref(), filename, false) {
             Ok(()) => Ok(()),
