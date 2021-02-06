@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use pyo3::prelude::*;
-use pyo3::exceptions::{PyKeyError, PyValueError};
+use pyo3::exceptions::{PyKeyError, PyIndexError, PyValueError};
 use pyo3::PyIterProtocol;
 use pyo3::PyMappingProtocol;
 use pyo3::wrap_pyfunction;
@@ -198,8 +198,14 @@ impl RadialProfile {
 // ============================================================================
 #[pyproto]
 impl PyMappingProtocol for RadialProfileGetter {
-    fn __getitem__(&self, polar_index: usize) -> RadialProfile {
-        RadialProfile{products: self.products.clone(), polar_index}
+    fn __getitem__(&self, polar_index: usize) -> PyResult<RadialProfile> {
+        if polar_index >= self.products.config.mesh.num_polar_zones {
+            pyo3::Python::with_gil(|py| {
+                Err(PyErr::from_instance(PyIndexError::new_err("invalid block index").instance(py)))
+            })
+        } else {
+            Ok(RadialProfile{products: self.products.clone(), polar_index})
+        }
     }
 }
 
@@ -219,7 +225,7 @@ impl PyMappingProtocol for Products {
             Ok(BlockProducts{block_products: b.clone()})
         } else {
             pyo3::Python::with_gil(|py| {
-                Err(PyErr::from_instance(PyKeyError::new_err("invalid block index").instance(py)))
+                Err(PyErr::from_instance(PyKeyError::new_err("polar index is out of bounds").instance(py)))
             })
         }
     }
