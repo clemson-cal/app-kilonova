@@ -209,6 +209,14 @@ impl RadialProfile {
 
 
 // ============================================================================
+#[pymethods]
+impl RadialProfileGetter {
+    #[getter]
+    fn vertices(&self, py: Python) -> PyObject {
+        (RadialProfile{products: self.products.clone(), polar_index: 0}).vertices(py)
+    }
+}
+
 #[pyproto]
 impl PyMappingProtocol for RadialProfileGetter {
     fn __getitem__(&self, polar_index: usize) -> PyResult<RadialProfile> {

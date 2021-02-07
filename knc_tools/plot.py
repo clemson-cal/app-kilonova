@@ -61,6 +61,46 @@ def variable(args):
         return args.field
 
 
+def plot_two_dimensional(products, args):
+    vmin, vmax = eval(args.range)
+    fig = plt.figure(figsize=[7, 11])
+    ax1 = fig.add_subplot(1, 1, 1)
+
+    with timed('make vertices and fields'):
+        vertices = mesh_vertices(products)
+        field = mesh_field(products, args.field, np.log10 if args.log else lambda x: x)
+        setup = next(iter(products.config['model']))
+        vmin = min([c.min() for c in field]) if vmin is None else vmin
+        vmax = max([c.max() for c in field]) if vmax is None else vmax
+
+    with timed('load plots'):
+        for (x, z), c in zip(vertices, field):
+            cm = ax1.pcolormesh(x, z, c, vmin=vmin, vmax=vmax, edgecolors='k', lw=0.5, cmap=args.cmap)
+
+    if args.radius is not None:
+        ax1.set_xlim(0, args.radius)
+        ax1.set_ylim(-args.radius, args.radius)
+    ax1.set_xlabel(r'$x \ [\rm{cm}]$')
+    ax1.set_ylabel(r'$z \ [\rm{cm}]$')
+
+    ax1.set_aspect('equal')
+    fig.colorbar(cm)
+    fig.subplots_adjust(left=0, right=1, top=0.9, bottom=0.05)
+    fig.suptitle(r'Setup: $\mathtt{{{}}}$   {}   $t = {:.4}s$'.format(setup.replace('_', '-'), variable(args), products.time))
+    return fig
+
+
+def plot_radial_profile(products, args):
+    fig = plt.figure(figsize=[9, 9])
+    ax1 = fig.add_subplot(1, 1, 1)
+    r = products.radial_profile.vertices
+    d = products.radial_profile[0].comoving_mass_density
+    ax1.plot(r, d)
+    ax1.set_xscale('log')
+    ax1.set_yscale('log')
+    return fig
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("filenames", nargs='+')
@@ -73,34 +113,13 @@ def main():
     parser.add_argument('--radius', default=None, type=float)
     args = parser.parse_args()
 
-    vmin, vmax = eval(args.range)
-    fig = plt.figure(figsize=[7, 11])
-    ax1 = fig.add_subplot(1, 1, 1)
-
     filename = args.filenames[0]
     products = load_products(filename)
 
-    with timed('make vertices and fields'):
-        vertices = mesh_vertices(products)
-        field = mesh_field(products, args.field, np.log10 if args.log else lambda x: x)
-        setup = next(iter(products.config['model']))
-        vmin = min([c.min() for c in field]) if vmin is None else vmin
-        vmax = max([c.max() for c in field]) if vmax is None else vmax
-
-    with timed('load plots'):
-        for (x, z), c in zip(vertices, field):
-            cm = ax1.pcolormesh(x, z, c, vmin=vmin, vmax=vmax, edgecolors='none', cmap=args.cmap)
-
-    if args.radius is not None:
-        ax1.set_xlim(0, args.radius)
-        ax1.set_ylim(-args.radius, args.radius)
-    ax1.set_xlabel(r'$x \ [\rm{cm}]$')
-    ax1.set_ylabel(r'$z \ [\rm{cm}]$')
-
-    ax1.set_aspect('equal')
-    fig.colorbar(cm)
-    fig.subplots_adjust(left=0, right=1, top=0.9, bottom=0.05)
-    fig.suptitle(r'Setup: $\mathtt{{{}}}$   {}   $t = {:.4}s$'.format(setup.replace('_', '-'), variable(args), products.time))
+    if products.config['mesh']['num_polar_zones'] > 1:
+        fig = plot_two_dimensional(products, args)
+    else:
+        fig = plot_radial_profile(products, args)
 
     with timed('show'):
         if args.hardcopy or args.output is not None:
