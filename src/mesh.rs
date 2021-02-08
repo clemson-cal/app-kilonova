@@ -53,7 +53,6 @@ pub struct SphericalPolarGrid {
  * Abstract description of a spherical polar mesh
  */
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct Mesh {
 
     /// Radius of the inner surface of the i=0 grid block

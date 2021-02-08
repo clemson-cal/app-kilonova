@@ -75,7 +75,7 @@ def plot_two_dimensional(products, args):
 
     with timed('load plots'):
         for (x, z), c in zip(vertices, field):
-            cm = ax1.pcolormesh(x, z, c, vmin=vmin, vmax=vmax, edgecolors='k', lw=0.5, cmap=args.cmap)
+            cm = ax1.pcolormesh(x, z, c, vmin=vmin, vmax=vmax, edgecolors='none', lw=0.5, cmap=args.cmap)
 
     if args.radius is not None:
         ax1.set_xlim(0, args.radius)
