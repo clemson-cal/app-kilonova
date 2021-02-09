@@ -58,7 +58,7 @@ pub trait Patch {
      * rules are as follows:
      *
      * - If `patch_value` is not a `serde_yaml::Mapping`, then it is
-     * deserialized into self.
+     * deserialized into self, if possible.
      *
      * - Otherwise, if `patch_value` is a `serde_yaml::Mapping`, then each of
      * its values are merged into their respective data members of `self` using
@@ -84,9 +84,9 @@ pub trait Patch {
     /**
      * Update a single, possibly nested, data member within this object using
      * key-path style attribute access. For example, the string
-     * "company.ceo.name = Bob" would operate on a data member called `company`
-     * within this object, setting the `name` field of the `ceo` field to
-     * `"Bob"`.
+     * `"company.ceo.name = Bob"` would operate on a data member called
+     * `company` within this object, setting the `name` field of the `ceo` field
+     * to `"Bob"`.
      */
     fn patch_from_key_val(&mut self, key_val_str: &str) -> Result<(), Error> {
         let tokens: Vec<_> = key_val_str.split('=').collect();
