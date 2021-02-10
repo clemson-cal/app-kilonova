@@ -21,11 +21,12 @@ static K2:                  f64 = 2.57;
 static N:                   f64 = 16.7;
 static RHO_WIND:            f64 = 1e-9 * M0/(1.33 * PI * R0 * R0 * R0);
 static RHO_ENV:             f64 = 1e-7 * M0/(1.33 * PI * R0 * R0 * R0);
-static r0:                  f64 = 0.01 * R0; //Nozzle size 
+static r0:                  f64 = 0.01 * R0; 
 static R4:                  f64 = 1.1  * R0;
+
 /**
  * Jet propagating through a star and surrounding relativistic
- * envelop
+ * envelope
  */
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -17,6 +17,7 @@ use crate::mesh::Mesh;
 use crate::models::{
     JetInCloud,
     HaloKilonova,
+    JetInStar,
 };
 use crate::physics::{
     AgnosticPrimitive,
@@ -64,6 +65,7 @@ pub enum Error {
 pub enum Model {
     JetInCloud(JetInCloud),
     HaloKilonova(HaloKilonova),
+    JetInStar(JetInStar),
 }
 
 
@@ -190,6 +192,7 @@ impl InitialModel for Model {
         match self {
             Model::JetInCloud(m)   => m.validate(),
             Model::HaloKilonova(m) => m.validate(),
+            Model::JetInStar(m)    => m.validate(),
         }
     }
 
@@ -197,6 +200,7 @@ impl InitialModel for Model {
         match self {
             Model::JetInCloud(m)   => m.primitive_at(coordinate, time),
             Model::HaloKilonova(m) => m.primitive_at(coordinate, time),
+            Model::JetInStar(m)    => m.primitive_at(coordinate, time),
         }
     }
 
@@ -204,6 +208,7 @@ impl InitialModel for Model {
         match self {
             Model::JetInCloud(m)   => m.scalar_at(coordinate, time),
             Model::HaloKilonova(m) => m.scalar_at(coordinate, time),
+            Model::JetInStar(m)    => m.scalar_at(coordinate, time),
         }
     }
 }
