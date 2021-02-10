@@ -151,13 +151,10 @@ impl JetInStar
         } else if r < R3 {
             Zone::Core
         } else if R3 < r && r < 1.2 * R3{
-            Zone:: Envelop
+            Zone:: Wind
         } else {
             Zone::Wind
         }
-
-        // return Zone::Core;
-        // TODO: Flesh out
     }
 
     /**
