@@ -11,6 +11,7 @@ use serde::{
     Serialize,
     Deserialize,
 };
+use yaml_patch::Patch;
 
 
 use crate::mesh::Mesh;
@@ -30,9 +31,7 @@ use crate::traits::{
     InitialModel,
 };
 use crate::tasks::Tasks;
-use crate::yaml_patch::Patch;
 use crate::io;
-use crate::yaml_patch;
 
 
 // ============================================================================

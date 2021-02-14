@@ -16,6 +16,7 @@ futures         = "0.3"
 git-version     = "0.3"
 num_cpus        = "1.0"
 serde_yaml      = "0.8"
+yaml-patch      = "0.1"
 ciborium        = { version = "0.1" }
 ndarray         = { version = "0.14", features = ["serde"] }
 num             = { version = "0.3",  features = ["serde"] }

@@ -218,6 +218,7 @@ dependencies = [
  "serde_yaml",
  "thiserror",
  "tokio",
+ "yaml-patch",
 ]
 
 [[package]]
@@ -497,6 +498,17 @@ name = "unicode-xid"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
+
+[[package]]
+name = "yaml-patch"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc46d21bdf6d106700e5138dd07e55b88b8cec224f963e97b74c2dfe3de6ead8"
+dependencies = [
+ "serde",
+ "serde_yaml",
+ "thiserror",
+]
 
 [[package]]
 name = "yaml-rust"
