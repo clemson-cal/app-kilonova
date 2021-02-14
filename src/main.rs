@@ -36,12 +36,6 @@ where
     AgnosticState: From<State<C>>,
     AgnosticHydro: From<H> {
 
-    let extension = if control.snappy_compression {
-        "cboz"
-    } else {
-        "cbor"
-    };
-
     if tasks.iteration_message.next_time <= state.time {
         let time = tasks.iteration_message.advance(0.0);
         let mzps = 1e-6 * state.total_zones() as f64 / time * control.fold as f64;
@@ -52,17 +46,17 @@ where
 
     if tasks.write_products.next_time <= state.time {
         tasks.write_products.advance(control.products_interval);
-        let filename = format!("{}/prods.{:04}.{}", outdir, tasks.write_products.count - 1, extension);
+        let filename = format!("{}/prods.{:04}.cbor", outdir, tasks.write_products.count - 1);
         let config = Configuration::package(hydro, model, mesh, control);
         let products = Products::from_state(state, hydro, &config);
-        io::write_cbor(&products, &filename, control.snappy_compression)?;
+        io::write_cbor(&products, &filename)?;
     }
 
     if tasks.write_checkpoint.next_time <= state.time {
         tasks.write_checkpoint.advance(control.checkpoint_interval);
-        let filename = format!("{}/chkpt.{:04}.{}", outdir, tasks.write_checkpoint.count - 1, extension);
+        let filename = format!("{}/chkpt.{:04}.cbor", outdir, tasks.write_checkpoint.count - 1);
         let app = App::package(state, tasks, hydro, model, mesh, control);
-        io::write_cbor(&app, &filename, control.snappy_compression)?;
+        io::write_cbor(&app, &filename)?;
     }
 
     Ok(())

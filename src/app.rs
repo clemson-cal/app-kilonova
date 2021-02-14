@@ -101,6 +101,9 @@ pub struct Control {
     pub products_interval: f64,
     pub fold: usize,
     pub num_threads: usize,
+
+    /// Deprecated
+    #[serde(default)]
     pub snappy_compression: bool,
 }
 
@@ -281,8 +284,7 @@ impl App {
     pub fn from_file(filename: &str) -> Result<Self, Error> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
             Some("yaml") => Self::from_config(serde_yaml::from_str(&read_to_string(filename)?)?),
-            Some("cbor") => Ok(io::read_cbor(filename, false)?),
-            Some("cboz") => Ok(io::read_cbor(filename, true)?),
+            Some("cbor") => Ok(io::read_cbor(filename)?),
             _ => Err(Error::UnknownInputType(filename.to_string())),
         }
     }
