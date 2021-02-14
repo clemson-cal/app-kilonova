@@ -8,10 +8,6 @@ readme      = "README.md"
 repository  = "https://github.com/clemson-cal/app-kilonova"
 
 
-[features]
-default = ["serde_cbor"]
-
-
 [dependencies]
 anyhow          = "1.0"
 thiserror       = "1.0"
@@ -20,7 +16,7 @@ futures         = "0.3"
 git-version     = "0.3"
 num_cpus        = "1.0"
 serde_yaml      = "0.8"
-serde_cbor      = { version = "0.11", optional = true }
+ciborium        = { version = "0.1" }
 ndarray         = { version = "0.14", features = ["serde"] }
 num             = { version = "0.3",  features = ["serde"] }
 serde           = { version = "1.0",  features = ["derive"] }
