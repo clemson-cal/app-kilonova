@@ -9,15 +9,12 @@ git clone https://github.com/clemson-cal/app-kilonova
 cd app-kilonova
 cargo build --release
 ```
-From within the `app-kilonova`, copy + paste these lines to build and install the Python loader extension:
+To load and plot the code's output files in Python, you also have to build the `knc_loader` Python module:
 ```bash
-pip3 install maturin
-cd knc_loader
-maturin build
-pip3 install target/wheels/*.whl
+source build_loader.sh
 ```
 
-To remove the Python module at a later time, you can do `pip3 uninstall knc_loader`. You can also install the code locally by running `cargo install --path .` from the project root directory. This will make an executable called `kilonova` available in your path (it will be in the `~/.cargo/bin` directory). To run the code and generate a plot, you can use one of the preset configurations. For example, to run the `jet_in_cloud` problem for 0.1 seconds, type the following:
+You can also install the code to your system path by running `cargo install --path .` from the project root directory. This will place executable called `kilonova` in the `~/.cargo/bin` directory. To run the code and generate a plot, you can use one of the preset configurations. For example, to run the `jet_in_cloud` problem for 0.1 seconds, type the following:
 ```bash
 kilonova jet_in_cloud control.final_time=1.1
 ```
