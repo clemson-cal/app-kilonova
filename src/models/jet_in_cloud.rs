@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 use serde::{Serialize, Deserialize};
-use crate::physics::{AgnosticPrimitive, LIGHT_SPEED};
+use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 
 static NOMINAL_LAUNCH_RADIUS: f64 = 1e8;
@@ -71,14 +71,14 @@ impl InitialModel for JetInCloud {
         Ok(())
     }
 
-    fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AgnosticPrimitive {
+    fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AnyPrimitive {
         let (r, q) = coordinate;
         let f = self.mass_rate_per_steradian(r, q, t);
         let u = self.gamma_beta(r, q, t);
         let d = f / (r * r * u) / LIGHT_SPEED;
         let p = d * UNIFORM_TEMPERATURE;
 
-        AgnosticPrimitive{
+        AnyPrimitive{
             velocity_r: u,
             velocity_q: 0.0,
             mass_density: d,

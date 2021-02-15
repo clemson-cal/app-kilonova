@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use godunov_core::piecewise_linear;
 use godunov_core::runge_kutta::RungeKuttaOrder;
-use crate::physics::AgnosticPrimitive;
+use crate::physics::AnyPrimitive;
 use crate::mesh::Mesh;
 use crate::physics::{RiemannSolver, Direction, LIGHT_SPEED};
 use crate::state::State;
@@ -82,12 +82,12 @@ impl Hydrodynamics for RelativisticHydro {
         p.to_conserved(self.gamma_law_index)
     }
 
-    fn interpret(&self, a: &AgnosticPrimitive) -> Self::Primitive {
+    fn interpret(&self, a: &AnyPrimitive) -> Self::Primitive {
         hydro_srhd::srhd_2d::Primitive(a.mass_density, a.velocity_r, a.velocity_q, a.gas_pressure)
     }
 
-    fn agnostic(&self, p: &Self::Primitive) -> AgnosticPrimitive {
-        AgnosticPrimitive{
+    fn any(&self, p: &Self::Primitive) -> AnyPrimitive {
+        AnyPrimitive {
             velocity_r: p.gamma_beta_1(),
             velocity_q: p.gamma_beta_2(),
             mass_density: p.mass_density(),

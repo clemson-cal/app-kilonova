@@ -37,7 +37,7 @@ pub enum RiemannSolver {
  */
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(from = "[f64; 4]", into = "[f64; 4]")]
-pub struct AgnosticPrimitive {
+pub struct AnyPrimitive {
 
     /// Radial velocity (radial gamma-beta for relativistic hydro)
     pub velocity_r: f64,
@@ -56,15 +56,15 @@ pub struct AgnosticPrimitive {
 
 
 // ============================================================================
-impl Into<[f64; 4]> for AgnosticPrimitive {
+impl Into<[f64; 4]> for AnyPrimitive {
     fn into(self) -> [f64; 4] {
         [self.velocity_r, self.velocity_q, self.mass_density, self.gas_pressure]
     }
 }
 
-impl From<[f64; 4]> for AgnosticPrimitive {
+impl From<[f64; 4]> for AnyPrimitive {
     fn from(d: [f64; 4]) -> Self {
-        AgnosticPrimitive{
+        AnyPrimitive{
             velocity_r: d[0],
             velocity_q: d[1],
             mass_density: d[2],

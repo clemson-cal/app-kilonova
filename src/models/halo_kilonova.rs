@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 use crate::traits::InitialModel;
-use crate::physics::AgnosticPrimitive;
+use crate::physics::AnyPrimitive;
 
 
 
@@ -24,8 +24,8 @@ impl InitialModel for HaloKilonova {
         Ok(())
     }
 
-    fn primitive_at(&self, _coordinate: (f64, f64), _time: f64) -> AgnosticPrimitive {
-        AgnosticPrimitive{
+    fn primitive_at(&self, _coordinate: (f64, f64), _time: f64) -> AnyPrimitive {
+        AnyPrimitive {
             velocity_r: 0.0,
             velocity_q: 0.0,
             mass_density: 1.0,

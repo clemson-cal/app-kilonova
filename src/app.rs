@@ -20,7 +20,7 @@ use crate::models::{
     HaloKilonova,
 };
 use crate::physics::{
-    AgnosticPrimitive,
+    AnyPrimitive,
     RelativisticHydro,
     NewtonianHydro,
 };
@@ -71,7 +71,7 @@ pub enum Model {
  */
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
-pub enum AgnosticHydro {
+pub enum AnyHydro {
     Newtonian(NewtonianHydro),
     Relativistic(RelativisticHydro),
 }
@@ -81,7 +81,7 @@ pub enum AgnosticHydro {
  * Enum for the solution state of any of the supported hydrodynamics types
  */
 #[derive(Clone, Serialize, Deserialize)]
-pub enum AgnosticState {
+pub enum AnyState {
     Newtonian(State<hydro_euler::euler_2d::Conserved>),
     Relativistic(State<hydro_srhd::srhd_2d::Conserved>),
 }
@@ -113,7 +113,7 @@ pub struct Control {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Configuration {
-    pub hydro: AgnosticHydro,
+    pub hydro: AnyHydro,
     pub model: Model,
     pub mesh: Mesh,
     pub control: Control,
@@ -125,7 +125,7 @@ pub struct Configuration {
  */
 #[derive(Clone, Serialize, Deserialize)]
 pub struct App {
-    pub state: AgnosticState,
+    pub state: AnyState,
     pub tasks: Tasks,
     pub config: Configuration,
     pub version: String,
@@ -135,35 +135,35 @@ pub struct App {
 
 
 // ============================================================================
-impl From<State<hydro_euler::euler_2d::Conserved>> for AgnosticState {
+impl From<State<hydro_euler::euler_2d::Conserved>> for AnyState {
     fn from(state: State<hydro_euler::euler_2d::Conserved>) -> Self {
         Self::Newtonian(state)
     }
 }
 
-impl From<State<hydro_srhd::srhd_2d::Conserved>> for AgnosticState {
+impl From<State<hydro_srhd::srhd_2d::Conserved>> for AnyState {
     fn from(state: State<hydro_srhd::srhd_2d::Conserved>) -> Self {
         Self::Relativistic(state)
     }
 }
 
-impl From<NewtonianHydro> for AgnosticHydro {
+impl From<NewtonianHydro> for AnyHydro {
     fn from(hydro: NewtonianHydro) -> Self {
         Self::Newtonian(hydro)
     }
 }
 
-impl From<RelativisticHydro> for AgnosticHydro {
+impl From<RelativisticHydro> for AnyHydro {
     fn from(hydro: RelativisticHydro) -> Self {
         Self::Relativistic(hydro)
     }
 }
 
-impl AgnosticHydro {
+impl AnyHydro {
     pub fn validate(&self) -> anyhow::Result<()> {
         match self {
-            AgnosticHydro::Newtonian(hydro) => hydro.validate(),
-            AgnosticHydro::Relativistic(hydro) => hydro.validate(),
+            AnyHydro::Newtonian(hydro) => hydro.validate(),
+            AnyHydro::Relativistic(hydro) => hydro.validate(),
         }        
     }
 }
@@ -195,7 +195,7 @@ impl InitialModel for Model {
         }
     }
 
-    fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AgnosticPrimitive {
+    fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AnyPrimitive {
         match self {
             Model::JetInCloud(m)   => m.primitive_at(coordinate, time),
             Model::HaloKilonova(m) => m.primitive_at(coordinate, time),
@@ -218,9 +218,9 @@ impl Configuration {
     pub fn package<H>(hydro: &H, model: &Model, mesh: &Mesh, control: &Control) -> Self
     where
         H: Hydrodynamics,
-        AgnosticHydro: From<H> {
-        Configuration{
-            hydro: AgnosticHydro::from(hydro.clone()),
+        AnyHydro: From<H> {
+        Configuration {
+            hydro: AnyHydro::from(hydro.clone()),
             model: model.clone(),
             mesh: mesh.clone(),
             control: control.clone(),
@@ -265,11 +265,11 @@ impl App {
 
         let geometry = config.mesh.grid_blocks_geometry(config.control.start_time);
         let state = match &config.hydro {
-            AgnosticHydro::Newtonian(hydro) => {
-                AgnosticState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
+            AnyHydro::Newtonian(hydro) => {
+                AnyState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
             },
-            AgnosticHydro::Relativistic(hydro) => {
-                AgnosticState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
+            AnyHydro::Relativistic(hydro) => {
+                AnyState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
             },
         };
         let tasks = Tasks::new(config.control.start_time);
@@ -306,10 +306,11 @@ impl App {
     where
         H: Hydrodynamics<Conserved = C>,
         C: Conserved,
-        AgnosticState: From<State<C>>,
-        AgnosticHydro: From<H> {
-        Self{
-            state: AgnosticState::from(state.clone()),
+        AnyState: From<State<C>>,
+        AnyHydro: From<H>
+    {
+        Self {
+            state: AnyState::from(state.clone()),
             tasks: tasks.clone(),
             config: Configuration::package(hydro, model, mesh, control),
             version: VERSION_AND_BUILD.to_string(),
