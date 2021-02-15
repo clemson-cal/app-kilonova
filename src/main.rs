@@ -1,11 +1,11 @@
 use kilonova::*;
 use app::{
-    AgnosticHydro,
-    AgnosticState,
+    AnyHydro,
+    AnyModel,
+    AnyState,
     App,
     Configuration,
     Control,
-    Model,
 };
 use mesh::{
     Mesh,
@@ -19,6 +19,7 @@ use state::{
 use traits::{
     Conserved,
     Hydrodynamics,
+    InitialModel,
 };
 use tasks::{
     Tasks,
@@ -28,13 +29,16 @@ use tasks::{
 
 
 // ============================================================================
-fn side_effects<C, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &Model, mesh: &Mesh, control: &Control, outdir: &str)
+fn side_effects<C, M, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &M, mesh: &Mesh, control: &Control, outdir: &str)
     -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
+    M: InitialModel,
     C: Conserved,
-    AgnosticState: From<State<C>>,
-    AgnosticHydro: From<H> {
+    AnyHydro: From<H>,
+    AnyModel: From<M>,
+    AnyState: From<State<C>>,
+{
 
     if tasks.iteration_message.next_time <= state.time {
         let time = tasks.iteration_message.advance(0.0);
@@ -66,13 +70,16 @@ where
 
 
 // ============================================================================
-fn run<C, H>(mut state: State<C>, mut tasks: Tasks, hydro: H, model: Model, mesh: Mesh, control: Control, outdir: String)
+fn run<C, M, H>(mut state: State<C>, mut tasks: Tasks, hydro: H, model: M, mesh: Mesh, control: Control, outdir: String)
     -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
+    M: InitialModel,
     C: Conserved,
-    AgnosticState: From<State<C>>,
-    AgnosticHydro: From<H> {
+    AnyHydro: From<H>,
+    AnyModel: From<M>,
+    AnyState: From<State<C>>,
+{
 
     let mut block_geometry = mesh.grid_blocks_geometry(state.time);
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -118,10 +125,10 @@ fn main() -> anyhow::Result<()> {
     let Configuration{hydro, model, mesh, control} = config;
 
     match (state, hydro) {
-        (AgnosticState::Newtonian(state), AgnosticHydro::Newtonian(hydro)) => {
+        (AnyState::Newtonian(state), AnyHydro::Newtonian(hydro)) => {
             run(state, tasks, hydro, model, mesh, control, outdir)
         },
-        (AgnosticState::Relativistic(state), AgnosticHydro::Relativistic(hydro)) => {
+        (AnyState::Relativistic(state), AnyHydro::Relativistic(hydro)) => {
             run(state, tasks, hydro, model, mesh, control, outdir)
         },
         _ => unreachable!(),
