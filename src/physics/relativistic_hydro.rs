@@ -9,7 +9,6 @@ use crate::traits::Hydrodynamics;
 
 
 
-
 /**
  * Interface implementation for relativistic hydrodynamics
  */
@@ -32,8 +31,6 @@ pub struct RelativisticHydro {
     /// Riemann solver: [HLLE | HLLC]
     pub riemann_solver: RiemannSolver,
 }
-
-
 
 
 // ============================================================================
