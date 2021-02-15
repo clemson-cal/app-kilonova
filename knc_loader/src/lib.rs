@@ -107,7 +107,7 @@ impl Products {
     /// Write this products instance to a CBOR file on disk, with the given
     /// name.
     fn save(&self, filename: &str) -> PyResult<()> {
-        match io::write_cbor(self.products.as_ref(), filename, false) {
+        match io::write_cbor(self.products.as_ref(), filename) {
             Ok(()) => Ok(()),
             Err(e) => Err(PyValueError::new_err(format!("{}", e))),
         }
@@ -350,7 +350,7 @@ fn app(filename: &str) -> PyResult<App> {
 
 #[pyfunction]
 fn products(filename: &str) -> PyResult<Products> {
-    match io::read_cbor(filename, false) {
+    match io::read_cbor(filename) {
         Ok(products) => Ok(Products{products: Arc::new(products)}),
         Err(e)       => Err(PyValueError::new_err(format!("{}", e))),
     }

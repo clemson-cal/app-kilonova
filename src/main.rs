@@ -1,11 +1,11 @@
 use kilonova::*;
 use app::{
-    AgnosticHydro,
-    AgnosticState,
+    AnyHydro,
+    AnyModel,
+    AnyState,
     App,
     Configuration,
     Control,
-    Model,
 };
 use mesh::{
     Mesh,
@@ -19,6 +19,7 @@ use state::{
 use traits::{
     Conserved,
     Hydrodynamics,
+    InitialModel,
 };
 use tasks::{
     Tasks,
@@ -28,19 +29,16 @@ use tasks::{
 
 
 // ============================================================================
-fn side_effects<C, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &Model, mesh: &Mesh, control: &Control, outdir: &str)
+fn side_effects<C, M, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &M, mesh: &Mesh, control: &Control, outdir: &str)
     -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
+    M: InitialModel,
     C: Conserved,
-    AgnosticState: From<State<C>>,
-    AgnosticHydro: From<H> {
-
-    let extension = if control.snappy_compression {
-        "cboz"
-    } else {
-        "cbor"
-    };
+    AnyHydro: From<H>,
+    AnyModel: From<M>,
+    AnyState: From<State<C>>,
+{
 
     if tasks.iteration_message.next_time <= state.time {
         let time = tasks.iteration_message.advance(0.0);
@@ -52,17 +50,17 @@ where
 
     if tasks.write_products.next_time <= state.time {
         tasks.write_products.advance(control.products_interval);
-        let filename = format!("{}/prods.{:04}.{}", outdir, tasks.write_products.count - 1, extension);
+        let filename = format!("{}/prods.{:04}.cbor", outdir, tasks.write_products.count - 1);
         let config = Configuration::package(hydro, model, mesh, control);
         let products = Products::from_state(state, hydro, &config);
-        io::write_cbor(&products, &filename, control.snappy_compression)?;
+        io::write_cbor(&products, &filename)?;
     }
 
     if tasks.write_checkpoint.next_time <= state.time {
         tasks.write_checkpoint.advance(control.checkpoint_interval);
-        let filename = format!("{}/chkpt.{:04}.{}", outdir, tasks.write_checkpoint.count - 1, extension);
+        let filename = format!("{}/chkpt.{:04}.cbor", outdir, tasks.write_checkpoint.count - 1);
         let app = App::package(state, tasks, hydro, model, mesh, control);
-        io::write_cbor(&app, &filename, control.snappy_compression)?;
+        io::write_cbor(&app, &filename)?;
     }
 
     Ok(())
@@ -72,13 +70,16 @@ where
 
 
 // ============================================================================
-fn run<C, H>(mut state: State<C>, mut tasks: Tasks, hydro: H, model: Model, mesh: Mesh, control: Control, outdir: String)
+fn run<C, M, H>(mut state: State<C>, mut tasks: Tasks, hydro: H, model: M, mesh: Mesh, control: Control, outdir: String)
     -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
+    M: InitialModel,
     C: Conserved,
-    AgnosticState: From<State<C>>,
-    AgnosticHydro: From<H> {
+    AnyHydro: From<H>,
+    AnyModel: From<M>,
+    AnyState: From<State<C>>,
+{
 
     let mut block_geometry = mesh.grid_blocks_geometry(state.time);
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -124,10 +125,10 @@ fn main() -> anyhow::Result<()> {
     let Configuration{hydro, model, mesh, control} = config;
 
     match (state, hydro) {
-        (AgnosticState::Newtonian(state), AgnosticHydro::Newtonian(hydro)) => {
+        (AnyState::Newtonian(state), AnyHydro::Newtonian(hydro)) => {
             run(state, tasks, hydro, model, mesh, control, outdir)
         },
-        (AgnosticState::Relativistic(state), AgnosticHydro::Relativistic(hydro)) => {
+        (AnyState::Relativistic(state), AnyHydro::Relativistic(hydro)) => {
             run(state, tasks, hydro, model, mesh, control, outdir)
         },
         _ => unreachable!(),

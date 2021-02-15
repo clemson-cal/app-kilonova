@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use ndarray::{ArcArray, Ix1, Ix2};
-use crate::app::{self, Configuration, AgnosticHydro, AgnosticState};
+use crate::app::{self, Configuration, AnyHydro, AnyState};
 use crate::mesh::{BlockIndex, GridGeometry};
-use crate::physics::AgnosticPrimitive;
+use crate::physics::AnyPrimitive;
 use crate::products;
 use crate::state::{BlockState, State};
 use crate::traits::{Conserved, Hydrodynamics};
@@ -18,7 +18,7 @@ use crate::traits::{Conserved, Hydrodynamics};
 pub struct BlockProducts {
 	pub radial_vertices: ArcArray<f64, Ix1>,
 	pub polar_vertices: ArcArray<f64, Ix1>,
-	pub primitive: ArcArray<AgnosticPrimitive, Ix2>,
+	pub primitive: ArcArray<AnyPrimitive, Ix2>,
 	pub scalar: ArcArray<f64, Ix2>,	
 }
 
@@ -49,7 +49,7 @@ impl BlockProducts {
 		let scalar = &state.scalar_mass / &state.conserved.mapv(|u| u.lab_frame_mass());
 		let primitive = (&state.conserved / &geometry.cell_volumes)
 			.mapv(|q| hydro.to_primitive(q))
-			.mapv(|p| hydro.agnostic(&p));
+			.mapv(|p| hydro.any(&p));
 
 		BlockProducts{
 			radial_vertices: geometry.radial_vertices.clone(),
@@ -86,10 +86,10 @@ impl Products {
 	}
 	pub fn from_app(app: &app::App) -> Self {
 		match (&app.state, &app.config.hydro) {
-			(AgnosticState::Newtonian(state), AgnosticHydro::Newtonian(hydro)) => {
+			(AnyState::Newtonian(state), AnyHydro::Newtonian(hydro)) => {
 				products::Products::from_state(state, hydro, &app.config)
 			},
-			(AgnosticState::Relativistic(state), AgnosticHydro::Relativistic(hydro)) => {
+			(AnyState::Relativistic(state), AnyHydro::Relativistic(hydro)) => {
 				products::Products::from_state(state, hydro, &app.config)
 			},
 			_ => unreachable!()

@@ -4,19 +4,19 @@ use futures::future::join_all;
 use tokio::runtime::Runtime;
 use ndarray::{Array, Axis, concatenate, s};
 use crate::mesh::{BlockIndex, GridGeometry, Mesh};
-use crate::app::Model;
 use crate::physics::Direction;
 use crate::state::{State, BlockState};
-use crate::traits::{Conserved, Primitive, Hydrodynamics};
+use crate::traits::{Conserved, Primitive, Hydrodynamics, InitialModel};
 
 
 
 
 // ============================================================================
-async fn advance_rk<H, C, P>(state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>, dt: f64, runtime: &Runtime)
+async fn advance_rk<H, M, C, P>(state: State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>, dt: f64, runtime: &Runtime)
     -> anyhow::Result<State<C>>
 where
     H: Hydrodynamics<Conserved = C, Primitive = P>,
+    M: InitialModel,
     C: Conserved,
     P: Primitive, {
 
@@ -156,11 +156,12 @@ where
 
 
 // ============================================================================
-fn add_remove_blocks<H, C>(state: &mut State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>)
+fn add_remove_blocks<H, M, C>(state: &mut State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>)
 where
     H: Hydrodynamics<Conserved = C>,
-    C: Conserved {
-
+    M: InitialModel,
+    C: Conserved
+{
     let (inner_index, outer_index) = state.inner_outer_block_indexes();
     let solution = &mut state.solution;
 
@@ -183,12 +184,13 @@ where
 
 
 // ============================================================================
-pub fn advance<H, C>(mut state: State<C>, hydro: &H, model: &Model, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>, runtime: &Runtime, fold: usize)
+pub fn advance<H, M, C>(mut state: State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>, runtime: &Runtime, fold: usize)
     -> anyhow::Result<State<C>>
 where
     H: Hydrodynamics<Conserved = C>,
-    C: Conserved {
-
+    M: InitialModel,
+    C: Conserved
+{
     let runge_kutta = hydro.runge_kutta_order();
 
     for _ in 0..fold {
