@@ -11,6 +11,7 @@ repository  = "https://github.com/clemson-cal/app-kilonova"
 [dependencies]
 anyhow          = "1.0"
 thiserror       = "1.0"
+derive_more     = "0.9"
 async-trait     = "0.1"
 futures         = "0.3"
 git-version     = "0.3"

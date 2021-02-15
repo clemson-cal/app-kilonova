@@ -16,15 +16,6 @@ pub enum Error {
 
     #[error("{0}")]
     IO(#[from] std::io::Error),
-
-    #[error("input file is compressed, but snap is not enabled")]
-    CannotReadSnappy,
-
-    #[error("snappy_compression = true, but snap is not enabled")]
-    CannotWriteSnappy,
-
-    #[error("input file {0} given, but serde_cbor is not enabled")]
-    SerdeCborNotEnabled(String),
 }
 
 

@@ -34,6 +34,8 @@ use crate::tasks::Tasks;
 use crate::io;
 
 
+
+
 // ============================================================================
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -55,21 +57,25 @@ pub enum Error {
 }
 
 
+
+
 /**
  * Model choice
  */
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, derive_more::From)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
-pub enum Model {
+pub enum AnyModel {
     JetInCloud(JetInCloud),
     HaloKilonova(HaloKilonova),
 }
 
 
+
+
 /**
  * Enum for any of the supported hydrodynamics types
  */
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, derive_more::From)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub enum AnyHydro {
     Newtonian(NewtonianHydro),
@@ -77,14 +83,17 @@ pub enum AnyHydro {
 }
 
 
+
+
 /**
  * Enum for the solution state of any of the supported hydrodynamics types
  */
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, derive_more::From)]
 pub enum AnyState {
     Newtonian(State<hydro_euler::euler_2d::Conserved>),
     Relativistic(State<hydro_srhd::srhd_2d::Conserved>),
 }
+
 
 
 /**
@@ -107,6 +116,8 @@ pub struct Control {
 }
 
 
+
+
 /**
  * User configuration
  */
@@ -114,10 +125,12 @@ pub struct Control {
 #[serde(deny_unknown_fields)]
 pub struct Configuration {
     pub hydro: AnyHydro,
-    pub model: Model,
+    pub model: AnyModel,
     pub mesh: Mesh,
     pub control: Control,
 }
+
+
 
 
 /**
@@ -135,30 +148,6 @@ pub struct App {
 
 
 // ============================================================================
-impl From<State<hydro_euler::euler_2d::Conserved>> for AnyState {
-    fn from(state: State<hydro_euler::euler_2d::Conserved>) -> Self {
-        Self::Newtonian(state)
-    }
-}
-
-impl From<State<hydro_srhd::srhd_2d::Conserved>> for AnyState {
-    fn from(state: State<hydro_srhd::srhd_2d::Conserved>) -> Self {
-        Self::Relativistic(state)
-    }
-}
-
-impl From<NewtonianHydro> for AnyHydro {
-    fn from(hydro: NewtonianHydro) -> Self {
-        Self::Newtonian(hydro)
-    }
-}
-
-impl From<RelativisticHydro> for AnyHydro {
-    fn from(hydro: RelativisticHydro) -> Self {
-        Self::Relativistic(hydro)
-    }
-}
-
 impl AnyHydro {
     pub fn validate(&self) -> anyhow::Result<()> {
         match self {
@@ -187,25 +176,26 @@ impl Control {
 
 
 // ============================================================================
-impl InitialModel for Model {
+impl InitialModel for AnyModel {
+
     fn validate(&self) -> anyhow::Result<()> {
         match self {
-            Model::JetInCloud(m)   => m.validate(),
-            Model::HaloKilonova(m) => m.validate(),
+            AnyModel::JetInCloud(m)   => m.validate(),
+            AnyModel::HaloKilonova(m) => m.validate(),
         }
     }
 
     fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AnyPrimitive {
         match self {
-            Model::JetInCloud(m)   => m.primitive_at(coordinate, time),
-            Model::HaloKilonova(m) => m.primitive_at(coordinate, time),
+            AnyModel::JetInCloud(m)   => m.primitive_at(coordinate, time),
+            AnyModel::HaloKilonova(m) => m.primitive_at(coordinate, time),
         }
     }
 
     fn scalar_at(&self, coordinate: (f64, f64), time: f64) -> f64 {
         match self {
-            Model::JetInCloud(m)   => m.scalar_at(coordinate, time),
-            Model::HaloKilonova(m) => m.scalar_at(coordinate, time),
+            AnyModel::JetInCloud(m)   => m.scalar_at(coordinate, time),
+            AnyModel::HaloKilonova(m) => m.scalar_at(coordinate, time),
         }
     }
 }
@@ -215,13 +205,16 @@ impl InitialModel for Model {
 
 // ============================================================================
 impl Configuration {
-    pub fn package<H>(hydro: &H, model: &Model, mesh: &Mesh, control: &Control) -> Self
+    pub fn package<H, M>(hydro: &H, model: &M, mesh: &Mesh, control: &Control) -> Self
     where
         H: Hydrodynamics,
-        AnyHydro: From<H> {
+        M: InitialModel,
+        AnyHydro: From<H>,
+        AnyModel: From<M>,
+    {
         Configuration {
-            hydro: AnyHydro::from(hydro.clone()),
-            model: model.clone(),
+            hydro: hydro.clone().into(),
+            model: model.clone().into(),
             mesh: mesh.clone(),
             control: control.clone(),
         }
@@ -302,15 +295,17 @@ impl App {
     /**
      * Construct a new App instance from references to the member variables.
      */
-    pub fn package<C, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &Model, mesh: &Mesh, control: &Control) -> Self
+    pub fn package<H, M, C>(state: &State<C>, tasks: &Tasks, hydro: &H, model: &M, mesh: &Mesh, control: &Control) -> Self
     where
         H: Hydrodynamics<Conserved = C>,
+        M: InitialModel,
         C: Conserved,
+        AnyHydro: From<H>,
+        AnyModel: From<M>,
         AnyState: From<State<C>>,
-        AnyHydro: From<H>
     {
         Self {
-            state: AnyState::from(state.clone()),
+            state: state.clone().into(),
             tasks: tasks.clone(),
             config: Configuration::package(hydro, model, mesh, control),
             version: VERSION_AND_BUILD.to_string(),
