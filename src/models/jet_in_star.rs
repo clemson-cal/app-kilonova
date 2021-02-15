@@ -21,8 +21,8 @@ static K2:                  f64 = 2.57;
 static N:                   f64 = 16.7;
 static RHO_WIND:            f64 = 1e-9 * M0/(1.33 * PI * R0 * R0 * R0);
 static RHO_ENV:             f64 = 1e-7 * M0/(1.33 * PI * R0 * R0 * R0);
-static r0:                  f64 = 0.01 * R0; 
-static R4:                  f64 = 1.1  * R0;
+static R_NOZZ:              f64 = 0.01 * R0; 
+static R_ENV:               f64 = 1.1  * R0;
 
 /**
  * Jet propagating through a star and surrounding relativistic
@@ -62,12 +62,12 @@ pub enum Zone {
 }
 
 // Custom Pause Function
-fn pause() {
-    let mut stdout = stdout();
-    stdout.write(b"Press Enter to continue...").unwrap();
-    stdout.flush().unwrap();
-    stdin().read(&mut [0]).unwrap();
-}
+// fn pause() {
+//     let mut stdout = stdout();
+//     stdout.write(b"Press Enter to continue...").unwrap();
+//     stdout.flush().unwrap();
+//     stdin().read(&mut [0]).unwrap();
+// }
 
 
 
@@ -82,7 +82,7 @@ impl InitialModel for JetInStar {
         let (r, q) = coordinate;
         let d = self.mass_density(r, q, t);
         let u = self.gamma_beta(r, q, t);
-        let p = 1e-8; //d * UNIFORM_TEMPERATURE;
+        let p = d * UNIFORM_TEMPERATURE;
 
         AgnosticPrimitive{
             velocity_r: u,
@@ -93,6 +93,8 @@ impl InitialModel for JetInStar {
     }
 
     fn scalar_at(&self, coordinate: (f64, f64), t: f64) -> f64 {
+        let (r, q) = coordinate;
+
         return 0.0;
     }
 }
@@ -117,7 +119,6 @@ impl JetInStar
             
         }
 
-        //TODO: flesh this out
     }
 
     /**
@@ -179,17 +180,22 @@ impl JetInStar
 
     /**
      * Return the fictitious nozzle function as described in
-     * Duffel & MAcFadyen (2018)
+     * Duffel & MAcFadyen (2015)
      * 
      * * `r' - The radius
      * * `q` - The polar angle theta
      */
     pub fn nozzle_function(&self, r: f64, q: f64) -> f64 {
-        let r0_scale = r0/R0;
-        let n_0 =  4.0 * PI * r0_scale * r0_scale * r0_scale* (1. - 
-            (-2.0/self.engine_theta.powf(2.0) ).exp()) 
-            * self.engine_theta * self.engine_theta ;
+        // Normalize the Nozzle Radius
+        let r0 = R_NOZZ/R0;
 
+        // Nozzle Function Normalization Factor
+        // N0 = 4 * PI * r0^3 * exp(-2/theta0^2) * theta0^2
+        let n_0 =  4.0 * PI * r0 * r0 * r0* (1. - 
+                    (-2.0/self.engine_theta.powf(2.0) ).exp()) 
+                    * self.engine_theta * self.engine_theta ;
+
+        // Nozzle Function: g = (r/r0) * exp(-(r/r0)^2) * exp[(cos^2(q) - 1 )/theta0^2] / N0
         let g = (r/r0) * (- (r/r0).powf(2.0)/2.0).exp() 
                     * ( ((q.cos()).powf(2.0) - 1.0)/(self.engine_theta * self.engine_theta) ).exp();
 
