@@ -227,6 +227,21 @@ impl Configuration {
         self.control.validate()?;
         Ok(())
     }
+
+    /**
+     * Patch this config struct with inputs from the command line. The inputs
+     * can be names of YAML files or key=value pairs.
+     */
+    pub fn patch_from_command_line(&mut self) -> Result<(), Error> {
+        for extra_config_str in std::env::args().skip_while(|s| ! s.contains('=') && ! s.ends_with(".yaml")) {
+            if extra_config_str.ends_with(".yaml") {
+                self.patch_from_reader(File::open(extra_config_str)?)?
+            } else {
+                self.patch_from_key_val(&extra_config_str)?
+            }
+        }
+        Ok(())
+    }
 }
 
 
@@ -248,25 +263,28 @@ impl App {
      * Construct a new App instance from a user configuration.
      */
     pub fn from_config(mut config: Configuration) -> Result<Self, Error> {
-        for extra_config_str in std::env::args().skip_while(|s| !s.contains('=')) {
-            if extra_config_str.ends_with(".yaml") {
-                config.patch_from_reader(File::open(extra_config_str)?)?
-            } else {
-                config.patch_from_key_val(&extra_config_str)?
-            }
-        }
+
+        config.patch_from_command_line()?;
 
         let geometry = config.mesh.grid_blocks_geometry(config.control.start_time);
         let state = match &config.hydro {
             AnyHydro::Newtonian(hydro) => {
-                AnyState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
+                State::from_model(&config.model, hydro, &geometry, config.control.start_time).into()
             },
             AnyHydro::Relativistic(hydro) => {
-                AnyState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
+                State::from_model(&config.model, hydro, &geometry, config.control.start_time).into()
             },
         };
         let tasks = Tasks::new(config.control.start_time);
         Ok(Self{state, tasks, config, version: VERSION_AND_BUILD.to_string()})
+    }
+
+    /**
+     * Patch the config struct with inputs from the command line.
+     */
+    pub fn with_patched_config(mut self) -> Result<Self, Error> {
+        self.config.patch_from_command_line()?;
+        Ok(self)
     }
 
     /**
@@ -276,7 +294,7 @@ impl App {
     pub fn from_file(filename: &str) -> Result<Self, Error> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
             Some("yaml") => Self::from_config(serde_yaml::from_str(&read_to_string(filename)?)?),
-            Some("cbor") => Ok(io::read_cbor(filename)?),
+            Some("cbor") => Ok(io::read_cbor::<Self>(filename)?.with_patched_config()?),
             _ => Err(Error::UnknownInputType(filename.to_string())),
         }
     }
