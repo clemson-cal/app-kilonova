@@ -31,7 +31,7 @@ def mesh_vertices(products):
 
 
 def known_fields():
-    ['rho', 'pre', 'ur', 'uq', 'scalar']
+    ['rho', 'pre', 'ur', 'uq', 'scalar', 'gamma_beta']
 
 
 def block_field(block, field, transform=lambda x: x):
@@ -45,6 +45,10 @@ def block_field(block, field, transform=lambda x: x):
         d = block.polar_four_velocity
     elif field == 'scalar':
         d = block.scalar
+    elif field == 'gamma_beta':
+        ur = block.radial_four_velocity
+        uq = block.polar_four_velocity
+        d = np.sqrt(ur**2 + uq**2)
     else:
         raise ValueError(f'unknown field {field}')
     return transform(d)
