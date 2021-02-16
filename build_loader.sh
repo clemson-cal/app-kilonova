@@ -2,7 +2,7 @@
 
 pathadd() {
     if [ -d "$1" ] && [[ ":$PYTHONPATH:" != *":$1:"* ]]; then
-        PYTHONPATH="${PYTHONPATH:+"$PYTHONPATH:"}$1"
+        export PYTHONPATH="${PYTHONPATH:+"$PYTHONPATH:"}$1"
     fi
 }
 
