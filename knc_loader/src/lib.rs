@@ -154,7 +154,7 @@ impl RadialProfile {
 
     fn concat_map_primitive<F>(&self, f: F) -> ndarray::Array<f64, ndarray::Ix1>
     where
-        F: Fn(&physics::AgnosticPrimitive) -> f64
+        F: Fn(&physics::AnyPrimitive) -> f64
     {
         let arrays: Vec<_> = self
             .sorted_keys()
@@ -291,7 +291,7 @@ impl PyIterProtocol for ProductsIter {
 impl BlockProducts {
     fn map_primitive<F>(&self, f: F) -> ndarray::Array<f64, ndarray::Ix2>
     where
-        F: Fn(&physics::AgnosticPrimitive) -> f64
+        F: Fn(&physics::AnyPrimitive) -> f64
     {
         self.block_products.primitive.map(f)
     }
