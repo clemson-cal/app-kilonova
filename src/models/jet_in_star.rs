@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
 use std::io::{stdin, stdout, Read, Write};
 use serde::{Serialize, Deserialize};
-use crate::physics::{AgnosticPrimitive, LIGHT_SPEED};
+use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 
 
@@ -78,13 +78,13 @@ impl InitialModel for JetInStar {
         Ok(())
     }
 
-    fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AgnosticPrimitive {
+    fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AnyPrimitive {
         let (r, q) = coordinate;
         let d = self.mass_density(r, q, t);
         let u = self.gamma_beta(r, q, t);
         let p = d * UNIFORM_TEMPERATURE;
 
-        AgnosticPrimitive{
+        AnyPrimitive{
             velocity_r: u,
             velocity_q: 0.0,
             mass_density: d,
@@ -136,6 +136,17 @@ impl JetInStar
     pub fn in_nozzle(&self, q: f64) -> bool {
         q < self.engine_theta || q > PI - self.engine_theta
     }
+
+    /**
+     * Determine the location of the jet head
+     *
+     * * `t` - Time
+     */
+    pub fn get_jet_head(&self, t: f64) -> f64 {
+        let v_jet = self.engine_beta() * LIGHT_SPEED;
+        return v_jet * t;
+    }
+
 
     /**
      * Determine the zone of the ambient medium for a given radius and time.
@@ -191,12 +202,12 @@ impl JetInStar
 
         // Nozzle Function Normalization Factor
         // N0 = 4 * PI * r0^3 * exp(-2/theta0^2) * theta0^2
-        let n_0 =  4.0 * PI * r0 * r0 * r0* (1. - 
+        let n_0 =  4.0 * PI * r0 * r0 * r0 * (1. - 
                     (-2.0/self.engine_theta.powf(2.0) ).exp()) 
                     * self.engine_theta * self.engine_theta ;
 
         // Nozzle Function: g = (r/r0) * exp(-(r/r0)^2) * exp[(cos^2(q) - 1 )/theta0^2] / N0
-        let g = (r/r0) * (- (r/r0).powf(2.0)/2.0).exp() 
+        let g = (r/R_NOZZ) * (- (r/R_NOZZ).powf(2.0)/2.0).exp() 
                     * ( ((q.cos()).powf(2.0) - 1.0)/(self.engine_theta * self.engine_theta) ).exp();
 
         return g / n_0

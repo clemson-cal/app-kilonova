@@ -6,6 +6,12 @@ use crate::mesh::Mesh;
 use crate::physics::{RiemannSolver, Direction, LIGHT_SPEED};
 use crate::state::State;
 use crate::traits::Hydrodynamics;
+use crate::app::AnyModel;
+use crate::models::{
+    JetInStar,
+    JetInCloud,
+    HaloKilonova,
+};
 
 
 
@@ -31,6 +37,11 @@ pub struct RelativisticHydro {
     /// Riemann solver: [HLLE | HLLC]
     pub riemann_solver: RiemannSolver,
 }
+
+
+
+
+
 
 
 // ============================================================================
