@@ -1,8 +1,8 @@
 use std::f64::consts::PI;
-use std::io::{stdin, stdout, Read, Write};
 use serde::{Serialize, Deserialize};
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
+
 
 
 
@@ -12,17 +12,20 @@ static UNIFORM_TEMPERATURE: f64 = 1e-3;
 // source: https://arxiv.org/pdf/1407.8250.pdf
 static R0:                  f64 = 7e10;
 static M0:                  f64 = 2e33;
-static RHO_C:               f64 = 3e7 * M0/(1.33 * PI * R0 * R0 * R0);
+static RHO_C:               f64 = 3e7 * M0 / (1.33 * PI * R0 * R0 * R0);
 static R1:                  f64 = 0.0017 * R0;
 static R2:                  f64 = 0.0125 * R0;
 static R3:                  f64 = 0.65   * R0;
 static K1:                  f64 = 3.24;
 static K2:                  f64 = 2.57;
 static N:                   f64 = 16.7;
-static RHO_WIND:            f64 = 1e-9 * M0/(1.33 * PI * R0 * R0 * R0);
-static RHO_ENV:             f64 = 1e-7 * M0/(1.33 * PI * R0 * R0 * R0);
+static RHO_WIND:            f64 = 1e-9 * M0 / (1.33 * PI * R0 * R0 * R0);
+static RHO_ENV:             f64 = 1e-7 * M0 / (1.33 * PI * R0 * R0 * R0);
 static R_NOZZ:              f64 = 0.01 * R0; 
-static R_ENV:               f64 = 1.1  * R0;
+// static R_ENV:               f64 = 1.1  * R0;
+
+
+
 
 /**
  * Jet propagating through a star and surrounding relativistic
@@ -56,18 +59,11 @@ pub struct JetInStar {
  */
 pub enum Zone {
     Core,
-    Envelop,
+    Envelope,
     Wind,
     Jet,
 }
 
-// Custom Pause Function
-// fn pause() {
-//     let mut stdout = stdout();
-//     stdout.write(b"Press Enter to continue...").unwrap();
-//     stdout.flush().unwrap();
-//     stdin().read(&mut [0]).unwrap();
-// }
 
 
 
@@ -84,7 +80,7 @@ impl InitialModel for JetInStar {
         let u = self.gamma_beta(r, q, t);
         let p = d * UNIFORM_TEMPERATURE;
 
-        AnyPrimitive{
+        AnyPrimitive {
             velocity_r: u,
             velocity_q: 0.0,
             mass_density: d,
@@ -92,10 +88,9 @@ impl InitialModel for JetInStar {
         }
     }
 
-    fn scalar_at(&self, coordinate: (f64, f64), t: f64) -> f64 {
-        let (r, q) = coordinate;
-
-        return 0.0;
+    fn scalar_at(&self, _coordinate: (f64, f64), _t: f64) -> f64 {
+        // let (r, q) = coordinate;
+        0.0
     }
 }
 
@@ -105,7 +100,11 @@ impl InitialModel for JetInStar {
 // ============================================================================
 impl JetInStar
 {
-    fn mass_density(&self, r: f64, q: f64 , t: f64) -> f64{
+
+    /**
+     * The comoving mass density in g/cc
+     */
+    fn mass_density(&self, r: f64, q: f64 , t: f64) -> f64 {
         let zone  = self.zone(r, q, t);
         let num   = RHO_C * ( (1.0 - r/R3) ).powf(N);
         let denom = 1.0 + (r/R1).powf(K1) / (1.0 + (r/R2).powf(K2));
@@ -113,12 +112,10 @@ impl JetInStar
 
         match zone {
             Zone::Core => core_zone,
-            Zone::Envelop => RHO_ENV*(r/R3).powf(-2.0),
+            Zone::Envelope => RHO_ENV*(r/R3).powf(-2.0),
             Zone::Jet => self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED),
             Zone::Wind => RHO_WIND*( (r/R3).powf(-2.0) ),
-            
         }
-
     }
 
     /**
@@ -144,9 +141,8 @@ impl JetInStar
      */
     pub fn get_jet_head(&self, t: f64) -> f64 {
         let v_jet = self.engine_beta() * LIGHT_SPEED;
-        return v_jet * t;
+        v_jet * t
     }
-
 
     /**
      * Determine the zone of the ambient medium for a given radius and time.
@@ -199,18 +195,16 @@ impl JetInStar
     pub fn nozzle_function(&self, r: f64, q: f64) -> f64 {
         // Normalize the Nozzle Radius
         let r0 = R_NOZZ/R0;
+        let q2 = self.engine_theta.powi(2);
 
         // Nozzle Function Normalization Factor
         // N0 = 4 * PI * r0^3 * exp(-2/theta0^2) * theta0^2
-        let n_0 =  4.0 * PI * r0 * r0 * r0 * (1. - 
-                    (-2.0/self.engine_theta.powf(2.0) ).exp()) 
-                    * self.engine_theta * self.engine_theta ;
+        let n_0 =  4.0 * PI * r0 * r0 * r0 * (1. - (-2.0 / q2).exp()) * q2;
 
         // Nozzle Function: g = (r/r0) * exp(-(r/r0)^2) * exp[(cos^2(q) - 1 )/theta0^2] / N0
-        let g = (r/R_NOZZ) * (- (r/R_NOZZ).powf(2.0)/2.0).exp() 
-                    * ( ((q.cos()).powf(2.0) - 1.0)/(self.engine_theta * self.engine_theta) ).exp();
+        let g = (r / R_NOZZ) * f64::exp(-(r / R_NOZZ).powf(2.0) / 2.0) * f64::exp((q.cos().powf(2.0) - 1.0) / q2);
 
-        return g / n_0
+        g / n_0
     }
 
     fn jet_mass_rate_per_steradian(&self, r: f64, q: f64) -> f64 {
@@ -220,3 +214,15 @@ impl JetInStar
         l / (engine_gamma * LIGHT_SPEED * LIGHT_SPEED)
     }
 }
+
+
+
+
+// Custom Pause Function
+// use std::io::{stdin, stdout, Read, Write};
+// fn pause() {
+//     let mut stdout = stdout();
+//     stdout.write(b"Press Enter to continue...").unwrap();
+//     stdout.flush().unwrap();
+//     stdin().read(&mut [0]).unwrap();
+// }
