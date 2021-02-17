@@ -8,7 +8,7 @@ use crate::traits::InitialModel;
 
 static UNIFORM_TEMPERATURE: f64 = 1e-3;
 
-// Constants as given in Duffel & MacDayen(2018)
+// Constants as given in Duffel & MacDayen(2015)
 // source: https://arxiv.org/pdf/1407.8250.pdf
 static R0:                  f64 = 7e10;
 static M0:                  f64 = 2e33;
@@ -22,7 +22,7 @@ static N:                   f64 = 16.7;
 static RHO_WIND:            f64 = 1e-9 * M0/(1.33 * PI * R0 * R0 * R0);
 static RHO_ENV:             f64 = 1e-7 * M0/(1.33 * PI * R0 * R0 * R0);
 static R_NOZZ:              f64 = 0.01 * R0; 
-static R_ENV:               f64 = 1.1  * R0;
+static R_ENV:               f64 = 1.2  * R0;
 
 /**
  * Jet propagating through a star and surrounding relativistic
@@ -94,8 +94,14 @@ impl InitialModel for JetInStar {
 
     fn scalar_at(&self, coordinate: (f64, f64), t: f64) -> f64 {
         let (r, q) = coordinate;
-
-        return 0.0;
+        let zone   = self.zone(r, q, t);
+        
+        match zone {
+            Zone::Core    => 1e+0,
+            Zone::Jet     => 1e+2,
+            Zone::Envelop => 1e-2*(r/R3).powf(-2.0),
+            Zone::Wind    => 1e-5*(r/R_ENV).powf(-2.0),
+        }
     }
 }
 
@@ -106,16 +112,16 @@ impl InitialModel for JetInStar {
 impl JetInStar
 {
     fn mass_density(&self, r: f64, q: f64 , t: f64) -> f64{
-        let zone  = self.zone(r, q, t);
-        let num   = RHO_C * ( (1.0 - r/R3) ).powf(N);
-        let denom = 1.0 + (r/R1).powf(K1) / (1.0 + (r/R2).powf(K2));
+        let zone      = self.zone(r, q, t);
+        let num       = RHO_C * ( (1.0 - r/R3) ).powf(N);
+        let denom     = 1.0 + (r/R1).powf(K1) / (1.0 + (r/R2).powf(K2));
         let core_zone = num/denom;
 
         match zone {
-            Zone::Core => core_zone,
+            Zone::Core    => core_zone + RHO_ENV * (r/R3).powf(-2.0),
             Zone::Envelop => RHO_ENV*(r/R3).powf(-2.0),
-            Zone::Jet => self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED),
-            Zone::Wind => RHO_WIND*( (r/R3).powf(-2.0) ),
+            Zone::Jet     => self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED),
+            Zone::Wind    => RHO_WIND * (r/R_ENV).powf(-2.0),
             
         }
 
@@ -163,8 +169,8 @@ impl JetInStar
             Zone::Jet
         } else if r < R3 {
             Zone::Core
-        } else if R3 < r && r < 1.2 * R3{
-            Zone:: Wind
+        } else if R3 < r && r < R_ENV {
+            Zone:: Envelop
         } else {
             Zone::Wind
         }
