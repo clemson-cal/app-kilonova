@@ -61,12 +61,23 @@ impl InitialModel for HaloKilonova {
                 mass_density: d,
                 gas_pressure: p,
             }
+        } else if (time >= self.engine_duration) & (time < (self.engine_duration + 0.25)) {
+            let n = self.ejecta_mdot / 4.0 / PI / r / r / self.ejecta_gamma_beta / LIGHT_SPEED;
+            let d = (1.0 - n)/(0.25)*(time - self.engine_duration - 0.25) + 1.0;
+            let p = d * 1e-3;
+
+            AgnosticPrimitive{
+                velocity_r: self.ejecta_gamma_beta,
+                velocity_q: 0.0,
+                mass_density: d,
+                gas_pressure: p,
+            }
         } else {
             AgnosticPrimitive{
                 velocity_r: 0.0,
                 velocity_q: 0.0,
                 mass_density: 1.0,
-                gas_pressure: 0.1,
+                gas_pressure: 0.001,
             }
         }
         
