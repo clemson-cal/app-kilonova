@@ -7,18 +7,8 @@ hydro:
     riemann_solver: HLLC
 
 model:
-  jet_in_cloud:
-    cloud_mass: 1e32
-    engine_delay: 1.0
-    engine_duration: 1.0
-    engine_strength: 1.0
-    engine_theta: 0.1
-    engine_u: 30.0
-    envelop_m1: 2e27
-    envelop_slowest_beta: 0.1
-    envelop_fastest_beta: 0.995
-    envelop_psi: 0.25
-
+  halo_kilonova:
+    explosion_energy: 0.0
 mesh:
   inner_radius: 0.0
   outer_radius: 0.0
@@ -29,7 +19,7 @@ mesh:
   block_size: 4
 
 control:
-  final_time: 5.0
+  final_time: 20.0
   start_time: 1.0
   checkpoint_interval: 0.1
   products_interval: 0.1

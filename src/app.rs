@@ -1,44 +1,27 @@
 pub static DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
-pub static VERSION_AND_BUILD: &str = git_version::git_version!(prefix=concat!("v", env!("CARGO_PKG_VERSION"), " "));
+pub static VERSION_AND_BUILD: &str =
+    git_version::git_version!(prefix = concat!("v", env!("CARGO_PKG_VERSION"), " "));
 
-
+use serde::{Deserialize, Serialize};
 use std::{
     ffi::OsStr,
-    fs::{File, read_to_string},
+    fs::{read_to_string, File},
     path::Path,
 };
-use serde::{
-    Serialize,
-    Deserialize,
-};
 
-
-use crate::mesh::Mesh;
-use crate::models::{
-    JetInCloud,
-    HaloKilonova,
-};
-use crate::physics::{
-    AgnosticPrimitive,
-    RelativisticHydro,
-    NewtonianHydro,
-};
-use crate::state::State;
-use crate::traits::{
-    Conserved,
-    Hydrodynamics,
-    InitialModel,
-};
-use crate::tasks::Tasks;
-use crate::yaml_patch::Patch;
 use crate::io;
+use crate::mesh::Mesh;
+use crate::models::{HaloKilonova, JetInCloud, WindShock};
+use crate::physics::{AgnosticPrimitive, NewtonianHydro, RelativisticHydro};
+use crate::state::State;
+use crate::tasks::Tasks;
+use crate::traits::{Conserved, Hydrodynamics, InitialModel};
 use crate::yaml_patch;
-
+use crate::yaml_patch::Patch;
 
 // ============================================================================
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-
     #[error("{0}")]
     IO(#[from] std::io::Error),
 
@@ -55,7 +38,6 @@ pub enum Error {
     UnknownInputType(String),
 }
 
-
 /**
  * Model choice
  */
@@ -64,8 +46,8 @@ pub enum Error {
 pub enum Model {
     JetInCloud(JetInCloud),
     HaloKilonova(HaloKilonova),
+    WindShock(WindShock),
 }
-
 
 /**
  * Enum for any of the supported hydrodynamics types
@@ -77,7 +59,6 @@ pub enum AgnosticHydro {
     Relativistic(RelativisticHydro),
 }
 
-
 /**
  * Enum for the solution state of any of the supported hydrodynamics types
  */
@@ -86,7 +67,6 @@ pub enum AgnosticState {
     Newtonian(State<hydro_euler::euler_2d::Conserved>),
     Relativistic(State<hydro_srhd::srhd_2d::Conserved>),
 }
-
 
 /**
  * Simulation control: how long to run for, how frequently to perform side
@@ -104,7 +84,6 @@ pub struct Control {
     pub snappy_compression: bool,
 }
 
-
 /**
  * User configuration
  */
@@ -117,7 +96,6 @@ pub struct Configuration {
     pub control: Control,
 }
 
-
 /**
  * App state
  */
@@ -128,9 +106,6 @@ pub struct App {
     pub config: Configuration,
     pub version: String,
 }
-
-
-
 
 // ============================================================================
 impl From<State<hydro_euler::euler_2d::Conserved>> for AgnosticState {
@@ -162,7 +137,7 @@ impl AgnosticHydro {
         match self {
             AgnosticHydro::Newtonian(hydro) => hydro.validate(),
             AgnosticHydro::Relativistic(hydro) => hydro.validate(),
-        }        
+        }
     }
 }
 
@@ -181,43 +156,41 @@ impl Control {
     }
 }
 
-
-
-
 // ============================================================================
 impl InitialModel for Model {
     fn validate(&self) -> anyhow::Result<()> {
         match self {
-            Model::JetInCloud(m)   => m.validate(),
+            Model::JetInCloud(m) => m.validate(),
             Model::HaloKilonova(m) => m.validate(),
+            Model::WindShock(m) => m.validate(),
         }
     }
 
     fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AgnosticPrimitive {
         match self {
-            Model::JetInCloud(m)   => m.primitive_at(coordinate, time),
+            Model::JetInCloud(m) => m.primitive_at(coordinate, time),
             Model::HaloKilonova(m) => m.primitive_at(coordinate, time),
+            Model::WindShock(m) => m.primitive_at(coordinate, time),
         }
     }
 
     fn scalar_at(&self, coordinate: (f64, f64), time: f64) -> f64 {
         match self {
-            Model::JetInCloud(m)   => m.scalar_at(coordinate, time),
+            Model::JetInCloud(m) => m.scalar_at(coordinate, time),
             Model::HaloKilonova(m) => m.scalar_at(coordinate, time),
+            Model::WindShock(m) => m.scalar_at(coordinate, time),
         }
     }
 }
-
-
-
 
 // ============================================================================
 impl Configuration {
     pub fn package<H>(hydro: &H, model: &Model, mesh: &Mesh, control: &Control) -> Self
     where
         H: Hydrodynamics,
-        AgnosticHydro: From<H> {
-        Configuration{
+        AgnosticHydro: From<H>,
+    {
+        Configuration {
             hydro: AgnosticHydro::from(hydro.clone()),
             model: model.clone(),
             mesh: mesh.clone(),
@@ -234,12 +207,8 @@ impl Configuration {
     }
 }
 
-
-
-
 // ============================================================================
 impl App {
-
     /**
      * Return self as a result, which will be in an error state if any of the
      * configuration items did not pass validation.
@@ -263,15 +232,26 @@ impl App {
 
         let geometry = config.mesh.grid_blocks_geometry(config.control.start_time);
         let state = match &config.hydro {
-            AgnosticHydro::Newtonian(hydro) => {
-                AgnosticState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
-            },
-            AgnosticHydro::Relativistic(hydro) => {
-                AgnosticState::from(State::from_model(&config.model, hydro, &geometry, config.control.start_time))
-            },
+            AgnosticHydro::Newtonian(hydro) => AgnosticState::from(State::from_model(
+                &config.model,
+                hydro,
+                &geometry,
+                config.control.start_time,
+            )),
+            AgnosticHydro::Relativistic(hydro) => AgnosticState::from(State::from_model(
+                &config.model,
+                hydro,
+                &geometry,
+                config.control.start_time,
+            )),
         };
         let tasks = Tasks::new(config.control.start_time);
-        Ok(Self{state, tasks, config, version: VERSION_AND_BUILD.to_string()})
+        Ok(Self {
+            state,
+            tasks,
+            config,
+            version: VERSION_AND_BUILD.to_string(),
+        })
     }
 
     /**
@@ -293,7 +273,9 @@ impl App {
      */
     pub fn from_preset_or_file(input: &str) -> Result<Self, Error> {
         match input {
-            "jet_in_cloud" => Self::from_config(serde_yaml::from_str(std::include_str!("../setups/jet_in_cloud.yaml"))?),
+            "jet_in_cloud" => Self::from_config(serde_yaml::from_str(std::include_str!(
+                "../setups/jet_in_cloud.yaml"
+            ))?),
             _ => Self::from_file(input),
         }
     }
@@ -301,13 +283,21 @@ impl App {
     /**
      * Construct a new App instance from references to the member variables.
      */
-    pub fn package<C, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &Model, mesh: &Mesh, control: &Control) -> Self
+    pub fn package<C, H>(
+        state: &State<C>,
+        tasks: &mut Tasks,
+        hydro: &H,
+        model: &Model,
+        mesh: &Mesh,
+        control: &Control,
+    ) -> Self
     where
         H: Hydrodynamics<Conserved = C>,
         C: Conserved,
         AgnosticState: From<State<C>>,
-        AgnosticHydro: From<H> {
-        Self{
+        AgnosticHydro: From<H>,
+    {
+        Self {
             state: AgnosticState::from(state.clone()),
             tasks: tasks.clone(),
             config: Configuration::package(hydro, model, mesh, control),
