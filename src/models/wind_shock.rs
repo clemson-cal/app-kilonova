@@ -2,7 +2,8 @@ use crate::physics::AgnosticPrimitive;
 use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
 
-static UNIFORM_TEMPERATURE: f64 = 1e-3;
+static UNIFORM_TEMPERATURE: f64 = 1e-6;
+static MASS_DENSITY: f64 = 1.0;
 
 /**
  * Jet propagating through a kilonova debris cloud and surrounding relativistic
@@ -31,8 +32,8 @@ impl InitialModel for WindShock {
         AgnosticPrimitive {
             velocity_r: self.wind_gamma_beta,
             velocity_q: 0.0,
-            mass_density: 1.0,
-            gas_pressure: UNIFORM_TEMPERATURE,
+            mass_density: MASS_DENSITY,
+            gas_pressure: MASS_DENSITY * UNIFORM_TEMPERATURE,
         }
     }
 

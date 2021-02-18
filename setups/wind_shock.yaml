@@ -24,7 +24,7 @@ mesh:
 
 control:
   final_time: 2.0
-  start_time: 0.0
+  start_time: 1.0
   checkpoint_interval: 0.02
   products_interval: 0.02
   num_threads: 42
