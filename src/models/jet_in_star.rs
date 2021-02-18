@@ -1,12 +1,11 @@
 use std::f64::consts::PI;
-use std::io::{stdin, stdout, Read, Write};
 use serde::{Serialize, Deserialize};
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 
 
 
-static UNIFORM_TEMPERATURE: f64 = 1e-3;
+static UNIFORM_TEMPERATURE: f64 = 1e-10;
 
 // Constants as given in Duffel & MacDayen(2015)
 // source: https://arxiv.org/pdf/1407.8250.pdf
@@ -61,13 +60,6 @@ pub enum Zone {
     Jet,
 }
 
-// Custom Pause Function
-// fn pause() {
-//     let mut stdout = stdout();
-//     stdout.write(b"Press Enter to continue...").unwrap();
-//     stdout.flush().unwrap();
-//     stdin().read(&mut [0]).unwrap();
-// }
 
 
 
