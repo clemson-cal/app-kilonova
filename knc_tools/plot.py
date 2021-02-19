@@ -57,8 +57,7 @@ def block_field(block, field, transform=lambda x: x):
         c   = (constants.c.cgs).value
         
         # Convert the pressure to cgs
-        p   = block.gas_pressure
-        e = 3*p/rho
+        e = 3*block.gas_pressure/block.comoving_mass_density
         # Temperature in K
         d   = (2/3) * e * mp * c**2 / k_B
     else:
