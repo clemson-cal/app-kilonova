@@ -3,7 +3,7 @@ use serde::Serialize;
 use godunov_core::runge_kutta::RungeKuttaOrder;
 use crate::mesh::Mesh;
 use crate::state::State;
-use crate::physics::{AgnosticPrimitive, Direction};
+use crate::physics::{AnyPrimitive, Direction};
 
 
 
@@ -95,10 +95,16 @@ pub trait Hydrodynamics: 'static + Clone + Send {
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved;
 
     /**
-     * Convert from an agnostic primitive state to the one specific to this
+     * Convert from an any-primitive state to the one specific to this
      * hydrodynamics system.
      */
-    fn interpret(&self, agnostic: &AgnosticPrimitive) -> Self::Primitive;
+    fn interpret(&self, any: &AnyPrimitive) -> Self::Primitive;
+
+    /**
+     * Convert from a primitive state specific to this hydrodynamics system to
+     * an any-primitive.
+     */
+    fn any(&self, p: &Self::Primitive) -> AnyPrimitive;
 
     /**
      * Return the Godunov flux of the conserved quantities and the passive
@@ -132,10 +138,10 @@ pub trait InitialModel: Clone {
 
     /**
      * Return an agnostic primitive state at the give r-theta coordinate. An
-     * [`AgnosticPrimitive`] must be converted to the appropriate [`Primitive`]
+     * [`AnyPrimitive`] must be converted to the appropriate [`Primitive`]
      * type by the [`Hydrodynamics::interpret`] method.
      */
-     fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AgnosticPrimitive;
+     fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AnyPrimitive;
 
      /**
       * Return the scalar concentration at the given r-theta coordinate.

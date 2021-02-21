@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use godunov_core::piecewise_linear;
 use godunov_core::runge_kutta::RungeKuttaOrder;
-use crate::AgnosticPrimitive;
+use crate::physics::AnyPrimitive;
 use crate::mesh::Mesh;
 use crate::physics::Direction;
 use crate::state::State;
@@ -73,8 +73,17 @@ impl Hydrodynamics for NewtonianHydro {
         p.to_conserved(self.gamma_law_index)
     }
 
-    fn interpret(&self, a: &AgnosticPrimitive) -> Self::Primitive {
+    fn interpret(&self, a: &AnyPrimitive) -> Self::Primitive {
         hydro_euler::euler_2d::Primitive(a.mass_density, a.velocity_r, a.velocity_q, a.gas_pressure)
+    }
+
+    fn any(&self, p: &Self::Primitive) -> AnyPrimitive {
+        AnyPrimitive {
+            velocity_r: p.velocity_1(),
+            velocity_q: p.velocity_2(),
+            mass_density: p.mass_density(),
+            gas_pressure: p.gas_pressure(),
+        }
     }
 
     fn intercell_flux(&self, pl: Self::Primitive, pr: Self::Primitive, sl: f64, sr: f64, direction: Direction) -> (Self::Conserved, f64) {

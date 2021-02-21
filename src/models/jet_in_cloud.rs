@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 use serde::{Serialize, Deserialize};
-use crate::physics::{AgnosticPrimitive, LIGHT_SPEED};
+use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 
 static NOMINAL_LAUNCH_RADIUS: f64 = 1e8;
@@ -57,7 +57,7 @@ pub struct JetInCloud {
 pub enum Zone {
     Envelop,
     Cloud,
-    Jet(f64), // the associated value is (t - engine_delay) / engine_duration
+    Jet,
 }
 
 
@@ -71,14 +71,14 @@ impl InitialModel for JetInCloud {
         Ok(())
     }
 
-    fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AgnosticPrimitive {
+    fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AnyPrimitive {
         let (r, q) = coordinate;
         let f = self.mass_rate_per_steradian(r, q, t);
         let u = self.gamma_beta(r, q, t);
         let d = f / (r * r * u) / LIGHT_SPEED;
         let p = d * UNIFORM_TEMPERATURE;
 
-        AgnosticPrimitive{
+        AnyPrimitive{
             velocity_r: u,
             velocity_q: 0.0,
             mass_density: d,
@@ -88,16 +88,11 @@ impl InitialModel for JetInCloud {
 
     fn scalar_at(&self, coordinate: (f64, f64), t: f64) -> f64 {
         let (r, q) = coordinate;
-        // let m1 = self.envelop_m1;
-        // let mc = self.cloud_mass;
 
         match self.zone(r, q, t) {
             Zone::Cloud       => 1e+0,
-            Zone::Jet(_)      => 1e+2,
+            Zone::Jet         => 1e+2,
             Zone::Envelop     => 1e-2,
-            // Zone::Cloud       => mc * 1e3,
-            // Zone::Jet(x)      => if x < 1.0 { mc * 1e6 } else { mc * 1e3 },
-            // Zone::Envelop     => m1 * self.gamma_beta(r, q, t).powf(-1.0 / self.envelop_psi),
         }
     }
 }
@@ -194,8 +189,7 @@ impl JetInCloud
         let r_jet_tail = v_jet * (t - self.engine_delay - self.engine_duration);
 
         if self.in_nozzle(q) && r < r_jet_head  && r > r_jet_tail {
-            // Zone::Jet((t - self.engine_delay) / self.engine_duration)
-            Zone::Jet(0.0)
+            Zone::Jet
         } else if r > r_cloud_envelop_interface {
             Zone::Envelop
         } else {
@@ -220,12 +214,8 @@ impl JetInCloud
                 let u = b / f64::sqrt(1.0 - b * b);
                 u
             }
-            Zone::Jet(_) => {
+            Zone::Jet => {
                 self.engine_u
-                // let uc = self.envelop_slowest_u();
-                // let uj = self.engine_u;
-                // let f = f64::exp(-x * x);
-                // uj * f + uc * (1.0 - f)
             }
         }
     }
@@ -248,12 +238,8 @@ impl JetInCloud
                 let f = f64::powf(s, -1.0 / self.envelop_psi) * f64::powf(1.0 - s * s, 0.5 / self.envelop_psi - 1.0);
                 self.envelop_m1 / (4.0 * PI * self.envelop_psi * t) * f
             }
-            Zone::Jet(_) => {
+            Zone::Jet => {
                 self.jet_mass_rate_per_steradian()
-                // let mc = self.cloud_mass_rate_per_steradian();
-                // let mj = self.jet_mass_rate_per_steradian();
-                // let f = f64::exp(-x * x);
-                // mj * f + mc * (1.0 - f)
             }
         }
     }

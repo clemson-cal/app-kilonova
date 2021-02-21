@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
 use serde::{Serialize, Deserialize};
 use crate::traits::InitialModel;
-use crate::physics::{AgnosticPrimitive, LIGHT_SPEED};
+use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 
 
 
@@ -30,7 +30,7 @@ impl InitialModel for HaloKilonova {
         Ok(())
     }
 
-    fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AgnosticPrimitive {
+    fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AnyPrimitive {
         
         let (r, q) = coordinate;
 
@@ -45,7 +45,7 @@ impl InitialModel for HaloKilonova {
             };
             let p = d * 1e-3;
         
-            AgnosticPrimitive{
+            AnyPrimitive{
                 velocity_r: 0.0,
                 velocity_q: 0.0,
                 mass_density: d,
@@ -55,7 +55,7 @@ impl InitialModel for HaloKilonova {
             let d = self.ejecta_mdot / 4.0 / PI / r / r / self.ejecta_gamma_beta / LIGHT_SPEED;
             let p = d * 1e-3;
 
-            AgnosticPrimitive{
+            AnyPrimitive{
                 velocity_r: self.ejecta_gamma_beta,
                 velocity_q: 0.0,
                 mass_density: d,
@@ -66,19 +66,20 @@ impl InitialModel for HaloKilonova {
             let d = (1.0 - n)/(0.25)*(time - self.engine_duration - 0.25) + 1.0;
             let p = d * 1e-3;
 
-            AgnosticPrimitive{
+            AnyPrimitive{
                 velocity_r: self.ejecta_gamma_beta,
                 velocity_q: 0.0,
                 mass_density: d,
                 gas_pressure: p,
             }
         } else {
-            AgnosticPrimitive{
+            AnyPrimitive{
                 velocity_r: 0.0,
                 velocity_q: 0.0,
                 mass_density: 1.0,
                 gas_pressure: 0.001,
             }
+
         }
         
     }

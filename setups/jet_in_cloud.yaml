@@ -35,4 +35,3 @@ control:
   products_interval: 0.1
   num_threads: 42
   fold: 100
-  snappy_compression: false

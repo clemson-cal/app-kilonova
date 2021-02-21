@@ -53,7 +53,6 @@ pub struct SphericalPolarGrid {
  * Abstract description of a spherical polar mesh
  */
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct Mesh {
 
     /// Radius of the inner surface of the i=0 grid block
@@ -70,6 +69,10 @@ pub struct Mesh {
 
     /// Speed of the outer excision surface (OES)
     pub outer_excision_speed: f64,
+
+    /// Number of radial zones per decade. Use None to select a value that
+    /// makes the zones square.
+    pub num_radial_zones: Option<usize>,
 
     /// Number of zones from pole to pole
     pub num_polar_zones: usize,
@@ -247,10 +250,16 @@ impl Mesh {
             anyhow::bail!("the excision surface speeds must be non-negative")
         }
         if self.outer_excision_speed < self.inner_excision_speed {
-            anyhow::bail!("outer_excision_speed < inner_excision_speed (the IES will eventually overtake the OES)")
+            anyhow::bail!("outer_excision_speed < inner_excision_speed (the IES would eventually overtake the OES)")
         }
-        if self.block_size < 2 || self.num_polar_zones < 16 {
-            anyhow::bail!("invalid block size, must have at least 2 radial and 16 polar zones per block")
+        if self.block_size < 2 {
+            anyhow::bail!("must have at least 2 radial zones per block")
+        }
+        if self.num_polar_zones != 1 && self.num_polar_zones < 16 {
+            anyhow::bail!("must have at least 2 radial zones per block")
+        }
+        if self.num_polar_zones == 1 && self.num_radial_zones.is_none() {
+            anyhow::bail!("num_radial_zones is not optional when num_polar_zones=1")            
         }
         Ok(())
     }
@@ -291,13 +300,29 @@ impl Mesh {
     }
 
     /**
+     * Return the radial zone spacing, dlogr = log(r1 / r0).
+     */
+    pub fn zone_dlogr(&self) -> f64 {
+        match self.num_radial_zones {
+            Some(nr) => 1.0 / nr as f64,
+            None => std::f64::consts::PI / self.num_polar_zones as f64,
+        }
+    }
+
+    /**
+     * Return the number of decades per block.
+     */
+    pub fn block_dlogr(&self) -> f64 {
+        self.block_size as f64 * self.zone_dlogr()
+    }
+
+    /**
      * Return the extent of the subgrid at this index.
      */
     pub fn subgrid_extent(&self, index: BlockIndex) -> SphericalPolarExtent {
-        let block_dlogr = self.block_size as f64 * std::f64::consts::PI / self.num_polar_zones as f64;
-        SphericalPolarExtent{
-            inner_radius: self.reference_radius * (1.0 + block_dlogr).powf(index.0 as f64),
-            outer_radius: self.reference_radius * (1.0 + block_dlogr).powf(index.0 as f64 + 1.0),
+        SphericalPolarExtent {
+            inner_radius: self.reference_radius * (1.0 + self.block_dlogr()).powf(index.0 as f64),
+            outer_radius: self.reference_radius * (1.0 + self.block_dlogr()).powf(index.0 as f64 + 1.0),
             lower_theta: 0.0,
             upper_theta: std::f64::consts::PI,
         }

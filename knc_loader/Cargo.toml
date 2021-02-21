@@ -1,0 +1,19 @@
+[package]
+name = "knc_loader"
+version = "0.1.0"
+authors = ["Jonathan Zrake <jonathan.zrake@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "knc_loader"
+crate-type = ["cdylib"]
+
+[dependencies.pyo3]
+version = "0.13.1"
+features = ["extension-module"]
+
+[dependencies]
+ndarray = "0.14"
+pythonize = "0.13"
+numpy = "0.13"
+kilonova = {path = ".."}
