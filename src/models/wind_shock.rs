@@ -1,5 +1,5 @@
 use std::f64::consts::PI;
-use crate::physics::AgnosticPrimitive;
+use crate::physics::AnyPrimitive;
 use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +38,7 @@ impl InitialModel for WindShock {
         Ok(())
     }
 
-    fn primitive_at(&self, coordinate: (f64, f64), _t: f64) -> AgnosticPrimitive {
+    fn primitive_at(&self, coordinate: (f64, f64), _t: f64) -> AnyPrimitive {
 
         // u: gamma-beta-c
         // v: beta-c
@@ -50,7 +50,7 @@ impl InitialModel for WindShock {
         let u = self.wind_gamma_beta * c;
         let rho = self.wind_mass_outflow_rate / (4.0 * PI * r * r * u);
 
-        AgnosticPrimitive {
+        AnyPrimitive {
             velocity_r: u,
             velocity_q: 0.0,
             mass_density: rho,

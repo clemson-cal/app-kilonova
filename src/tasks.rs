@@ -51,14 +51,13 @@ pub struct Tasks {
 
 
 // ============================================================================
-impl RecurringTask
-{
+impl RecurringTask {
 
     /**
      * Create a fresh recurring task which is first due at t = 0.0.
      */
     pub fn new(start_time: f64) -> Self {
-        Self{
+        Self {
             count: 0,
             next_time: start_time,
             last_performed: Instant::now(),
@@ -85,10 +84,9 @@ impl RecurringTask
 
 
 // ============================================================================
-impl Tasks
-{
+impl Tasks {
     pub fn new(start_time: f64) -> Self {
-        Self{
+        Self {
             write_checkpoint: RecurringTask::new(start_time),
             write_products: RecurringTask::new(start_time),
             iteration_message: RecurringTask::new(start_time),

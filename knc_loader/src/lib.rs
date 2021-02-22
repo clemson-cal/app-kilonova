@@ -107,7 +107,7 @@ impl Products {
     /// Write this products instance to a CBOR file on disk, with the given
     /// name.
     fn save(&self, filename: &str) -> PyResult<()> {
-        match io::write_cbor(self.products.as_ref(), filename, false) {
+        match io::write_cbor(self.products.as_ref(), filename) {
             Ok(()) => Ok(()),
             Err(e) => Err(PyValueError::new_err(format!("{}", e))),
         }
@@ -154,7 +154,7 @@ impl RadialProfile {
 
     fn concat_map_primitive<F>(&self, f: F) -> ndarray::Array<f64, ndarray::Ix1>
     where
-        F: Fn(&physics::AgnosticPrimitive) -> f64
+        F: Fn(&physics::AnyPrimitive) -> f64
     {
         let arrays: Vec<_> = self
             .sorted_keys()
@@ -291,7 +291,7 @@ impl PyIterProtocol for ProductsIter {
 impl BlockProducts {
     fn map_primitive<F>(&self, f: F) -> ndarray::Array<f64, ndarray::Ix2>
     where
-        F: Fn(&physics::AgnosticPrimitive) -> f64
+        F: Fn(&physics::AnyPrimitive) -> f64
     {
         self.block_products.primitive.map(f)
     }
@@ -350,7 +350,7 @@ fn app(filename: &str) -> PyResult<App> {
 
 #[pyfunction]
 fn products(filename: &str) -> PyResult<Products> {
-    match io::read_cbor(filename, false) {
+    match io::read_cbor(filename) {
         Ok(products) => Ok(Products{products: Arc::new(products)}),
         Err(e)       => Err(PyValueError::new_err(format!("{}", e))),
     }
