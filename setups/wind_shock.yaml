@@ -10,23 +10,23 @@ model:
   wind_shock:
     wind_mass_outflow_rate: 1e10
     wind_gamma_beta: 2.0
-    post_shock_gamma_beta: 1.9
+    post_shock_gamma_beta: 2.0
 
 mesh:
   inner_radius: 1e8
-  outer_radius: 1e9
-  inner_excision_speed: 3e4
-  outer_excision_speed: 3e8
-  reference_radius: 3e8
+  outer_radius: 1e10
+  inner_excision_speed: 0.0
+  outer_excision_speed: 0.0
+  reference_radius: 1e8
   num_polar_zones: 1
-  num_radial_zones: 2
-  block_size: 8
+  num_radial_zones: 1024 # per decade
+  block_size: 1024 # num zones in a block (parallelization unit)
 
 control:
-  final_time: 2.0
-  start_time: 1.0
-  checkpoint_interval: 0.02
-  products_interval: 0.02
-  num_threads: 42
-  fold: 1
+  final_time: 0.0
+  start_time: 0.0
+  checkpoint_interval: 1.0
+  products_interval: 1.0
+  num_threads: 1
+  fold: 10
   snappy_compression: false
