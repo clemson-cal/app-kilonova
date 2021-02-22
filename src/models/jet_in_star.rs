@@ -7,7 +7,7 @@ use crate::traits::InitialModel;
 
 static UNIFORM_TEMPERATURE: f64 = 1e-10;
 
-// Constants as given in Duffel & MacDayen(2015)
+// Constants as given in Duffell & MacDayen(2015)
 // source: https://arxiv.org/pdf/1407.8250.pdf
 static R0:                  f64 = 7e10;
 static M0:                  f64 = 2e33;
@@ -22,7 +22,7 @@ static RHO_WIND:            f64 = 1e-9 * M0/(1.33 * PI * R0 * R0 * R0);
 static RHO_ENV:             f64 = 1e-7 * M0/(1.33 * PI * R0 * R0 * R0);
 static R_NOZZ:              f64 = 0.01 * R0; 
 static R_ENV:               f64 = 1.2  * R0;
-
+static ALPHA:               f64 = 2.5;
 /**
  * Jet propagating through a star and surrounding relativistic
  * envelope
@@ -45,6 +45,15 @@ pub struct JetInStar {
 
     /// Engine four-velocity
     pub engine_u: f64,
+
+    /// Radius of the Envelope
+    pub envelope_radius: f64,
+
+    /// Mass of the Envelope 
+    pub envelope_mass: f64,
+
+    /// Hydrogen Volume Filling Factor
+    pub volume_factor: f64,
 }
 
 
@@ -111,7 +120,10 @@ impl JetInStar
 
         match zone {
             Zone::Core    => core_zone + RHO_ENV * (r/R3).powf(-2.0),
-            Zone::Envelop => RHO_ENV*(r/R3).powf(-2.0),
+            Zone::Envelop => {
+                (self.envelope_mass)/(4.0 * PI * self.envelope_radius*self.envelope_radius 
+                    * (self.envelope_radius - R3) * self.volume_factor) *(r/R3).powf(-ALPHA)
+            }
             Zone::Jet     => self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED),
             Zone::Wind    => RHO_WIND * (r/R_ENV).powf(-2.0),
             
