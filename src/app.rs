@@ -16,9 +16,10 @@ use yaml_patch::Patch;
 
 use crate::mesh::Mesh;
 use crate::models::{
-    JetInCloud,
     HaloKilonova,
+    JetInCloud,
     JetInStar,
+    WindShock,
 };
 use crate::physics::{
     AnyPrimitive,
@@ -66,9 +67,10 @@ pub enum Error {
 #[derive(Clone, Serialize, Deserialize, derive_more::From)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub enum AnyModel {
-    JetInCloud(JetInCloud),
     HaloKilonova(HaloKilonova),
+    JetInCloud(JetInCloud),
     JetInStar(JetInStar),
+    WindShock(WindShock),
 }
 
 
@@ -182,25 +184,28 @@ impl InitialModel for AnyModel {
 
     fn validate(&self) -> anyhow::Result<()> {
         match self {
-            AnyModel::JetInCloud(m)   => m.validate(),
             AnyModel::HaloKilonova(m) => m.validate(),
+            AnyModel::JetInCloud(m)   => m.validate(),
             AnyModel::JetInStar(m)    => m.validate(),
+            AnyModel::WindShock(m)    => m.validate(),
         }
     }
 
     fn primitive_at(&self, coordinate: (f64, f64), time: f64) -> AnyPrimitive {
         match self {
-            AnyModel::JetInCloud(m)   => m.primitive_at(coordinate, time),
             AnyModel::HaloKilonova(m) => m.primitive_at(coordinate, time),
+            AnyModel::JetInCloud(m)   => m.primitive_at(coordinate, time),
             AnyModel::JetInStar(m)    => m.primitive_at(coordinate, time),
+            AnyModel::WindShock(m)    => m.primitive_at(coordinate, time),
         }
     }
 
     fn scalar_at(&self, coordinate: (f64, f64), time: f64) -> f64 {
         match self {
-            AnyModel::JetInCloud(m)   => m.scalar_at(coordinate, time),
             AnyModel::HaloKilonova(m) => m.scalar_at(coordinate, time),
+            AnyModel::JetInCloud(m)   => m.scalar_at(coordinate, time),
             AnyModel::JetInStar(m)    => m.scalar_at(coordinate, time),
+            AnyModel::WindShock(m)    => m.scalar_at(coordinate, time),
         }
     }
 }
