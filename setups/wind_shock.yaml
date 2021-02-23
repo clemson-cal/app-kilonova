@@ -10,7 +10,8 @@ model:
   wind_shock:
     wind_mass_outflow_rate: 1e10
     wind_gamma_beta: 2.0
-    post_shock_gamma_beta: 2.0
+    post_shock_gamma_beta: 1.5
+    shock_location: 5e9
 
 mesh:
   inner_radius: 1e8
@@ -23,7 +24,7 @@ mesh:
   block_size: 1024 # num zones in a block (parallelization unit)
 
 control:
-  final_time: 0.0
+  final_time: 0.005
   start_time: 0.0
   checkpoint_interval: 1.0
   products_interval: 1.0
