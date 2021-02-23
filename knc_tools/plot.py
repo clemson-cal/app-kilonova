@@ -3,8 +3,6 @@ import pathlib
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-import sys 
-sys.path = [''] + sys.path
 import knc_loader
 from timed import timed
 
