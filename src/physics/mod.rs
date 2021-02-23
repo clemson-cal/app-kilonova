@@ -72,3 +72,47 @@ impl From<[f64; 4]> for AnyPrimitive {
         }
     }
 }
+
+/// Error Implementation
+// ============================================================================
+type Conserved = hydro_srhd::srhd_2d::Conserved;
+
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum HydroErrorType {
+    #[error("Negative Mass Density {0:.4e}")]
+    NegativeDensity(f64),
+
+    #[error("Negative Pressure {0:.4e}")]
+    NegativePressure(f64),
+
+    #[error("The Root Finder Failed to Converge {0:?}")]
+    RootFinderFailed(Conserved),
+}
+
+impl HydroErrorType {
+    pub fn at_position(self, position: (f64, f64)) -> HydroError {
+        HydroError{source: self, position}
+    }
+}
+
+
+#[derive(thiserror::Error, Debug, Clone)]
+#[error("at position ({:.4} {:.4}) in the mesh",
+    position.0,
+    position.1,
+)]
+
+// ============================================================================
+pub struct HydroError {
+    source: HydroErrorType,
+    position: (f64, f64),
+}
+
+impl HydroError {
+    pub fn with_model(self) -> Self {
+        Self {
+            source: self.source,
+            position: self.position,
+        }
+    }
+}

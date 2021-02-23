@@ -3,7 +3,7 @@ use godunov_core::piecewise_linear;
 use godunov_core::runge_kutta::RungeKuttaOrder;
 use crate::physics::AnyPrimitive;
 use crate::mesh::Mesh;
-use crate::physics::Direction;
+use crate::physics::{Direction, HydroErrorType};
 use crate::state::State;
 use crate::traits::Hydrodynamics;
 
@@ -65,6 +65,13 @@ impl Hydrodynamics for NewtonianHydro {
         piecewise_linear::plm_gradient(self.plm_theta, a, b, c)
     }
 
+    fn try_to_primitive(&self, u:Self::Conserved) -> Result<Self::Primitive, HydroErrorType>{
+        if u.mass_density() < 0.0 {
+            return Err(HydroErrorType::NegativeDensity(u.mass_density()))
+        }
+        
+        Ok(u.to_primitive(self.gamma_law_index))
+    }
     fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive {
         u.to_primitive(self.gamma_law_index)
     }
