@@ -120,12 +120,12 @@ impl JetInStar
         let num       = RHO_C * ((1.0 - r / R3)).powf(N);
         let denom     = 1.0 + (r / R1).powf(K1) / (1.0 + (r / R2).powf(K2));
         let core_zone = num/denom;
-
+        let rho_env   = (self.envelope_mass)/(4.0 * PI * self.envelope_radius*self.envelope_radius 
+                                * (self.envelope_radius - R3) * self.volume_factor);
         match zone {
-            Zone::Core    => core_zone + RHO_ENV * (r/R3).powf(-2.0),
+            Zone::Core    => core_zone + rho_env * (r/R3).powf(-2.0),
             Zone::Envelope => {
-                (self.envelope_mass)/(4.0 * PI * self.envelope_radius*self.envelope_radius 
-                    * (self.envelope_radius - R3) * self.volume_factor) *(r/R3).powf(-ALPHA)
+                rho_env *(r/R3).powf(-ALPHA)
             }
             Zone::Jet     => self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED),
             Zone::Wind    => RHO_WIND * (r/R_ENV).powf(-2.0),
