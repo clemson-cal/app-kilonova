@@ -123,7 +123,7 @@ impl JetInStar
 
         match zone {
             Zone::Core    => core_zone + RHO_ENV * (r/R3).powf(-2.0),
-            Zone::Envelop => {
+            Zone::Envelope => {
                 (self.envelope_mass)/(4.0 * PI * self.envelope_radius*self.envelope_radius 
                     * (self.envelope_radius - R3) * self.volume_factor) *(r/R3).powf(-ALPHA)
             }
