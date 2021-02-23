@@ -11,9 +11,10 @@ cd knc_loader; cargo build --release; cd ..
 
 rslib=$(ls $target_dir | egrep '.so|.dylib')
 pylib=$(pwd)/lib/knc_loader.so
+echo $pylib
 mkdir -p lib
 rm -f $pylib
-ln -s $(pwd)/$target_dir/$lib $pylib
+ln -s $(pwd)/$target_dir/$rslib $pylib
 pathadd $(pwd)/lib
 
 echo "adding knc_loader to your Python path:"
