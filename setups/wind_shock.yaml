@@ -1,0 +1,32 @@
+hydro:
+  relativistic:
+    gamma_law_index: 1.333
+    plm_theta: 1.5
+    cfl_number: 0.4
+    runge_kutta_order: RK2
+    riemann_solver: HLLC
+
+model:
+  wind_shock:
+    wind_mass_outflow_rate: 1e10
+    wind_gamma_beta: 2.0
+    post_shock_gamma_beta: 2.0
+
+mesh:
+  inner_radius: 1e8
+  outer_radius: 1e10
+  inner_excision_speed: 0.0
+  outer_excision_speed: 0.0
+  reference_radius: 1e8
+  num_polar_zones: 1
+  num_radial_zones: 1024 # per decade
+  block_size: 1024 # num zones in a block (parallelization unit)
+
+control:
+  final_time: 0.0
+  start_time: 0.0
+  checkpoint_interval: 1.0
+  products_interval: 1.0
+  num_threads: 1
+  fold: 10
+  snappy_compression: false
