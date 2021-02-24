@@ -174,7 +174,7 @@ impl JetInStar
             Zone::Jet
         } else if r < R3 {
             Zone::Core
-        } else if R3 < r && r < R_ENV {
+        } else if R3 < r && r < self.envelope_radius {
             Zone:: Envelope
         } else {
             Zone::Wind
