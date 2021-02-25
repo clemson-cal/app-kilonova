@@ -87,6 +87,7 @@ where
                     .apply_collect(|&p, &c, &dv| hydro.geometrical_source_terms(p, c) * dv);
                 let du = ndarray::azip![&sc, fx.slice(s![..-1,..]), fx.slice(s![ 1..,..])].apply_collect(|&s, &a, &b| (s - (b - a)) * dt);
                 let ds = ndarray::azip![     gx.slice(s![..-1,..]), gx.slice(s![ 1..,..])].apply_collect(|&a, &b| (b - a) * -dt);
+
                 (du, ds)
             } else {
                 let gy = ndarray_ops::map_stencil3(&pe, Axis(1), |a, b, c| hydro.plm_gradient_primitive(a, b, c));
@@ -136,7 +137,7 @@ where
                 (du, ds)
             };
 
-            let new_state = BlockState{
+            let new_state = BlockState {
                 conserved: (&state.conserved + &du).to_shared(),
                 scalar_mass: (&state.scalar_mass + &ds).to_shared(),
             };
@@ -145,7 +146,7 @@ where
         new_state_vec.push(runtime.spawn(entry));
     }
 
-    Ok(State{
+    Ok(State {
         time: state.time + dt,
         iteration: state.iteration + 1,
         solution: join_all(new_state_vec).await.into_iter().map(|f| f.unwrap()).collect(),

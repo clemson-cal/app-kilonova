@@ -1,7 +1,6 @@
-use crate::physics::AnyPrimitive;
+use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
-use std::f64::consts::PI;
 
 static UNIFORM_TEMPERATURE: f64 = 1e-6;
 

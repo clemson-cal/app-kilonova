@@ -35,9 +35,6 @@ pub struct RelativisticHydro {
 
 
 
-
-
-
 // ============================================================================
 impl Hydrodynamics for RelativisticHydro {
     type Conserved = hydro_srhd::srhd_2d::Conserved;

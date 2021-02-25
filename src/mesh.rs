@@ -305,7 +305,7 @@ impl Mesh {
     pub fn zone_dlogr(&self) -> f64 {
         match self.num_radial_zones {
             Some(nr) => 1.0 / nr as f64,
-            None => std::f64::consts::PI / self.num_polar_zones as f64,
+            None => PI / self.num_polar_zones as f64,
         }
     }
 
