@@ -320,11 +320,18 @@ impl Mesh {
      * Return the extent of the subgrid at this index.
      */
     pub fn subgrid_extent(&self, index: BlockIndex) -> SphericalPolarExtent {
+
+        let (q0, q1) = if self.num_polar_zones == 1 {
+            (PI * 0.5 - self.zone_dlogr(), PI * 0.5 + self.zone_dlogr())
+        } else {
+            (0.0, PI)
+        };
+
         SphericalPolarExtent {
             inner_radius: self.reference_radius * (1.0 + self.block_dlogr()).powf(index.0 as f64),
             outer_radius: self.reference_radius * (1.0 + self.block_dlogr()).powf(index.0 as f64 + 1.0),
-            lower_theta: 0.0,
-            upper_theta: std::f64::consts::PI,
+            lower_theta: q0,
+            upper_theta: q1,
         }
     }
 
