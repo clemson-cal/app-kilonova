@@ -1,8 +1,12 @@
+use std::f64::consts::PI;
+use serde::{Deserialize, Serialize};
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
-use serde::{Deserialize, Serialize};
 
 static UNIFORM_TEMPERATURE: f64 = 1e-6;
+
+
+
 
 /**
  * Jet propagating through a kilonova debris cloud and surrounding relativistic
@@ -24,6 +28,9 @@ pub struct WindShock {
     pub shock_location: f64,
 }
 
+
+
+
 // ============================================================================
 impl InitialModel for WindShock {
     fn validate(&self) -> anyhow::Result<()> {
@@ -39,14 +46,13 @@ impl InitialModel for WindShock {
         // rho: comoving rest-mass density
         // Mdot = 4 pi r^2 rho u c
 
-        let c = 1.0;
         let r = coordinate.0;
         let u = if r < self.shock_location {
-            self.wind_gamma_beta * c
+            self.wind_gamma_beta
         } else {
-            self.post_shock_gamma_beta * c
+            self.post_shock_gamma_beta
         };
-        let rho = self.wind_mass_outflow_rate / (4.0 * PI * r * r * u);
+        let rho = self.wind_mass_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
 
         AnyPrimitive {
             velocity_r: u,

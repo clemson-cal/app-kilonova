@@ -133,7 +133,7 @@ def main():
             else:
                 pngname = args.output
             print('save {}'.format(pngname))
-            fig.savefig(pngname, dpi=400)
+            fig.savefig(pngname, dpi=600)
             fig.clf()
         else:
             plt.show()
