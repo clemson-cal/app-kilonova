@@ -1,12 +1,9 @@
-use std::f64::consts::PI;
-use serde::{Deserialize, Serialize};
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
+use serde::{Deserialize, Serialize};
+use std::f64::consts::PI;
 
 static UNIFORM_TEMPERATURE: f64 = 1e-6;
-
-
-
 
 /**
  * Jet propagating through a kilonova debris cloud and surrounding relativistic
@@ -24,12 +21,15 @@ pub struct WindShock {
     /// Four velocity of wind after shock
     pub post_shock_gamma_beta: f64,
 
+    /// Wind pressure
+    pub wind_pressure: f64,
+
+    /// Pressure after shock
+    pub post_shock_pressure: f64,
+
     /// Shock location coordinate
     pub shock_location: f64,
 }
-
-
-
 
 // ============================================================================
 impl InitialModel for WindShock {

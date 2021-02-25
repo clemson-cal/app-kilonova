@@ -11,7 +11,9 @@ model:
     wind_mass_outflow_rate: 1e20 # this is ~1e-6 solar masses per year
     wind_gamma_beta: 2.0
     post_shock_gamma_beta: 0.1
-    shock_location: 2e8
+    wind_pressure: 1.0
+    post_shock_pressure: 100.0
+    shock_location: 5e8
 
 mesh:
   inner_radius: 1e8
