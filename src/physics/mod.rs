@@ -72,3 +72,59 @@ impl From<[f64; 4]> for AnyPrimitive {
         }
     }
 }
+
+
+
+
+/**
+ * Category of a hydrodynamics error 
+ */
+#[derive(thiserror::Error, Debug, Clone)]
+pub enum HydroErrorType {
+    #[error("Negative mass density: {0:.4e}")]
+    NegativeDensity(f64),
+
+    #[error("Negative pressure: {0:.4e}")]
+    NegativePressure(f64),
+
+    #[error("Negative energy density: {0:.4e}")]
+    NegativeEnergyDensity(f64),
+
+    #[error("The root finder failed to converge \n {0:?}")]
+    RootFinderFailed(hydro_srhd::srhd_2d::Conserved)
+}
+
+impl HydroErrorType {
+    pub fn at_position(self, position: (f64, f64)) -> HydroError {
+        HydroError{source: self, position}
+    }
+}
+
+
+
+
+/**
+ * Holds a hydro error and a position where it occurred
+ */
+#[derive(thiserror::Error, Debug, Clone)]
+#[error("at position (r, theta) = ({:.4e}, {:.4})",
+    position.0,
+    position.1,
+)]
+pub struct HydroError {
+    source: HydroErrorType,
+    position: (f64, f64),
+}
+
+
+
+
+// ============================================================================
+impl HydroError {
+    pub fn with_model(self) -> Self {
+        Self {
+            source: self.source,
+            position: self.position,
+        }
+    }
+}

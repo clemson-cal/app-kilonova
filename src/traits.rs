@@ -3,7 +3,7 @@ use serde::Serialize;
 use godunov_core::runge_kutta::RungeKuttaOrder;
 use crate::mesh::Mesh;
 use crate::state::State;
-use crate::physics::{AnyPrimitive, Direction};
+use crate::physics::{AnyPrimitive, Direction, HydroErrorType};
 
 
 
@@ -81,6 +81,13 @@ pub trait Hydrodynamics: 'static + Clone + Send {
      * concentration states.
      */
     fn plm_gradient_scalar(&self, a: &f64, b: &f64, c: &f64) -> f64;
+
+    /**
+     * Validate whether conserved state can be converted to primitives.
+     *
+     */
+    fn try_to_primitive(&self, u:Self::Conserved) -> Result<Self::Primitive, HydroErrorType>;
+    
 
     /**
      * Convert from a primitive to a conserved state.

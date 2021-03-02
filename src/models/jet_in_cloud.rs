@@ -11,7 +11,7 @@ static UNIFORM_TEMPERATURE: f64 = 1e-3;
 
 /**
  * Jet propagating through a kilonova debris cloud and surrounding relativistic
- * envelop
+ * envelope
  */
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -38,7 +38,7 @@ pub struct JetInCloud {
     /// Mass coordinate of the u=1 shell
     pub envelop_m1: f64,
 
-    /// Beta (v/c) of the slowest envelop shell
+    /// Beta (v/c) of the slowest envelope shell
     pub envelop_slowest_beta: f64,
 
     /// Beta (v/c) of the outer shell
@@ -55,7 +55,7 @@ pub struct JetInCloud {
  * Different space-time zones in the setup
  */
 pub enum Zone {
-    Envelop,
+    Envelope,
     Cloud,
     Jet,
 }
@@ -92,7 +92,7 @@ impl InitialModel for JetInCloud {
         match self.zone(r, q, t) {
             Zone::Cloud       => 1e+0,
             Zone::Jet         => 1e+2,
-            Zone::Envelop     => 1e-2,
+            Zone::Envelope    => 1e-2,
         }
     }
 }
@@ -111,7 +111,7 @@ impl JetInCloud
         writeln!(writer,
             r#"
         jet_in_cloud model description:
-            t1 (slowest envelop shell comes to r=10^8 cm) = {:.04}
+            t1 (slowest envelope shell comes to r=10^8 cm) = {:.04}
             t2 (jet turns on)                             = {:.04}
             t3 (jet head comes through r=10^8 cm)         = {:.04}
             t4 (jet turns off)                            = {:.04}
@@ -122,7 +122,7 @@ impl JetInCloud
     }
 
     /**
-     * The time when the slowest envelop shell comes through the launch radius
+     * The time when the slowest envelope shell comes through the launch radius
      */
     pub fn get_t1(&self) -> f64 {
         NOMINAL_LAUNCH_RADIUS / self.envelop_slowest_beta / LIGHT_SPEED
@@ -150,7 +150,7 @@ impl JetInCloud
     }
 
     /**
-     * Four-velocity gamma-beta of the slowest envelop shell
+     * Four-velocity gamma-beta of the slowest envelope shell
      */
     pub fn envelop_slowest_u(&self) -> f64 {
         let b = self.envelop_slowest_beta;
@@ -191,7 +191,7 @@ impl JetInCloud
         if self.in_nozzle(q) && r < r_jet_head  && r > r_jet_tail {
             Zone::Jet
         } else if r > r_cloud_envelop_interface {
-            Zone::Envelop
+            Zone::Envelope
         } else {
             Zone::Cloud
         }
@@ -209,7 +209,7 @@ impl JetInCloud
             Zone::Cloud => {
                 self.envelop_slowest_u()
             }
-            Zone::Envelop => {
+            Zone::Envelope => {
                 let b = f64::min(r / t / LIGHT_SPEED, self.envelop_fastest_beta);
                 let u = b / f64::sqrt(1.0 - b * b);
                 u
@@ -233,7 +233,7 @@ impl JetInCloud
             Zone::Cloud => {
                 self.cloud_mass_rate_per_steradian()
             }
-            Zone::Envelop => {
+            Zone::Envelope => {
                 let s = f64::min(r / t / LIGHT_SPEED, self.envelop_fastest_beta);
                 let f = f64::powf(s, -1.0 / self.envelop_psi) * f64::powf(1.0 - s * s, 0.5 / self.envelop_psi - 1.0);
                 self.envelop_m1 / (4.0 * PI * self.envelop_psi * t) * f

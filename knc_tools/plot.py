@@ -31,7 +31,7 @@ def mesh_vertices(products):
 
 
 def known_fields():
-    ['rho', 'pre', 'ur', 'uq', 'scalar', 'gamma_beta']
+    ['rho', 'pre', 'ur', 'uq', 'scalar', 'gamma_beta', 'temperature']
 
 
 def block_field(block, field, transform=lambda x: x):
@@ -49,6 +49,17 @@ def block_field(block, field, transform=lambda x: x):
         ur = block.radial_four_velocity
         uq = block.polar_four_velocity
         d = np.sqrt(ur**2 + uq**2)
+    elif field == 'temperature':
+        from astropy import constants
+        
+        mp  = (constants.m_p.cgs).value
+        k_B = (constants.k_B.cgs).value
+        c   = (constants.c.cgs).value
+        
+        # Convert the pressure to cgs
+        e = 3*block.gas_pressure/block.comoving_mass_density
+        # Temperature in K
+        d   = (2/3) * e * mp * c**2 / k_B
     else:
         raise ValueError(f'unknown field {field}')
     return transform(d)
@@ -61,6 +72,8 @@ def mesh_field(products, field, transform=lambda x: x):
 def variable(args):
     if args.field == 'rho' and args.log:
         return r'$\log_{{10}}(\rho) \ [\rm{{g/cm^3}}]$'
+    elif args.field == 'temperature' and args.log:
+        return 'T [K]'
     else:
         return args.field
 
@@ -100,9 +113,10 @@ def plot_radial_profile(products, args):
     ax1 = fig.add_subplot(1, 1, 1)
     r = products.radial_profile.vertices
     d = products.radial_profile[0].comoving_mass_density
-    ax1.plot(r, d)
+    ax1.plot(r, d, '-o', mfc='none')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
+    ax1.set_xlabel(r'$r \ \rm{[cm]}$')
     return fig
 
 
@@ -133,7 +147,7 @@ def main():
             else:
                 pngname = args.output
             print('save {}'.format(pngname))
-            fig.savefig(pngname, dpi=400)
+            fig.savefig(pngname, dpi=600)
             fig.clf()
         else:
             plt.show()

@@ -3,9 +3,10 @@ use godunov_core::piecewise_linear;
 use godunov_core::runge_kutta::RungeKuttaOrder;
 use crate::physics::AnyPrimitive;
 use crate::mesh::Mesh;
-use crate::physics::{RiemannSolver, Direction, LIGHT_SPEED};
+use crate::physics::{RiemannSolver, Direction, LIGHT_SPEED, HydroErrorType};
 use crate::state::State;
 use crate::traits::Hydrodynamics;
+
 
 
 
@@ -31,9 +32,6 @@ pub struct RelativisticHydro {
     /// Riemann solver: [HLLE | HLLC]
     pub riemann_solver: RiemannSolver,
 }
-
-
-
 
 
 
@@ -70,14 +68,30 @@ impl Hydrodynamics for RelativisticHydro {
         piecewise_linear::plm_gradient(self.plm_theta, a, b, c)
     }
 
-    fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive {
-        match u.to_primitive(self.gamma_law_index) {
+    fn try_to_primitive(&self, u:Self::Conserved) -> Result<Self::Primitive, HydroErrorType>{
+
+        if u.lab_frame_density() < 0.0 {
+            return Err(HydroErrorType::NegativeDensity(u.lab_frame_density()))
+        }
+        else if u.energy_density() < 0.0 {
+            return Err(HydroErrorType::NegativeEnergyDensity(u.energy_density()))
+        }
+        
+        let valid_primitive = match u.to_primitive(self.gamma_law_index) {
             hydro_srhd::srhd_2d::RecoveredPrimitive::Success(p) => p,
             hydro_srhd::srhd_2d::RecoveredPrimitive::NegativePressure(p) => {
                 hydro_srhd::srhd_2d::Primitive(p.0, p.1, p.2, 1e-3 * p.0)
             }
-            hydro_srhd::srhd_2d::RecoveredPrimitive::RootFinderFailed(u) => panic!("c2p root finder failed {:?}", u),
-        }
+            hydro_srhd::srhd_2d::RecoveredPrimitive::RootFinderFailed(u) => {
+                return Err(HydroErrorType::RootFinderFailed(u))?
+            }
+        };
+
+        Ok(valid_primitive)
+    }
+
+    fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive {
+        self.try_to_primitive(u).unwrap()
     }
 
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved {
