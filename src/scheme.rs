@@ -52,6 +52,13 @@ where
     stage_primitive_and_scalar(inner_bnd_index, inner_bnd_state, hydro.clone(), inner_bnd_geom);
     stage_primitive_and_scalar(outer_bnd_index, outer_bnd_state, hydro.clone(), outer_bnd_geom);
 
+    // Putting the stage map under Arc can be important for performance.
+    // Without it, the map is deep-copied for each block in the loop below.
+    // Although each entry is a lightweight object, the map itself can have
+    // ~1000 entries, and cloning it ~1000 times can induce measurable
+    // overhead.
+    let stage_map = Arc::new(stage_map);
+
     for (&index, state) in &state.solution {
 
         let hydro = hydro.clone();
