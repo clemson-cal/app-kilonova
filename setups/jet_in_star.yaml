@@ -13,13 +13,13 @@ model:
     engine_energy: 1.5e51
     engine_theta: 0.1
     engine_u: 50.0
-    envelope_radius: 5e10
+    envelope_radius: 1e11
     envelope_mass: 2e32
     volume_factor: 0.1
 
 mesh:
   inner_radius: 1.e9
-  outer_radius: 1.e11
+  outer_radius: 1.e12
   inner_excision_speed: 0.0
   outer_excision_speed: 0.0
   reference_radius: 1.e9
@@ -27,7 +27,7 @@ mesh:
   block_size: 4
 
 control:
-  final_time: 3.0
+  final_time: 30.0
   start_time: 0.0
   checkpoint_interval: 0.1
   products_interval: 0.1
