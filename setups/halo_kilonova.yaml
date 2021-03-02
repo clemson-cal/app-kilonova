@@ -2,7 +2,7 @@ hydro:
   relativistic:
     gamma_law_index: 1.333
     plm_theta: 1.5
-    cfl_number: 4.0 #4.0 as a hack
+    cfl_number: 0.4
     runge_kutta_order: RK2
     riemann_solver: HLLC
 
@@ -13,7 +13,7 @@ model:
     launch_radius: 1e15
     ejecta_mdot: 2e31
     ejecta_gamma_beta: 0.1
-    engine_duration: 1.0
+    engine_duration: 0.5
 
 mesh:
   inner_radius: 1e15
