@@ -67,6 +67,7 @@ def variable(args):
 
 def plot_two_dimensional(products, args):
     vmin, vmax = eval(args.range)
+    #vmin, vmax = (0,52000)
     fig = plt.figure(figsize=[7, 11])
     ax1 = fig.add_subplot(1, 1, 1)
 
