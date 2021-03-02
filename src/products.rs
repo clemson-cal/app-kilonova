@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use ndarray::{ArcArray, Ix1, Ix2};
+use crate::scheme::{try_block_primitive};
 use crate::app::{self, Configuration, AnyHydro, AnyState};
 use crate::mesh::{BlockIndex, GridGeometry};
-use crate::physics::AnyPrimitive;
+use crate::physics::{AnyPrimitive};
 use crate::products;
 use crate::state::{BlockState, State};
 use crate::traits::{Conserved, Hydrodynamics};
@@ -47,9 +48,12 @@ impl BlockProducts {
 		C: Conserved {
 
 		let scalar = &state.scalar_mass / &state.conserved.mapv(|u| u.lab_frame_mass());
-		let primitive = (&state.conserved / &geometry.cell_volumes)
-			.mapv(|q| hydro.to_primitive(q))
-			.mapv(|p| hydro.any(&p));
+		let primitive= {
+			try_block_primitive(hydro, state.conserved.to_shared() / &geometry.cell_volumes, &geometry)
+				.map(|p| p.to_shared())
+				.unwrap()
+				.mapv(|p| hydro.any(&p))
+		};
 
 		BlockProducts{
 			radial_vertices: geometry.radial_vertices.clone(),
