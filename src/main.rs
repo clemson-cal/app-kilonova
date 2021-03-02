@@ -87,8 +87,14 @@ where
         .build()?;
 
     while state.time < control.final_time {
+        
         side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
-        state = scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry, &runtime, control.fold)?;
+        state = match scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry, &runtime, control.fold) {
+            Ok(s) => s,
+            Err(e) => {
+                return Err(e)?
+            }
+        };
     }
 
     side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
