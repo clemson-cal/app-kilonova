@@ -25,8 +25,8 @@ where
     H: Hydrodynamics<Conserved = C, Primitive = P>,
     M: InitialModel,
     C: Conserved,
-    P: Primitive, {
-
+    P: Primitive
+{
     let mut stage_map = HashMap::new();
     let mut new_state_vec = Vec::new();
     let mut stage_primitive_and_scalar = |index: BlockIndex, state: BlockState<C>, hydro: H, geometry: GridGeometry| {
@@ -35,7 +35,6 @@ where
             let s = state.scalar_mass / &geometry.cell_volumes / p.map(P::lorentz_factor);
             Ok::<_, HydroError>( ( p.to_shared(), s.to_shared() ) )
         };
-        
         stage_map.insert(index, runtime.spawn(stage).map(|f| f.unwrap()).shared());
     };
 
@@ -224,12 +223,12 @@ where
     C: Conserved
 {
     let runge_kutta = hydro.runge_kutta_order();
+    let dt = hydro.time_step(&state, mesh);
 
     for _ in 0..fold {
         if mesh.moving_excision_surfaces() {
             add_remove_blocks(&mut state, hydro, model, mesh, geometry);
         }
-        let dt = hydro.time_step(&state, mesh);
         let update = |state| async {
             try_advance_rk(state, hydro, model, mesh, geometry, dt, &runtime).await
         };

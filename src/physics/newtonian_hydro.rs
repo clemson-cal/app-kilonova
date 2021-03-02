@@ -53,8 +53,17 @@ impl Hydrodynamics for NewtonianHydro {
     }
 
     fn time_step(&self, state: &State<Self::Conserved>, mesh: &Mesh) -> f64 {
-        let (index, ..) = state.inner_outer_block_indexes();
-        self.cfl_number * mesh.smallest_spacing(index)
+        state.solution.iter().fold(f64::MAX, |dt, (index, state)| {
+            let geometry = mesh.subgrid(*index).geometry();
+            let block_dt = state
+                .try_to_primitive(self, &geometry)
+                .unwrap()
+                .iter()
+                .zip(&geometry.cell_linear_dimension())
+                .fold(f64::MAX, |dt, (p, dl)| dt.min(dl / p.max_signal_speed(self.gamma_law_index))
+            );
+            dt.min(block_dt)
+        }) * self.cfl_number
     }
 
     fn plm_gradient_primitive(&self, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
