@@ -39,7 +39,6 @@ where
     AnyModel: From<M>,
     AnyState: From<State<C>>,
 {
-
     if tasks.iteration_message.next_time <= state.time {
         let time = tasks.iteration_message.advance(0.0);
         let mzps = 1e-6 * state.total_zones() as f64 / time * control.fold as f64;

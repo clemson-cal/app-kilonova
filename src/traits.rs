@@ -83,21 +83,20 @@ pub trait Hydrodynamics: 'static + Clone + Send {
     fn plm_gradient_scalar(&self, a: &f64, b: &f64, c: &f64) -> f64;
 
     /**
-     * Validate whether conserved state can be converted to primitives.
-     *
+     * Try to convert from a conserved to a primitive hydrodynamic state,
+     * returning an appropriate error type if the conversion failed. This
+     * function is not permitted to panic.
      */
-    fn try_to_primitive(&self, u:Self::Conserved) -> Result<Self::Primitive, HydroErrorType>;
-    
+    fn try_to_primitive(&self, u: Self::Conserved) -> Result<Self::Primitive, HydroErrorType>;
 
     /**
-     * Convert from a primitive to a conserved state.
-     *
+     * Convert from a conserved to a primitive hydrodynamic state. This function
+     * is is permitted to panic if the conversion fails.
      */
     fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive;
 
     /**
-     * Convert from a conserved to a primitive state (signature may be changed
-     * to return Result).
+     * Convert from a primitive to a conserved state.
      */
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved;
 

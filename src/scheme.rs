@@ -1,35 +1,13 @@
+use std::sync::Arc;
 use std::collections::HashMap;
 use futures::FutureExt;
 use futures::future::join_all;
 use tokio::runtime::Runtime;
-use ndarray::{Array, Axis, ArcArray, Ix2, concatenate, s};
+use ndarray::{Array, Axis, concatenate, s};
 use crate::mesh::{BlockIndex, GridGeometry, Mesh};
 use crate::physics::{Direction, HydroError};
 use crate::state::{State, BlockState};
 use crate::traits::{Conserved, Primitive, Hydrodynamics, InitialModel};
-
-
-
-
-// ============================================================================
-pub fn try_block_primitive<H, C, P>(
-    hydro: &H,
-    conserved: ArcArray<C, Ix2>, 
-    geometry: &GridGeometry) -> anyhow::Result<Array<P, Ix2>, HydroError>
-where
-    H: Hydrodynamics<Conserved = C, Primitive = P>,
-    C: Conserved,
-    P: Primitive  
-{
-    let x: Result<Vec<_>, _> = conserved
-        .iter()
-        .zip(geometry.cell_centers.iter())
-        .map(|(&u, &rq)| hydro
-            .try_to_primitive(u)
-            .map_err(|e| e.at_position(rq)))
-        .collect();
-    Ok(Array::from_shape_vec(conserved.dim(), x?).unwrap())
-}
 
 
 
@@ -53,15 +31,14 @@ where
     let mut new_state_vec = Vec::new();
     let mut stage_primitive_and_scalar = |index: BlockIndex, state: BlockState<C>, hydro: H, geometry: GridGeometry| {
         let stage = async move {
-            let p =  try_block_primitive(&hydro, state.conserved/&geometry.cell_volumes, &geometry)?;
-            let s =  state.scalar_mass / &geometry.cell_volumes / p.map(P::lorentz_factor);
+            let p = state.try_to_primitive(&hydro, &geometry)?;
+            let s = state.scalar_mass / &geometry.cell_volumes / p.map(P::lorentz_factor);
             Ok::<_, HydroError>( ( p.to_shared(), s.to_shared() ) )
         };
         
         stage_map.insert(index, runtime.spawn(stage).map(|f| f.unwrap()).shared());
     };
 
-    // let stage_map = Arc::new(stage_map);
     for (index, state) in &state.solution {
         stage_primitive_and_scalar(index.clone(), state.clone(), hydro.clone(), geometry[index].clone())
     }
