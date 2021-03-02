@@ -68,7 +68,7 @@ impl Hydrodynamics for RelativisticHydro {
         else if u.energy_density() < 0.0 {
             return Err(HydroErrorType::NegativeEnergyDensity(u.energy_density()))
         }
-        
+
         let valid_primitive = match u.to_primitive(self.gamma_law_index) {
             hydro_srhd::srhd_2d::RecoveredPrimitive::Success(p) => p,
             hydro_srhd::srhd_2d::RecoveredPrimitive::NegativePressure(p) => {
@@ -91,7 +91,7 @@ impl Hydrodynamics for RelativisticHydro {
     }
 
     fn max_signal_speed(&self, p: Self::Primitive) -> f64 {
-        p.max_signal_speed(self.gamma_law_index)
+        p.max_signal_speed(self.gamma_law_index) * LIGHT_SPEED
     }
 
     fn interpret(&self, a: &AnyPrimitive) -> Self::Primitive {

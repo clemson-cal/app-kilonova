@@ -138,7 +138,7 @@ pub trait Hydrodynamics: 'static + Clone + Send {
                 .try_to_primitive(self, &geometry)?
                 .iter()
                 .zip(&geometry.cell_linear_dimension())
-                .fold(f64::MAX, |dt, (p, dl)| dt.min(dl / self.max_signal_speed(*p))
+                .fold(dt, |dt, (p, dl)| dt.min(dl / self.max_signal_speed(*p))
             );
             Ok(dt.min(block_dt))
         })? * self.cfl_number())

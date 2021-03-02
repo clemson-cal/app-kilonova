@@ -226,6 +226,7 @@ where
     let dt = hydro.time_step(&state, mesh)?;
 
     for _ in 0..fold {
+
         if mesh.moving_excision_surfaces() {
             add_remove_blocks(&mut state, hydro, model, mesh, geometry);
         }
