@@ -13,6 +13,9 @@ model:
     engine_energy: 1.5e51
     engine_theta: 0.1
     engine_u: 50.0
+    envelope_radius: 5e10
+    envelope_mass: 2e32
+    volume_factor: 0.1
 
 mesh:
   inner_radius: 1.e9

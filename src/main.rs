@@ -52,7 +52,7 @@ where
         tasks.write_products.advance(control.products_interval);
         let filename = format!("{}/prods.{:04}.cbor", outdir, tasks.write_products.count - 1);
         let config = Configuration::package(hydro, model, mesh, control);
-        let products = Products::from_state(state, hydro, &config);
+        let products = Products::try_from_state(state, hydro, &config)?;
         io::write_cbor(&products, &filename)?;
     }
 
@@ -87,8 +87,14 @@ where
         .build()?;
 
     while state.time < control.final_time {
+        
         side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
-        state = scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry, &runtime, control.fold)?;
+        state = match scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry, &runtime, control.fold) {
+            Ok(s) => s,
+            Err(e) => {
+                return Err(e)?
+            }
+        };
     }
 
     side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
