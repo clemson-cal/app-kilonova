@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::f64::consts::PI;
-use ndarray::{ArcArray, Ix1, Ix2};
+use ndarray::{ArcArray, Array, Ix1, Ix2};
 use serde::{Serialize, Deserialize};
 
 
@@ -22,6 +22,20 @@ pub struct GridGeometry {
     pub polar_face_areas:  ArcArray<f64, Ix2>,
     pub cell_volumes:      ArcArray<f64, Ix2>,
     pub cell_centers:      ArcArray<(f64, f64), Ix2>,
+}
+
+impl GridGeometry {
+
+    /**
+     * Return a 2D array of the smallest linear dimension of each grid cell.
+     */
+    pub fn cell_linear_dimension(&self) -> Array<f64, Ix2> {
+        Array::from_shape_fn(self.cell_centers.dim(), |(i, j)| {
+            let dr = self.radial_vertices[i + 1] - self.radial_vertices[i];
+            let dq = self.polar_vertices[j + 1] - self.polar_vertices[j];
+            dr.min(dq * self.radial_vertices[i])
+        })
+    }
 }
 
 

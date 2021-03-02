@@ -1,10 +1,7 @@
 use serde::{Serialize, Deserialize};
 use godunov_core::piecewise_linear;
 use godunov_core::runge_kutta::RungeKuttaOrder;
-use crate::physics::AnyPrimitive;
-use crate::mesh::Mesh;
-use crate::physics::{Direction, HydroErrorType};
-use crate::state::State;
+use crate::physics::{AnyPrimitive, Direction, HydroErrorType};
 use crate::traits::Hydrodynamics;
 
 
@@ -52,11 +49,6 @@ impl Hydrodynamics for NewtonianHydro {
         self.runge_kutta_order
     }
 
-    fn time_step(&self, state: &State<Self::Conserved>, mesh: &Mesh) -> f64 {
-        let (index, ..) = state.inner_outer_block_indexes();
-        self.cfl_number * mesh.smallest_spacing(index)
-    }
-
     fn plm_gradient_primitive(&self, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
         piecewise_linear::plm_gradient4(self.plm_theta, a, b, c)
     }
@@ -65,7 +57,7 @@ impl Hydrodynamics for NewtonianHydro {
         piecewise_linear::plm_gradient(self.plm_theta, a, b, c)
     }
 
-    fn try_to_primitive(&self, u: Self::Conserved) -> Result<Self::Primitive, HydroErrorType>{
+    fn try_to_primitive(&self, u: Self::Conserved) -> Result<Self::Primitive, HydroErrorType> {
         if u.mass_density() < 0.0 {
             return Err(HydroErrorType::NegativeDensity(u.mass_density()))
         }
@@ -78,6 +70,10 @@ impl Hydrodynamics for NewtonianHydro {
 
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved {
         p.to_conserved(self.gamma_law_index)
+    }
+
+    fn max_signal_speed(&self, p: Self::Primitive) -> f64 {
+        p.max_signal_speed(self.gamma_law_index)
     }
 
     fn interpret(&self, a: &AnyPrimitive) -> Self::Primitive {
@@ -103,6 +99,10 @@ impl Hydrodynamics for NewtonianHydro {
 
     fn geometrical_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved {
         p.spherical_geometry_source_terms(coordinate.0, coordinate.1)
+    }
+
+    fn cfl_number(&self) -> f64 {
+        self.cfl_number
     }
 }
 

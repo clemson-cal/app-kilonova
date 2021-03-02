@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use ndarray::{ArcArray, Ix1, Ix2};
-use crate::scheme::{try_block_primitive};
 use crate::app::{self, Configuration, AnyHydro, AnyState};
 use crate::mesh::{BlockIndex, GridGeometry};
 use crate::physics::{AnyPrimitive, HydroError};
@@ -49,7 +48,7 @@ impl BlockProducts {
 
 		let scalar = &state.scalar_mass / &state.conserved.mapv(|u| u.lab_frame_mass());
 		let primitive: Result<_, HydroError> = {
-			let try_block = try_block_primitive(hydro, state.conserved.to_shared() / &geometry.cell_volumes, &geometry)?;
+			let try_block = state.try_to_primitive(hydro, &geometry)?;
 			Ok(try_block)
 				
 		};
