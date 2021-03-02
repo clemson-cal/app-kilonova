@@ -8,27 +8,27 @@ hydro:
 
 model:
   halo_kilonova:
-    altitude: 1e17
+    altitude: 1e20
     external_medium_density: 1e-23
-    launch_radius: 1e15
+    launch_radius: 1e18
     ejecta_mdot: 2e31
     ejecta_gamma_beta: 0.1
     engine_duration: 0.5
 
 mesh:
-  inner_radius: 1e15
-  outer_radius: 1e17
-  inner_excision_speed: 0.01
-  outer_excision_speed: 0.03
-  reference_radius: 1e15
+  inner_radius: 1e18
+  outer_radius: 1e20
+  inner_excision_speed: 0.07
+  outer_excision_speed: 0.12
+  reference_radius: 1e18
   num_polar_zones: 128 #set to 1, then specify number of radial zones
   block_size: 4
 
 control:
-  final_time: 1e10
+  final_time: 1e11
   start_time: 0.0
-  checkpoint_interval: 1e9
-  products_interval: 1e9
+  checkpoint_interval: 1e8
+  products_interval: 1e8
   num_threads: 10
-  fold: 1
+  fold: 10 #Up this until it crashes
   snappy_compression: false
