@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
-use crate::physics::AnyPrimitive;
-use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
+use crate::physics::{AnyPrimitive, LIGHT_SPEED};
+use crate::traits::InitialModel;
 
 static UNIFORM_TEMPERATURE: f64 = 1e-6;
 
@@ -23,6 +23,9 @@ pub struct WindShock {
 
     /// Four velocity of wind after shock
     pub post_shock_gamma_beta: f64,
+
+    /// Shock location coordinate
+    pub shock_location: f64,
 }
 
 
@@ -30,7 +33,6 @@ pub struct WindShock {
 
 // ============================================================================
 impl InitialModel for WindShock {
-
     fn validate(&self) -> anyhow::Result<()> {
         if self.wind_gamma_beta < 0.0 {
             anyhow::bail!("the wind four-velocity must be positive")
@@ -39,16 +41,18 @@ impl InitialModel for WindShock {
     }
 
     fn primitive_at(&self, coordinate: (f64, f64), _t: f64) -> AnyPrimitive {
-
         // u: gamma-beta-c
         // v: beta-c
         // rho: comoving rest-mass density
         // Mdot = 4 pi r^2 rho u c
 
-        let c = 1.0;
         let r = coordinate.0;
-        let u = self.wind_gamma_beta * c;
-        let rho = self.wind_mass_outflow_rate / (4.0 * PI * r * r * u);
+        let u = if r < self.shock_location {
+            self.wind_gamma_beta
+        } else {
+            self.post_shock_gamma_beta
+        };
+        let rho = self.wind_mass_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
 
         AnyPrimitive {
             velocity_r: u,

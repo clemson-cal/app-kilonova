@@ -1,11 +1,11 @@
 use serde::{Serialize, Deserialize};
 use godunov_core::piecewise_linear;
 use godunov_core::runge_kutta::RungeKuttaOrder;
-use crate::physics::AnyPrimitive;
-use crate::mesh::Mesh;
-use crate::physics::{RiemannSolver, Direction, LIGHT_SPEED, HydroErrorType};
-use crate::state::State;
+use crate::physics::{AnyPrimitive, RiemannSolver, Direction, HydroErrorType, LIGHT_SPEED};
 use crate::traits::Hydrodynamics;
+
+
+
 
 /**
  * Interface implementation for relativistic hydrodynamics
@@ -31,6 +31,8 @@ pub struct RelativisticHydro {
 }
 
 
+
+
 // ============================================================================
 impl Hydrodynamics for RelativisticHydro {
     type Conserved = hydro_srhd::srhd_2d::Conserved;
@@ -50,11 +52,6 @@ impl Hydrodynamics for RelativisticHydro {
         self.runge_kutta_order
     }
 
-    fn time_step(&self, state: &State<Self::Conserved>, mesh: &Mesh) -> f64 {
-        let (index, ..) = state.inner_outer_block_indexes();
-        self.cfl_number * mesh.smallest_spacing(index) / LIGHT_SPEED
-    }
-
     fn plm_gradient_primitive(&self, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
         piecewise_linear::plm_gradient4(self.plm_theta, a, b, c)
     }
@@ -71,14 +68,14 @@ impl Hydrodynamics for RelativisticHydro {
         else if u.energy_density() < 0.0 {
             return Err(HydroErrorType::NegativeEnergyDensity(u.energy_density()))
         }
-        
+
         let valid_primitive = match u.to_primitive(self.gamma_law_index) {
             hydro_srhd::srhd_2d::RecoveredPrimitive::Success(p) => p,
             hydro_srhd::srhd_2d::RecoveredPrimitive::NegativePressure(p) => {
                 hydro_srhd::srhd_2d::Primitive(p.0, p.1, p.2, 1e-3 * p.0)
             }
             hydro_srhd::srhd_2d::RecoveredPrimitive::RootFinderFailed(u) => {
-                return Err(HydroErrorType::RootFinderFailed{conserved: u})?
+                return Err(HydroErrorType::RootFinderFailed(u))?
             }
         };
 
@@ -86,17 +83,15 @@ impl Hydrodynamics for RelativisticHydro {
     }
 
     fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive {
-        match u.to_primitive(self.gamma_law_index) {
-            hydro_srhd::srhd_2d::RecoveredPrimitive::Success(p) => p,
-            hydro_srhd::srhd_2d::RecoveredPrimitive::NegativePressure(p) => {
-                hydro_srhd::srhd_2d::Primitive(p.0, p.1, p.2, 1e-3 * p.0)
-            }
-            hydro_srhd::srhd_2d::RecoveredPrimitive::RootFinderFailed(u) => panic!("c2p root finder failed {:?}", u),
-        }
+        self.try_to_primitive(u).unwrap()
     }
 
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved {
         p.to_conserved(self.gamma_law_index)
+    }
+
+    fn max_signal_speed(&self, p: Self::Primitive) -> f64 {
+        p.max_signal_speed(self.gamma_law_index) * LIGHT_SPEED
     }
 
     fn interpret(&self, a: &AnyPrimitive) -> Self::Primitive {
@@ -127,6 +122,10 @@ impl Hydrodynamics for RelativisticHydro {
 
     fn geometrical_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved {
         p.spherical_geometry_source_terms(coordinate.0, coordinate.1, self.gamma_law_index) * LIGHT_SPEED
+    }
+
+    fn cfl_number(&self) -> f64 {
+        self.cfl_number
     }
 }
 

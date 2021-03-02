@@ -112,9 +112,10 @@ def plot_radial_profile(products, args):
     ax1 = fig.add_subplot(1, 1, 1)
     r = products.radial_profile.vertices
     d = products.radial_profile[0].comoving_mass_density
-    ax1.plot(r, d)
+    ax1.plot(r, d, '-o', mfc='none')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
+    ax1.set_xlabel(r'$r \ \rm{[cm]}$')
     return fig
 
 
@@ -145,7 +146,7 @@ def main():
             else:
                 pngname = args.output
             print('save {}'.format(pngname))
-            fig.savefig(pngname, dpi=400)
+            fig.savefig(pngname, dpi=600)
             fig.clf()
         else:
             plt.show()

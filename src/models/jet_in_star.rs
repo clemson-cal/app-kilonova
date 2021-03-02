@@ -5,6 +5,7 @@ use crate::traits::InitialModel;
 
 
 
+
 static UNIFORM_TEMPERATURE: f64 = 1e-10;
 
 // Constants as given in Duffell & MacDayen(2015)
@@ -23,6 +24,10 @@ static RHO_ENV:             f64 = 1e-7 * M0 / (1.33 * PI * R0 * R0 * R0);
 static R_NOZZ:              f64 = 0.01 * R0; 
 static R_ENV:               f64 = 1.2  * R0;
 static ALPHA:               f64 = 2.5;
+
+
+
+
 /**
  * Jet propagating through a star and surrounding relativistic
  * envelope
@@ -196,12 +201,8 @@ impl JetInStar
      */
     pub fn gamma_beta(&self, r: f64, q: f64, t: f64) -> f64 {
         match self.zone(r, q, t) {
-            Zone::Jet => {
-                self.engine_u
-            }
-            _ => {
-                0.0
-            }
+            Zone::Jet => self.engine_u,
+            _ => 0.0
 
         }
     }
@@ -220,9 +221,9 @@ impl JetInStar
 
         // Nozzle Function Normalization Factor
         // N0 = 4 * PI * r0^3 * exp(-2/theta0^2) * theta0^2
-        let n_0 =  4.0 * PI * r0 * r0 * r0 * (1. - (-2.0 / q2).exp()) * q2;
+        let n_0 =  4.0 * PI * r0 * r0 * r0 * (1.0 - (-2.0 / q2).exp()) * q2;
 
-        // Nozzle Function: g = (r/r0) * exp(-(r/r0)^2) * exp[(cos^2(q) - 1 )/theta0^2] / N0
+        // Nozzle Function: g = (r/r0) * exp(-(r/r0)^2) * exp[(cos^2(q) - 1)/theta0^2] / N0
         let g = (r / R_NOZZ) * f64::exp(-(r / R_NOZZ).powf(2.0) / 2.0) * f64::exp((q.cos().powf(2.0) - 1.0) / q2);
 
         g / n_0

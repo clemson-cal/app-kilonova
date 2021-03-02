@@ -1,51 +1,40 @@
+use std::sync::Arc;
 use std::collections::HashMap;
 use futures::FutureExt;
 use futures::future::join_all;
 use tokio::runtime::Runtime;
-use ndarray::{Array, Axis, concatenate, s, ArcArray, Ix2};
+use ndarray::{Array, Axis, concatenate, s};
 use crate::mesh::{BlockIndex, GridGeometry, Mesh};
 use crate::physics::{Direction, HydroError};
 use crate::state::{State, BlockState};
 use crate::traits::{Conserved, Primitive, Hydrodynamics, InitialModel};
 
-// ============================================================================
-pub fn try_block_primitive<H, C, P>( hydro: &H,
-                                 conserved: ArcArray<C, Ix2>, 
-                                 geometry:  &GridGeometry) 
-    -> anyhow::Result<Array<P, Ix2>, HydroError>
-where
-    H: Hydrodynamics<Conserved = C, Primitive = P>,
-    C: Conserved,
-    P: Primitive  
-{
-    let x: Result<Vec<_>, _> = conserved
-        .iter()
-        .zip(geometry.cell_centers.iter())
-        .map(|(&u, &rq)| hydro
-            .try_to_primitive(u)
-            .map_err(|e| e.at_position(rq)))
-        .collect();
-    Ok(Array::from_shape_vec(conserved.dim(), x?).unwrap())
-}
+
+
 
 // ============================================================================
-async fn try_advance_rk<H, M, C, P>(state: State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>, dt: f64, runtime: &Runtime)
-    -> anyhow::Result<State<C>, HydroError>
+async fn try_advance_rk<H, M, C, P>(
+    state: State<C>,
+    hydro: &H,
+    model: &M,
+    mesh: &Mesh,
+    geometry: &HashMap<BlockIndex, GridGeometry>,
+    dt: f64,
+    runtime: &Runtime) -> anyhow::Result<State<C>, HydroError>
 where
     H: Hydrodynamics<Conserved = C, Primitive = P>,
     M: InitialModel,
     C: Conserved,
-    P: Primitive, {
-
+    P: Primitive
+{
     let mut stage_map = HashMap::new();
     let mut new_state_vec = Vec::new();
     let mut stage_primitive_and_scalar = |index: BlockIndex, state: BlockState<C>, hydro: H, geometry: GridGeometry| {
         let stage = async move {
-            let p =  try_block_primitive(&hydro, state.conserved/&geometry.cell_volumes, &geometry)?;
-            let s =  state.scalar_mass / &geometry.cell_volumes / p.map(P::lorentz_factor);
+            let p = state.try_to_primitive(&hydro, &geometry)?;
+            let s = state.scalar_mass / &geometry.cell_volumes / p.map(P::lorentz_factor);
             Ok::<_, HydroError>( ( p.to_shared(), s.to_shared() ) )
         };
-        
         stage_map.insert(index, runtime.spawn(stage).map(|f| f.unwrap()).shared());
     };
 
@@ -61,6 +50,13 @@ where
     let outer_bnd_state = BlockState::from_model(model, hydro, &outer_bnd_geom, state.time);
     stage_primitive_and_scalar(inner_bnd_index, inner_bnd_state, hydro.clone(), inner_bnd_geom);
     stage_primitive_and_scalar(outer_bnd_index, outer_bnd_state, hydro.clone(), outer_bnd_geom);
+
+    // Putting the stage map under Arc can be important for performance.
+    // Without it, the map is deep-copied for each block in the loop below.
+    // Although each entry is a lightweight object, the map itself can have
+    // ~1000 entries, and cloning it ~1000 times can induce measurable
+    // overhead.
+    let stage_map = Arc::new(stage_map);
 
     for (&index, state) in &state.solution {
 
@@ -105,6 +101,7 @@ where
                     .apply_collect(|&p, &c, &dv| hydro.geometrical_source_terms(p, c) * dv);
                 let du = ndarray::azip![&sc, fx.slice(s![..-1,..]), fx.slice(s![ 1..,..])].apply_collect(|&s, &a, &b| (s - (b - a)) * dt);
                 let ds = ndarray::azip![     gx.slice(s![..-1,..]), gx.slice(s![ 1..,..])].apply_collect(|&a, &b| (b - a) * -dt);
+
                 (du, ds)
             } else {
                 let gy = ndarray_ops::map_stencil3(&pe, Axis(1), |a, b, c| hydro.plm_gradient_primitive(a, b, c));
@@ -154,11 +151,10 @@ where
                 (du, ds)
             };
 
-            let new_state = BlockState{
+            let new_state = BlockState {
                 conserved: (&state.conserved + &du).to_shared(),
                 scalar_mass: (&state.scalar_mass + &ds).to_shared(),
             };
-            
             Ok::<_, HydroError>((index, new_state))
         };
         new_state_vec.push(runtime.spawn(entry));
@@ -169,7 +165,7 @@ where
         .collect::<Result<_, _>>()
         .map_err(|e| e.with_model())?;
 
-    Ok(State{
+    Ok(State {
         time: state.time + dt,
         iteration: state.iteration + 1,
         solution: solution,
@@ -180,7 +176,12 @@ where
 
 
 // ============================================================================
-fn add_remove_blocks<H, M, C>(state: &mut State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>)
+fn add_remove_blocks<H, M, C>(
+    state: &mut State<C>,
+    hydro: &H,
+    model: &M,
+    mesh: &Mesh,
+    geometry: &mut HashMap<BlockIndex, GridGeometry>)
 where
     H: Hydrodynamics<Conserved = C>,
     M: InitialModel,
@@ -208,20 +209,27 @@ where
 
 
 // ============================================================================
-pub fn advance<H, M, C>(mut state: State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>, runtime: &Runtime, fold: usize)
-    -> anyhow::Result<State<C>, HydroError>
+pub fn advance<H, M, C>(
+    mut state: State<C>,
+    hydro: &H,
+    model: &M,
+    mesh: &Mesh,
+    geometry: &mut HashMap<BlockIndex, GridGeometry>,
+    runtime: &Runtime,
+    fold: usize) -> anyhow::Result<State<C>, HydroError>
 where
     H: Hydrodynamics<Conserved = C>,
     M: InitialModel,
     C: Conserved
 {
     let runge_kutta = hydro.runge_kutta_order();
+    let dt = hydro.time_step(&state, mesh)?;
 
     for _ in 0..fold {
+
         if mesh.moving_excision_surfaces() {
             add_remove_blocks(&mut state, hydro, model, mesh, geometry);
         }
-        let dt = hydro.time_step(&state, mesh);
         let update = |state| async {
             try_advance_rk(state, hydro, model, mesh, geometry, dt, &runtime).await
         };
