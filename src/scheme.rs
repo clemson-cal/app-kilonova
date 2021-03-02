@@ -49,7 +49,6 @@ where
         stage_map.insert(index, runtime.spawn(stage).map(|f| f.unwrap()).shared());
     };
 
-    // let stage_map = Arc::new(stage_map);
     for (index, state) in &state.solution {
         stage_primitive_and_scalar(index.clone(), state.clone(), hydro.clone(), geometry[index].clone())
     }
@@ -159,7 +158,7 @@ where
                 conserved: (&state.conserved + &du).to_shared(),
                 scalar_mass: (&state.scalar_mass + &ds).to_shared(),
             };
-            // (index, new_state);
+            
             Ok::<_, HydroError>((index, new_state))
         };
         new_state_vec.push(runtime.spawn(entry));
