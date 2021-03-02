@@ -38,7 +38,7 @@ impl InitialModel for HaloKilonova {
             let z = r * q.cos();
             let z0 = -self.altitude;
             let d0 = self.external_medium_density;
-            let d = d0 * if z < z0 {
+            let d = if z < z0 {
                 d0
             } else {
                 d0 * f64::exp(-f64::powf((z - z0) / z0, 2.0))
