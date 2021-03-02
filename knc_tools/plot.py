@@ -52,14 +52,14 @@ def block_field(block, field, transform=lambda x: x):
     elif field == 'temperature':
         from astropy import constants
         
-        mp  = (constants.m_p.cgs).value
-        k_B = (constants.k_B.cgs).value
-        c   = (constants.c.cgs).value
+        c = (constants.c.cgs).value
         
-        # Convert the pressure to cgs
-        e = 3*block.gas_pressure/block.comoving_mass_density
-        # Temperature in K
-        d   = (2/3) * e * mp * c**2 / k_B
+        sig = (constants.sigma_sb.cgs).value
+        a   = (4.*sig/c)
+        
+        # Radiation Dominated Temperature in K
+        d = (3*block.gas_pressure*c**2/a)**(1./4.)
+        
     else:
         raise ValueError(f'unknown field {field}')
     return transform(d)
