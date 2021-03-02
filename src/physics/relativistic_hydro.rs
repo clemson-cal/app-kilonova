@@ -1,10 +1,7 @@
 use serde::{Serialize, Deserialize};
 use godunov_core::piecewise_linear;
 use godunov_core::runge_kutta::RungeKuttaOrder;
-use crate::physics::AnyPrimitive;
-use crate::mesh::Mesh;
-use crate::physics::{RiemannSolver, Direction, LIGHT_SPEED, HydroErrorType};
-use crate::state::State;
+use crate::physics::{AnyPrimitive, RiemannSolver, Direction, HydroErrorType, LIGHT_SPEED};
 use crate::traits::Hydrodynamics;
 
 
@@ -55,11 +52,6 @@ impl Hydrodynamics for RelativisticHydro {
         self.runge_kutta_order
     }
 
-    fn time_step(&self, state: &State<Self::Conserved>, mesh: &Mesh) -> f64 {
-        let (index, ..) = state.inner_outer_block_indexes();
-        self.cfl_number * mesh.smallest_spacing(index) / LIGHT_SPEED
-    }
-
     fn plm_gradient_primitive(&self, a: &Self::Primitive, b: &Self::Primitive, c: &Self::Primitive) -> Self::Primitive {
         piecewise_linear::plm_gradient4(self.plm_theta, a, b, c)
     }
@@ -98,6 +90,10 @@ impl Hydrodynamics for RelativisticHydro {
         p.to_conserved(self.gamma_law_index)
     }
 
+    fn max_signal_speed(&self, p: Self::Primitive) -> f64 {
+        p.max_signal_speed(self.gamma_law_index)
+    }
+
     fn interpret(&self, a: &AnyPrimitive) -> Self::Primitive {
         hydro_srhd::srhd_2d::Primitive(a.mass_density, a.velocity_r, a.velocity_q, a.gas_pressure)
     }
@@ -126,6 +122,10 @@ impl Hydrodynamics for RelativisticHydro {
 
     fn geometrical_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved {
         p.spherical_geometry_source_terms(coordinate.0, coordinate.1, self.gamma_law_index) * LIGHT_SPEED
+    }
+
+    fn cfl_number(&self) -> f64 {
+        self.cfl_number
     }
 }
 

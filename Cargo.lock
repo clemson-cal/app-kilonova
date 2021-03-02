@@ -202,7 +202,7 @@ dependencies = [
 [[package]]
 name = "hydro-srhd"
 version = "0.1.0"
-source = "git+https://github.com/clemson-cal/hydro-srhd#e15d07ec8e23ff896add1178e6e2d1cc4b5199be"
+source = "git+https://github.com/clemson-cal/hydro-srhd#0b77e7c5b58cf4e3a9d638ecf947f8388df3a467"
 dependencies = [
  "serde",
 ]

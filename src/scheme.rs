@@ -223,7 +223,7 @@ where
     C: Conserved
 {
     let runge_kutta = hydro.runge_kutta_order();
-    let dt = hydro.time_step(&state, mesh);
+    let dt = hydro.time_step(&state, mesh)?;
 
     for _ in 0..fold {
         if mesh.moving_excision_surfaces() {

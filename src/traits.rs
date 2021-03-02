@@ -3,7 +3,7 @@ use serde::Serialize;
 use godunov_core::runge_kutta::RungeKuttaOrder;
 use crate::mesh::Mesh;
 use crate::state::State;
-use crate::physics::{AnyPrimitive, Direction, HydroErrorType};
+use crate::physics::{AnyPrimitive, Direction, HydroError, HydroErrorType};
 
 
 
@@ -65,12 +65,6 @@ pub trait Hydrodynamics: 'static + Clone + Send {
     fn runge_kutta_order(&self) -> RungeKuttaOrder;
 
     /**
-     * Return the time step size, computed from the mesh, the hydrodynamics
-     * state, and internal parameters such as the CFL number.
-     */
-    fn time_step(&self, state: &State<Self::Conserved>, mesh: &Mesh) -> f64;
-
-    /**
      * Compute the PLM difference from a stencil of colinear primitive
      * states.
      */
@@ -100,6 +94,8 @@ pub trait Hydrodynamics: 'static + Clone + Send {
      */
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved;
 
+    fn max_signal_speed(&self, p: Self::Primitive) -> f64;
+
     /**
      * Convert from an any-primitive state to the one specific to this
      * hydrodynamics system.
@@ -125,6 +121,28 @@ pub trait Hydrodynamics: 'static + Clone + Send {
      * for the given primitive state and r-theta coordinate.
      */
     fn geometrical_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved;
+
+    /**
+     * Return the CFL number to be used
+     */
+    fn cfl_number(&self) -> f64;
+
+    /**
+     * Return the time step size, computed from the mesh, the hydrodynamics
+     * state, and internal parameters such as the CFL number.
+     */
+    fn time_step(&self, state: &State<Self::Conserved>, mesh: &Mesh) -> Result<f64, HydroError> {
+        Ok(state.solution.iter().try_fold(f64::MAX, |dt, (index, state)| {
+            let geometry = mesh.subgrid(*index).geometry();
+            let block_dt = state
+                .try_to_primitive(self, &geometry)?
+                .iter()
+                .zip(&geometry.cell_linear_dimension())
+                .fold(f64::MAX, |dt, (p, dl)| dt.min(dl / self.max_signal_speed(*p))
+            );
+            Ok(dt.min(block_dt))
+        })? * self.cfl_number())
+    }
 }
 
 
