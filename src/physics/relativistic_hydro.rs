@@ -68,6 +68,9 @@ impl Hydrodynamics for RelativisticHydro {
         if u.lab_frame_density() < 0.0 {
             return Err(HydroErrorType::NegativeDensity(u.lab_frame_density()))
         }
+        else if u.energy_density() < 0.0 {
+            return Err(HydroErrorType::NegativeEnergyDensity(u.energy_density()))
+        }
         
         let valid_primitive = match u.to_primitive(self.gamma_law_index) {
             hydro_srhd::srhd_2d::RecoveredPrimitive::Success(p) => p,
@@ -75,7 +78,7 @@ impl Hydrodynamics for RelativisticHydro {
                 hydro_srhd::srhd_2d::Primitive(p.0, p.1, p.2, 1e-3 * p.0)
             }
             hydro_srhd::srhd_2d::RecoveredPrimitive::RootFinderFailed(u) => {
-                return Err(HydroErrorType::RootFinderFailed(u))
+                return Err(HydroErrorType::RootFinderFailed{conserved: u})?
             }
         };
 
