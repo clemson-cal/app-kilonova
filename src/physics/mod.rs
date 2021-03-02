@@ -79,14 +79,20 @@ type Conserved = hydro_srhd::srhd_2d::Conserved;
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum HydroErrorType {
-    #[error("Negative Mass Density {0:.4e}")]
+    #[error("Negative Mass Density: {0:.4e}")]
     NegativeDensity(f64),
 
-    #[error("Negative Pressure {0:.4e}")]
+    #[error("Negative Pressure: {0:.4e}")]
     NegativePressure(f64),
 
-    #[error("The Root Finder Failed to Converge {0:?}")]
-    RootFinderFailed(Conserved),
+    #[error("Negative Energy Density: {0:.4e}")]
+    NegativeEnergyDensity(f64),
+
+    #[error("The Root Finder Failed to Converge-- \n {conserved:?}")]
+    RootFinderFailed {
+        conserved: Conserved,
+    }
+    
 }
 
 impl HydroErrorType {
@@ -97,7 +103,7 @@ impl HydroErrorType {
 
 
 #[derive(thiserror::Error, Debug, Clone)]
-#[error("at position ({:.4} {:.4}) in the mesh",
+#[error("at position ({:.4e}, {:.4}) in the mesh",
     position.0,
     position.1,
 )]
