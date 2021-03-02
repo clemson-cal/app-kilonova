@@ -2,17 +2,20 @@ use std::collections::HashMap;
 use futures::FutureExt;
 use futures::future::join_all;
 use tokio::runtime::Runtime;
-use ndarray::{Array, Axis, concatenate, s, ArcArray, Ix2};
+use ndarray::{Array, Axis, ArcArray, Ix2, concatenate, s};
 use crate::mesh::{BlockIndex, GridGeometry, Mesh};
 use crate::physics::{Direction, HydroError};
 use crate::state::{State, BlockState};
 use crate::traits::{Conserved, Primitive, Hydrodynamics, InitialModel};
 
+
+
+
 // ============================================================================
-pub fn try_block_primitive<H, C, P>( hydro: &H,
-                                 conserved: ArcArray<C, Ix2>, 
-                                 geometry:  &GridGeometry) 
-    -> anyhow::Result<Array<P, Ix2>, HydroError>
+pub fn try_block_primitive<H, C, P>(
+    hydro: &H,
+    conserved: ArcArray<C, Ix2>, 
+    geometry: &GridGeometry) -> anyhow::Result<Array<P, Ix2>, HydroError>
 where
     H: Hydrodynamics<Conserved = C, Primitive = P>,
     C: Conserved,
@@ -28,9 +31,18 @@ where
     Ok(Array::from_shape_vec(conserved.dim(), x?).unwrap())
 }
 
+
+
+
 // ============================================================================
-async fn try_advance_rk<H, M, C, P>(state: State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>, dt: f64, runtime: &Runtime)
-    -> anyhow::Result<State<C>, HydroError>
+async fn try_advance_rk<H, M, C, P>(
+    state: State<C>,
+    hydro: &H,
+    model: &M,
+    mesh: &Mesh,
+    geometry: &HashMap<BlockIndex, GridGeometry>,
+    dt: f64,
+    runtime: &Runtime) -> anyhow::Result<State<C>, HydroError>
 where
     H: Hydrodynamics<Conserved = C, Primitive = P>,
     M: InitialModel,
@@ -160,7 +172,6 @@ where
                 conserved: (&state.conserved + &du).to_shared(),
                 scalar_mass: (&state.scalar_mass + &ds).to_shared(),
             };
-            // (index, new_state);
             Ok::<_, HydroError>((index, new_state))
         };
         new_state_vec.push(runtime.spawn(entry));
@@ -182,7 +193,12 @@ where
 
 
 // ============================================================================
-fn add_remove_blocks<H, M, C>(state: &mut State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>)
+fn add_remove_blocks<H, M, C>(
+    state: &mut State<C>,
+    hydro: &H,
+    model: &M,
+    mesh: &Mesh,
+    geometry: &mut HashMap<BlockIndex, GridGeometry>)
 where
     H: Hydrodynamics<Conserved = C>,
     M: InitialModel,
@@ -210,8 +226,14 @@ where
 
 
 // ============================================================================
-pub fn advance<H, M, C>(mut state: State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>, runtime: &Runtime, fold: usize)
-    -> anyhow::Result<State<C>, HydroError>
+pub fn advance<H, M, C>(
+    mut state: State<C>,
+    hydro: &H,
+    model: &M,
+    mesh: &Mesh,
+    geometry: &mut HashMap<BlockIndex, GridGeometry>,
+    runtime: &Runtime,
+    fold: usize) -> anyhow::Result<State<C>, HydroError>
 where
     H: Hydrodynamics<Conserved = C>,
     M: InitialModel,

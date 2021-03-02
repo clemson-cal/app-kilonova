@@ -73,26 +73,25 @@ impl From<[f64; 4]> for AnyPrimitive {
     }
 }
 
-/// Error Implementation
-// ============================================================================
-type Conserved = hydro_srhd::srhd_2d::Conserved;
 
+
+
+/**
+ * Category of a hydrodynamics error 
+ */
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum HydroErrorType {
-    #[error("Negative Mass Density: {0:.4e}")]
+    #[error("Negative mass density: {0:.4e}")]
     NegativeDensity(f64),
 
-    #[error("Negative Pressure: {0:.4e}")]
+    #[error("Negative pressure: {0:.4e}")]
     NegativePressure(f64),
 
-    #[error("Negative Energy Density: {0:.4e}")]
+    #[error("Negative energy density: {0:.4e}")]
     NegativeEnergyDensity(f64),
 
-    #[error("The Root Finder Failed to Converge-- \n {conserved:?}")]
-    RootFinderFailed {
-        conserved: Conserved,
-    }
-    
+    #[error("The root finder failed to converge \n {0:?}")]
+    RootFinderFailed(hydro_srhd::srhd_2d::Conserved)
 }
 
 impl HydroErrorType {
@@ -102,18 +101,25 @@ impl HydroErrorType {
 }
 
 
+
+
+/**
+ * Holds a hydro error and a position where it occurred
+ */
 #[derive(thiserror::Error, Debug, Clone)]
-#[error("at position ({:.4e}, {:.4}) in the mesh",
+#[error("at position (r, theta) = ({:.4e}, {:.4})",
     position.0,
     position.1,
 )]
-
-// ============================================================================
 pub struct HydroError {
     source: HydroErrorType,
     position: (f64, f64),
 }
 
+
+
+
+// ============================================================================
 impl HydroError {
     pub fn with_model(self) -> Self {
         Self {

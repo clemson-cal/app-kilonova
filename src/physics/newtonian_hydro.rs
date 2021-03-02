@@ -65,15 +65,15 @@ impl Hydrodynamics for NewtonianHydro {
         piecewise_linear::plm_gradient(self.plm_theta, a, b, c)
     }
 
-    fn try_to_primitive(&self, u:Self::Conserved) -> Result<Self::Primitive, HydroErrorType>{
+    fn try_to_primitive(&self, u: Self::Conserved) -> Result<Self::Primitive, HydroErrorType>{
         if u.mass_density() < 0.0 {
             return Err(HydroErrorType::NegativeDensity(u.mass_density()))
         }
-        
         Ok(u.to_primitive(self.gamma_law_index))
     }
+
     fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive {
-        u.to_primitive(self.gamma_law_index)
+        self.try_to_primitive(u).unwrap()
     }
 
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved {
