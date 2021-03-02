@@ -98,10 +98,10 @@ impl InitialModel for JetInStar {
         let zone   = self.zone(r, q, t);
 
         match zone {
-            Zone::Core     => 1e+0,
-            Zone::Jet      => 1e+2,
-            Zone::Envelope => 1e-2 * (r / R3).powf(-2.0),
-            Zone::Wind     => 1e-5 * (r / R_ENV).powf(-2.0),
+            Zone::Core     => 1.0,
+            Zone::Jet      => 1.0,
+            Zone::Envelope => 1e+2,
+            Zone::Wind     => 1.0,
         }
     }
 }
@@ -120,15 +120,20 @@ impl JetInStar
         let num       = RHO_C * ((1.0 - r / R3)).powf(N);
         let denom     = 1.0 + (r / R1).powf(K1) / (1.0 + (r / R2).powf(K2));
         let core_zone = num/denom;
-        let rho_env   = (self.envelope_mass)/(4.0 * PI * self.envelope_radius*self.envelope_radius 
-                                * (self.envelope_radius - R3) * self.volume_factor);
+        
         match zone {
-            Zone::Core    => core_zone + rho_env * (r/R3).powf(-2.0),
-            Zone::Envelope => {
-                rho_env *(r/R3).powf(-ALPHA)
+            Zone::Core    => {
+                core_zone + RHO_ENV * (r/R3).powf(-ALPHA)
             }
-            Zone::Jet     => self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED),
-            Zone::Wind    => RHO_WIND * (r/R_ENV).powf(-2.0),
+            Zone::Envelope => {
+                RHO_ENV *(r/R3).powf(-ALPHA)
+            }
+            Zone::Jet     => {
+                self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED)}
+            }
+            Zone::Wind    => {
+                RHO_WIND * (r/R_ENV).powf(-2.0)
+            }
             
         }
     }
