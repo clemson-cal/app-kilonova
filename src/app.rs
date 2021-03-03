@@ -100,6 +100,7 @@ pub enum AnyState {
 
 
 
+
 /**
  * Simulation control: how long to run for, how frequently to perform side
  * effects, etc
@@ -107,16 +108,50 @@ pub enum AnyState {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Control {
-    pub final_time: f64,
+
+    /// The simulation start time. This is not necessarily t=0, because
+    /// model setups may have a time-dependent background solution.
     pub start_time: f64,
+
+    /// The simulation end time.
+    pub final_time: f64,
+
+    /// The time between writing checkpoint  files.
     pub checkpoint_interval: f64,
-    pub products_interval: f64,
+
+    /// The time between writing products files. If omitted or nil, defaults
+    /// to no products output. This option should be considered deprecated.
+    /// Write checkpoints and then convert them to products files in
+    /// post-processing if needed.
+    pub products_interval: Option<f64>,
+
+    /// The number of iterations between performing side-effects
     pub fold: usize,
-    pub num_threads: usize,
+
+    /// Number of worker threads on the Tokio runtime. If omitted or nil,
+    /// defaults to 2x the number of physical cores.
+    pub num_threads: Option<usize>,
 
     /// Deprecated
     #[serde(default)]
     pub snappy_compression: bool,
+
+    /// The directory where data file will be output. If omitted or nil,
+    /// defaults to a the current directory.
+    #[serde(default = "Control::default_output_directory")]
+    pub output_directory: String,
+}
+
+impl Control {
+    pub fn num_threads(&self) -> usize {
+        match self.num_threads {
+            Some(n) => n,
+            None => num_cpus::get() * 2,
+        }
+    }
+    fn default_output_directory() -> String {
+        ".".into()
+    }
 }
 
 
@@ -163,13 +198,13 @@ impl AnyHydro {
 
 impl Control {
     pub fn validate(&self) -> anyhow::Result<()> {
-        if self.num_threads == 0 || self.num_threads >= 1024 {
+        if self.num_threads() == 0 || self.num_threads() >= 1024 {
             anyhow::bail!("num_threads must be > 0 and < 1024")
         }
         if self.checkpoint_interval < 0.0 {
             anyhow::bail!("checkpoint_interval <= 0.0")
         }
-        if self.products_interval < 0.0 {
+        if self.products_interval.unwrap_or(0.0) < 0.0 {
             anyhow::bail!("products_interval <= 0.0")
         }
         Ok(())
@@ -242,8 +277,8 @@ impl Configuration {
      * Patch this config struct with inputs from the command line. The inputs
      * can be names of YAML files or key=value pairs.
      */
-    pub fn patch_from_command_line(&mut self) -> Result<(), Error> {
-        for extra_config_str in std::env::args().skip_while(|s| ! s.contains('=') && ! s.ends_with(".yaml")) {
+    pub fn patch_from(&mut self, overrides: Vec<String>) -> Result<(), Error> {
+        for extra_config_str in overrides {
             if extra_config_str.ends_with(".yaml") {
                 self.patch_from_reader(File::open(extra_config_str)?)?
             } else {
@@ -272,9 +307,9 @@ impl App {
     /**
      * Construct a new App instance from a user configuration.
      */
-    pub fn from_config(mut config: Configuration) -> Result<Self, Error> {
+    pub fn from_config(mut config: Configuration, overrides: Vec<String>) -> Result<Self, Error> {
 
-        config.patch_from_command_line()?;
+        config.patch_from(overrides)?;
 
         let geometry = config.mesh.grid_blocks_geometry(config.control.start_time);
         let state = match &config.hydro {
@@ -292,8 +327,8 @@ impl App {
     /**
      * Patch the config struct with inputs from the command line.
      */
-    pub fn with_patched_config(mut self) -> Result<Self, Error> {
-        self.config.patch_from_command_line()?;
+    pub fn with_patched_config(mut self, overrides: Vec<String>) -> Result<Self, Error> {
+        self.config.patch_from(overrides)?;
         Ok(self)
     }
 
@@ -301,10 +336,10 @@ impl App {
      * Construct a new App instance from a file: may be a config.yaml or a
      * chkpt.0000.cbor.
      */
-    pub fn from_file(filename: &str) -> Result<Self, Error> {
+    pub fn from_file(filename: &str, overrides: Vec<String>) -> Result<Self, Error> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
-            Some("yaml") => Self::from_config(serde_yaml::from_str(&read_to_string(filename)?)?),
-            Some("cbor") => Ok(io::read_cbor::<Self>(filename)?.with_patched_config()?),
+            Some("yaml") => Self::from_config(serde_yaml::from_str(&read_to_string(filename)?)?, overrides),
+            Some("cbor") => Ok(io::read_cbor::<Self>(filename)?.with_patched_config(overrides)?),
             _ => Err(Error::UnknownInputType(filename.to_string())),
         }
     }
@@ -313,10 +348,10 @@ impl App {
      * Construct a new App instance from a preset (hard-coded) configuration
      * name, or otherwise an input file if no matching preset is found.
      */
-    pub fn from_preset_or_file(input: &str) -> Result<Self, Error> {
+    pub fn from_preset_or_file(input: &str, overrides: Vec<String>) -> Result<Self, Error> {
         match input {
-            "jet_in_cloud" => Self::from_config(serde_yaml::from_str(std::include_str!("../setups/jet_in_cloud.yaml"))?),
-            _ => Self::from_file(input),
+            "jet_in_cloud" => Self::from_config(serde_yaml::from_str(std::include_str!("../setups/jet_in_cloud.yaml"))?, overrides),
+            _ => Self::from_file(input, overrides),
         }
     }
 

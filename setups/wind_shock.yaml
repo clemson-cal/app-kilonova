@@ -27,7 +27,6 @@ control:
   final_time: 1.0
   start_time: 0.0
   checkpoint_interval: 0.1
-  products_interval: 1.0
-  num_threads: 4
   fold: 10
-  snappy_compression: false
+  num_threads: 4
+  output_directory: data

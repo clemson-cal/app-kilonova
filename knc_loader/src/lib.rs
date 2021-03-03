@@ -1,9 +1,7 @@
 use std::sync::Arc;
 use pyo3::prelude::*;
 use pyo3::exceptions::{PyKeyError, PyIndexError, PyValueError};
-use pyo3::PyIterProtocol;
-use pyo3::PyMappingProtocol;
-use pyo3::wrap_pyfunction;
+use pyo3::{PyMappingProtocol, PyIterProtocol, wrap_pyfunction};
 use numpy::ToPyArray;
 use pythonize::pythonize;
 use kilonova::app;
@@ -71,7 +69,7 @@ impl App {
     /// Generate a products::Products instance, from the app state, which
     /// contains geometric and primitive data to help in post-processing.
     fn make_products(&self) -> Products {
-        Products{products: Arc::new(products::Products::from_app(&self.app))}
+        Products{products: Arc::new(products::Products::try_from_app(&self.app).unwrap())}
     }
 }
 
@@ -342,7 +340,7 @@ impl BlockProducts {
 // ============================================================================
 #[pyfunction]
 fn app(filename: &str) -> PyResult<App> {
-    match app::App::from_preset_or_file(filename) {
+    match app::App::from_preset_or_file(filename, Vec::new()) {
         Ok(app) => Ok(App{app}),
         Err(e)  => Err(PyValueError::new_err(format!("{}", e))),
     }

@@ -2,7 +2,7 @@ hydro:
   relativistic:
     gamma_law_index: 1.333
     plm_theta: 1.5
-    cfl_number: 0.3
+    cfl_number: 0.4
     runge_kutta_order: RK2
     riemann_solver: HLLC
 
@@ -32,6 +32,6 @@ control:
   final_time: 5.0
   start_time: 1.0
   checkpoint_interval: 0.1
-  products_interval: 0.1
-  num_threads: 42
   fold: 100
+  num_threads: ~
+  output_directory: data

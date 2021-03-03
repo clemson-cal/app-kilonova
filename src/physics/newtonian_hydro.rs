@@ -76,6 +76,10 @@ impl Hydrodynamics for NewtonianHydro {
         p.max_signal_speed(self.gamma_law_index)
     }
 
+    fn global_signal_speed(&self) -> Option<f64> {
+        None
+    }
+
     fn interpret(&self, a: &AnyPrimitive) -> Self::Primitive {
         hydro_euler::euler_2d::Primitive(a.mass_density, a.velocity_r, a.velocity_q, a.gas_pressure)
     }

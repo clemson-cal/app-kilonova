@@ -13,6 +13,7 @@ use crate::traits::{
 };
 use crate::mesh::{
     BlockIndex,
+    Mesh,
     GridGeometry
 };
 
@@ -133,6 +134,31 @@ impl<C: Conserved> State<C> {
      */
     pub fn inner_outer_block_indexes(&self) -> (BlockIndex, BlockIndex) {
         self.min_max_block_indexes_offset_by(0)
+    }
+
+    /**
+     * Return the time step size, computed from the mesh, the hydrodynamics
+     * state, and internal parameters such as the CFL number.
+     */
+    pub fn time_step<H>(&self, hydro: &H, mesh: &Mesh) -> Result<f64, HydroError>
+    where
+        H: Hydrodynamics<Conserved = C>
+    {
+        if let Some(max_signal_speed) = hydro.global_signal_speed() {
+            let (index, ..) = self.inner_outer_block_indexes();
+            Ok(hydro.cfl_number() * mesh.smallest_spacing(index) / max_signal_speed)
+        } else {
+            Ok(self.solution.iter().try_fold(f64::MAX, |dt, (index, state)| {
+                let geometry = mesh.subgrid(*index).geometry();
+                let block_dt = state
+                    .try_to_primitive(hydro, &geometry)?
+                    .iter()
+                    .zip(&geometry.cell_linear_dimension())
+                    .fold(dt, |dt, (p, dl)| dt.min(dl / hydro.max_signal_speed(*p))
+                );
+                Ok(dt.min(block_dt))
+            })? * hydro.cfl_number())
+        }
     }
 
     fn min_max_block_indexes_offset_by(&self, delta: i32) -> (BlockIndex, BlockIndex) {
