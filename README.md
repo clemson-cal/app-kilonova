@@ -18,9 +18,9 @@ You can also install the code to your system path by running `cargo install --pa
 ```bash
 kilonova jet_in_cloud control.final_time=1.1
 ```
-This will write two "products" files to the current working directory, `prods.0000.cbor` and `prods.0001.cbor`, and then exit. The first one is the solution at the simulation start time (1 second for this setup) and at the end time at 1.1 seconds. To plot either of these files, you can use the inclded plotting script:
+This will write two "checkpoint" files to the current working directory, chkpt.0000.cbor_ and chkpt.0001.cbor_, and then exit. The first one is the solution at the simulation start time (1 second for this setup) and at the end time at 1.1 seconds. To plot either of these files, you can use the included plotting script:
 ```bash
-python3 knc_tools/plot.py prods.0001.cbor --field=ur
+tools/plot chkpt.0001.cbor --field=ur
 ```
 This will show a relief plot of the gas radial four-velocity. To see more plotting options, run `python3 knc_tools/plot.py --help`.
 
