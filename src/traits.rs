@@ -1,9 +1,7 @@
 use std::ops::{Add, Sub, Mul, Div};
 use serde::Serialize;
 use godunov_core::runge_kutta::RungeKuttaOrder;
-use crate::mesh::Mesh;
-use crate::state::State;
-use crate::physics::{AnyPrimitive, Direction, HydroError, HydroErrorType};
+use crate::physics::{AnyPrimitive, Direction, HydroErrorType};
 
 
 
@@ -94,7 +92,16 @@ pub trait Hydrodynamics: 'static + Clone + Send {
      */
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved;
 
+    /**
+     * Return the maximum signal speed computed from a primitive state.
+     */
     fn max_signal_speed(&self, p: Self::Primitive) -> f64;
+
+    /**
+     * Return on optional maximum speed (probably the speed of light) to be used
+     * instead of computing one from the solution state.
+     */
+    fn global_signal_speed(&self) -> Option<f64>;
 
     /**
      * Convert from an any-primitive state to the one specific to this
@@ -126,23 +133,6 @@ pub trait Hydrodynamics: 'static + Clone + Send {
      * Return the CFL number to be used
      */
     fn cfl_number(&self) -> f64;
-
-    /**
-     * Return the time step size, computed from the mesh, the hydrodynamics
-     * state, and internal parameters such as the CFL number.
-     */
-    fn time_step(&self, state: &State<Self::Conserved>, mesh: &Mesh) -> Result<f64, HydroError> {
-        Ok(state.solution.iter().try_fold(f64::MAX, |dt, (index, state)| {
-            let geometry = mesh.subgrid(*index).geometry();
-            let block_dt = state
-                .try_to_primitive(self, &geometry)?
-                .iter()
-                .zip(&geometry.cell_linear_dimension())
-                .fold(dt, |dt, (p, dl)| dt.min(dl / self.max_signal_speed(*p))
-            );
-            Ok(dt.min(block_dt))
-        })? * self.cfl_number())
-    }
 }
 
 
