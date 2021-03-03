@@ -100,6 +100,7 @@ pub enum AnyState {
 
 
 
+
 /**
  * Simulation control: how long to run for, how frequently to perform side
  * effects, etc
@@ -107,16 +108,41 @@ pub enum AnyState {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Control {
-    pub final_time: f64,
+
+    /// The simulation start time. This is not necessarily t=0, because
+    /// model setups may have a time-dependent background solution.
     pub start_time: f64,
+
+    /// The simulation end time.
+    pub final_time: f64,
+
+    /// The time between writing checkpoint  files.
     pub checkpoint_interval: f64,
-    pub products_interval: f64,
+
+    /// The time between writing products files. If omitted or nil, defaults
+    /// to no products output. This option should be considered deprecated.
+    /// Write checkpoints and then convert them to products files in
+    /// post-processing if needed.
+    pub products_interval: Option<f64>,
+
+    /// The number of iterations between performing side-effects
     pub fold: usize,
+
+    /// The number of worker threads in the Tokio runtime
     pub num_threads: usize,
 
     /// Deprecated
     #[serde(default)]
     pub snappy_compression: bool,
+
+    /// The directory where data file will be output. If omitted or nil,
+    /// defaults to a the current directory.
+    #[serde(default = "current_working_directory")]
+    pub output_directory: String,
+}
+
+fn current_working_directory() -> String {
+    ".".into()
 }
 
 
@@ -169,7 +195,7 @@ impl Control {
         if self.checkpoint_interval < 0.0 {
             anyhow::bail!("checkpoint_interval <= 0.0")
         }
-        if self.products_interval < 0.0 {
+        if self.products_interval.unwrap_or(0.0) < 0.0 {
             anyhow::bail!("products_interval <= 0.0")
         }
         Ok(())

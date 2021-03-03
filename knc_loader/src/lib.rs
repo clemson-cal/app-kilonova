@@ -1,9 +1,7 @@
 use std::sync::Arc;
 use pyo3::prelude::*;
 use pyo3::exceptions::{PyKeyError, PyIndexError, PyValueError};
-use pyo3::PyIterProtocol;
-use pyo3::PyMappingProtocol;
-use pyo3::wrap_pyfunction;
+use pyo3::{PyMappingProtocol, PyIterProtocol, wrap_pyfunction};
 use numpy::ToPyArray;
 use pythonize::pythonize;
 use kilonova::app;

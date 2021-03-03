@@ -29,7 +29,7 @@ use tasks::{
 
 
 // ============================================================================
-fn side_effects<C, M, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &M, mesh: &Mesh, control: &Control, outdir: &str)
+fn side_effects<C, M, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &M, mesh: &Mesh, control: &Control)
     -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
@@ -47,18 +47,22 @@ where
         }
     }
 
-    if tasks.write_products.next_time <= state.time {
-        tasks.write_products.advance(control.products_interval);
-        let filename = format!("{}/prods.{:04}.cbor", outdir, tasks.write_products.count - 1);
-        let config = Configuration::package(hydro, model, mesh, control);
-        let products = Products::try_from_state(state, hydro, &config)?;
-        io::write_cbor(&products, &filename)?;
+    if let Some(products_interval) = control.products_interval {
+        if tasks.write_products.next_time <= state.time {
+            tasks.write_products.advance(products_interval);
+            let filename = format!("{}/prods.{:04}.cbor", control.output_directory, tasks.write_products.count - 1);
+            let config = Configuration::package(hydro, model, mesh, control);
+            let products = Products::try_from_state(state, hydro, &config)?;
+            std::fs::create_dir_all(&control.output_directory)?;
+            io::write_cbor(&products, &filename)?;
+        }
     }
 
     if tasks.write_checkpoint.next_time <= state.time {
         tasks.write_checkpoint.advance(control.checkpoint_interval);
-        let filename = format!("{}/chkpt.{:04}.cbor", outdir, tasks.write_checkpoint.count - 1);
+        let filename = format!("{}/chkpt.{:04}.cbor", control.output_directory, tasks.write_checkpoint.count - 1);
         let app = App::package(state, tasks, hydro, model, mesh, control);
+        std::fs::create_dir_all(&control.output_directory)?;
         io::write_cbor(&app, &filename)?;
     }
 
@@ -69,7 +73,7 @@ where
 
 
 // ============================================================================
-fn run<C, M, H>(mut state: State<C>, mut tasks: Tasks, hydro: H, model: M, mesh: Mesh, control: Control, outdir: String)
+fn run<C, M, H>(mut state: State<C>, mut tasks: Tasks, hydro: H, model: M, mesh: Mesh, control: Control)
     -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
@@ -86,11 +90,11 @@ where
         .build()?;
 
     while state.time < control.final_time {
-        side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
+        side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
         state = scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry, &runtime, control.fold)?;
     }
 
-    side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, &outdir)?;
+    side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
 
     Ok(())
 }
@@ -105,19 +109,15 @@ fn main() -> anyhow::Result<()> {
         None => anyhow::bail!("no input file given"),
         Some(input) => input,
     };
-    let outdir = io::parent_directory(&input);
 
     println!();
-    println!("\t{}", app::DESCRIPTION);
-    println!("\t{}", app::VERSION_AND_BUILD);
-    println!();
-    println!("\tinput file ........ {}", input);
-    println!("\toutput drectory ... {}", outdir);
+    println!("{}", app::DESCRIPTION);
+    println!("{}", app::VERSION_AND_BUILD);
 
     let App{state, tasks, config, ..} = App::from_preset_or_file(&input)?.validate()?;
 
     for line in serde_yaml::to_string(&config)?.split("\n").skip(1) {
-        println!("\t{}", line);
+        println!("{}", line);
     }
     println!();
 
@@ -125,10 +125,10 @@ fn main() -> anyhow::Result<()> {
 
     match (state, hydro) {
         (AnyState::Newtonian(state), AnyHydro::Newtonian(hydro)) => {
-            run(state, tasks, hydro, model, mesh, control, outdir)
+            run(state, tasks, hydro, model, mesh, control)
         },
         (AnyState::Relativistic(state), AnyHydro::Relativistic(hydro)) => {
-            run(state, tasks, hydro, model, mesh, control, outdir)
+            run(state, tasks, hydro, model, mesh, control)
         },
         _ => unreachable!(),
     }
