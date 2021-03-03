@@ -22,7 +22,8 @@ mesh:
   inner_excision_speed: 0.07
   outer_excision_speed: 0.12
   reference_radius: 1e18
-  num_polar_zones: 128 #set to 1, then specify number of radial zones
+  num_polar_zones: 1 #set to 1, then specify number of radial zones
+  num_radial_zones: 128
   block_size: 4
 
 control:
