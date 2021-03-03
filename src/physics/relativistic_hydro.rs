@@ -28,6 +28,11 @@ pub struct RelativisticHydro {
 
     /// Riemann solver: [HLLE | HLLC]
     pub riemann_solver: RiemannSolver,
+
+    /// Define the time step based on the maximum signal speed. If false,
+    /// assume the speed of light.
+    #[serde(default)]
+    pub adaptive_time_step: bool,
 }
 
 
@@ -92,6 +97,14 @@ impl Hydrodynamics for RelativisticHydro {
 
     fn max_signal_speed(&self, p: Self::Primitive) -> f64 {
         p.max_signal_speed(self.gamma_law_index) * LIGHT_SPEED
+    }
+
+    fn global_signal_speed(&self) -> Option<f64> {
+        if self.adaptive_time_step {
+            None
+        } else {
+            Some(LIGHT_SPEED)
+        }
     }
 
     fn interpret(&self, a: &AnyPrimitive) -> Self::Primitive {

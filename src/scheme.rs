@@ -223,7 +223,7 @@ where
     C: Conserved
 {
     let runge_kutta = hydro.runge_kutta_order();
-    let dt = hydro.time_step(&state, mesh)?;
+    let dt = state.time_step(hydro, mesh)?;
 
     for _ in 0..fold {
 

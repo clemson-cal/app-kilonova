@@ -5,10 +5,12 @@ hydro:
     cfl_number: 0.4
     runge_kutta_order: RK2
     riemann_solver: HLLC
+    adaptive_time_step: true
 
 model:
   halo_kilonova:
     explosion_energy: 0.0
+
 mesh:
   inner_radius: 0.0
   outer_radius: 0.0
