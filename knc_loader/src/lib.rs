@@ -71,7 +71,7 @@ impl App {
     /// Generate a products::Products instance, from the app state, which
     /// contains geometric and primitive data to help in post-processing.
     fn make_products(&self) -> Products {
-        Products{products: Arc::new(products::Products::from_app(&self.app))}
+        Products{products: Arc::new(products::Products::try_from_app(&self.app).unwrap())}
     }
 }
 
