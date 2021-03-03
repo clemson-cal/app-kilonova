@@ -6,7 +6,7 @@ use crate::traits::InitialModel;
 
 
 
-static UNIFORM_TEMPERATURE: f64 = 1e-10;
+static UNIFORM_TEMPERATURE: f64 = 1e-6;
 
 // Constants as given in Duffell & MacDayen(2015)
 // source: https://arxiv.org/pdf/1407.8250.pdf
@@ -22,7 +22,6 @@ static N:                   f64 = 16.7;
 static RHO_WIND:            f64 = 1e-9 * M0 / (1.33 * PI * R0 * R0 * R0);
 static RHO_ENV:             f64 = 1e-7 * M0 / (1.33 * PI * R0 * R0 * R0);
 static R_NOZZ:              f64 = 0.01 * R0; 
-static R_ENV:               f64 = 1.2  * R0;
 static ALPHA:               f64 = 2.5;
 
 
@@ -125,8 +124,6 @@ impl JetInStar
         let num       = RHO_C * ((1.0 - r / R3)).powf(N);
         let denom     = 1.0 + (r / R1).powf(K1) / (1.0 + (r / R2).powf(K2));
         let core_zone = num/denom;
-        // let rho_env   = (self.envelope_mass)/(4.0 * PI * self.envelope_radius*self.envelope_radius 
-        //                         * (self.envelope_radius - R3) * self.volume_factor);
         match zone {
             Zone::Core    => {
                 core_zone + RHO_ENV * (r/R3).powf(-ALPHA)
@@ -138,7 +135,7 @@ impl JetInStar
                 self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED)
             }
             Zone::Wind    => {
-                RHO_WIND * (r/R_ENV).powf(-2.0)
+                RHO_WIND * (r/self.envelope_radius).powf(-2.0)
             }
             
         }
