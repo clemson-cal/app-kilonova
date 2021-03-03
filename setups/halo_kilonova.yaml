@@ -26,7 +26,7 @@ mesh:
   block_size: 4
 
 control:
-  final_time: 1e11
+  final_time: 1e10
   start_time: 0.0
   checkpoint_interval: 1e8
   products_interval: 1e8
