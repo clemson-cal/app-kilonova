@@ -39,7 +39,6 @@ where
     AnyModel: From<M>,
     AnyState: From<State<C>>,
 {
-
     if tasks.iteration_message.next_time <= state.time {
         let time = tasks.iteration_message.advance(0.0);
         let mzps = 1e-6 * state.total_zones() as f64 / time * control.fold as f64;
@@ -52,7 +51,7 @@ where
         tasks.write_products.advance(control.products_interval);
         let filename = format!("{}/prods.{:04}.cbor", outdir, tasks.write_products.count - 1);
         let config = Configuration::package(hydro, model, mesh, control);
-        let products = Products::from_state(state, hydro, &config);
+        let products = Products::try_from_state(state, hydro, &config)?;
         io::write_cbor(&products, &filename)?;
     }
 

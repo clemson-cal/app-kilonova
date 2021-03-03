@@ -6,9 +6,9 @@ use crate::traits::InitialModel;
 
 
 
-static UNIFORM_TEMPERATURE: f64 = 1e-3;
+static UNIFORM_TEMPERATURE: f64 = 1e-10;
 
-// Constants as given in Duffel & MacDayen(2015)
+// Constants as given in Duffell & MacDayen(2015)
 // source: https://arxiv.org/pdf/1407.8250.pdf
 static R0:                  f64 = 7e10;
 static M0:                  f64 = 2e33;
@@ -20,9 +20,10 @@ static K1:                  f64 = 3.24;
 static K2:                  f64 = 2.57;
 static N:                   f64 = 16.7;
 static RHO_WIND:            f64 = 1e-9 * M0 / (1.33 * PI * R0 * R0 * R0);
-static RHO_ENV:             f64 = 1e-7 * M0 / (1.33 * PI * R0 * R0 * R0);
+// static RHO_ENV:             f64 = 1e-7 * M0 / (1.33 * PI * R0 * R0 * R0);
 static R_NOZZ:              f64 = 0.01 * R0; 
 static R_ENV:               f64 = 1.2  * R0;
+static ALPHA:               f64 = 2.5;
 
 
 
@@ -49,6 +50,15 @@ pub struct JetInStar {
 
     /// Engine four-velocity
     pub engine_u: f64,
+
+    /// Radius of the Envelope
+    pub envelope_radius: f64,
+
+    /// Mass of the Envelope 
+    pub envelope_mass: f64,
+
+    /// Hydrogen Volume Filling Factor
+    pub volume_factor: f64,
 }
 
 
@@ -114,13 +124,22 @@ impl JetInStar
         let zone      = self.zone(r, q, t);
         let num       = RHO_C * ((1.0 - r / R3)).powf(N);
         let denom     = 1.0 + (r / R1).powf(K1) / (1.0 + (r / R2).powf(K2));
-        let core_zone = num/denom;
+        let core_zone = num / denom;
+        let rho_env   = self.envelope_mass / (4.0 * PI * self.envelope_radius.powi(2) * (self.envelope_radius - R3) * self.volume_factor);
 
         match zone {
-            Zone::Core     => core_zone + RHO_ENV * (r/R3).powf(-2.0),
-            Zone::Envelope => RHO_ENV*(r/R3).powf(-2.0),
-            Zone::Jet      => self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED),
-            Zone::Wind     => RHO_WIND * (r/R_ENV).powf(-2.0),
+            Zone::Core => {
+                core_zone + rho_env * (r/R3).powf(-2.0)
+            }
+            Zone::Envelope => {
+                rho_env *(r/R3).powf(-ALPHA)
+            }
+            Zone::Jet => {
+                self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED)
+            }
+            Zone::Wind => {
+                RHO_WIND * (r/R_ENV).powf(-2.0)
+            }
         }
     }
 
@@ -165,7 +184,7 @@ impl JetInStar
             Zone::Jet
         } else if r < R3 {
             Zone::Core
-        } else if R3 < r && r < R_ENV {
+        } else if R3 < r && r < self.envelope_radius {
             Zone:: Envelope
         } else {
             Zone::Wind
@@ -181,12 +200,8 @@ impl JetInStar
      */
     pub fn gamma_beta(&self, r: f64, q: f64, t: f64) -> f64 {
         match self.zone(r, q, t) {
-            Zone::Jet => {
-                self.engine_u
-            }
-            _ => {
-                0.0
-            }
+            Zone::Jet => self.engine_u,
+            _ => 0.0
 
         }
     }
@@ -205,9 +220,9 @@ impl JetInStar
 
         // Nozzle Function Normalization Factor
         // N0 = 4 * PI * r0^3 * exp(-2/theta0^2) * theta0^2
-        let n_0 =  4.0 * PI * r0 * r0 * r0 * (1. - (-2.0 / q2).exp()) * q2;
+        let n_0 =  4.0 * PI * r0 * r0 * r0 * (1.0 - (-2.0 / q2).exp()) * q2;
 
-        // Nozzle Function: g = (r/r0) * exp(-(r/r0)^2) * exp[(cos^2(q) - 1 )/theta0^2] / N0
+        // Nozzle Function: g = (r/r0) * exp(-(r/r0)^2) * exp[(cos^2(q) - 1)/theta0^2] / N0
         let g = (r / R_NOZZ) * f64::exp(-(r / R_NOZZ).powf(2.0) / 2.0) * f64::exp((q.cos().powf(2.0) - 1.0) / q2);
 
         g / n_0
@@ -220,15 +235,3 @@ impl JetInStar
         l / (engine_gamma * LIGHT_SPEED * LIGHT_SPEED)
     }
 }
-
-
-
-
-// Custom Pause Function
-// use std::io::{stdin, stdout, Read, Write};
-// fn pause() {
-//     let mut stdout = stdout();
-//     stdout.write(b"Press Enter to continue...").unwrap();
-//     stdout.flush().unwrap();
-//     stdin().read(&mut [0]).unwrap();
-// }

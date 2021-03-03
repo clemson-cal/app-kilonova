@@ -1,10 +1,11 @@
+use std::sync::Arc;
 use std::collections::HashMap;
 use futures::FutureExt;
 use futures::future::join_all;
 use tokio::runtime::Runtime;
 use ndarray::{Array, Axis, concatenate, s};
 use crate::mesh::{BlockIndex, GridGeometry, Mesh};
-use crate::physics::Direction;
+use crate::physics::{Direction, HydroError};
 use crate::state::{State, BlockState};
 use crate::traits::{Conserved, Primitive, Hydrodynamics, InitialModel};
 
@@ -12,21 +13,27 @@ use crate::traits::{Conserved, Primitive, Hydrodynamics, InitialModel};
 
 
 // ============================================================================
-async fn advance_rk<H, M, C, P>(state: State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &HashMap<BlockIndex, GridGeometry>, dt: f64, runtime: &Runtime)
-    -> anyhow::Result<State<C>>
+async fn try_advance_rk<H, M, C, P>(
+    state: State<C>,
+    hydro: &H,
+    model: &M,
+    mesh: &Mesh,
+    geometry: &HashMap<BlockIndex, GridGeometry>,
+    dt: f64,
+    runtime: &Runtime) -> anyhow::Result<State<C>, HydroError>
 where
     H: Hydrodynamics<Conserved = C, Primitive = P>,
     M: InitialModel,
     C: Conserved,
-    P: Primitive, {
-
+    P: Primitive
+{
     let mut stage_map = HashMap::new();
     let mut new_state_vec = Vec::new();
     let mut stage_primitive_and_scalar = |index: BlockIndex, state: BlockState<C>, hydro: H, geometry: GridGeometry| {
         let stage = async move {
-            let p = (state.conserved / &geometry.cell_volumes).mapv(|q| hydro.to_primitive(q));
-            let s =  state.scalar_mass / &geometry.cell_volumes / p.map(P::lorentz_factor);
-            (p.to_shared(), s.to_shared())
+            let p = state.try_to_primitive(&hydro, &geometry)?;
+            let s = state.scalar_mass / &geometry.cell_volumes / p.map(P::lorentz_factor);
+            Ok::<_, HydroError>( ( p.to_shared(), s.to_shared() ) )
         };
         stage_map.insert(index, runtime.spawn(stage).map(|f| f.unwrap()).shared());
     };
@@ -44,6 +51,13 @@ where
     stage_primitive_and_scalar(inner_bnd_index, inner_bnd_state, hydro.clone(), inner_bnd_geom);
     stage_primitive_and_scalar(outer_bnd_index, outer_bnd_state, hydro.clone(), outer_bnd_geom);
 
+    // Putting the stage map under Arc can be important for performance.
+    // Without it, the map is deep-copied for each block in the loop below.
+    // Although each entry is a lightweight object, the map itself can have
+    // ~1000 entries, and cloning it ~1000 times can induce measurable
+    // overhead.
+    let stage_map = Arc::new(stage_map);
+
     for (&index, state) in &state.solution {
 
         let hydro = hydro.clone();
@@ -56,9 +70,9 @@ where
             let i0 = (index.0,     index.1);
             let ir = (index.0 + 1, index.1);
 
-            let (pl, sl) = stage_map[&il].clone().await;
-            let (p0, s0) = stage_map[&i0].clone().await;
-            let (pr, sr) = stage_map[&ir].clone().await;
+            let (pl, sl) = stage_map[&il].clone().await?;
+            let (p0, s0) = stage_map[&i0].clone().await?;
+            let (pr, sr) = stage_map[&ir].clone().await?;
             let pe = concatenate(Axis(0), &[pl.slice(s![-2.., ..]), p0.view(), pr.slice(s![..2, ..])]).unwrap();
             let se = concatenate(Axis(0), &[sl.slice(s![-2.., ..]), s0.view(), sr.slice(s![..2, ..])]).unwrap();
 
@@ -141,15 +155,20 @@ where
                 conserved: (&state.conserved + &du).to_shared(),
                 scalar_mass: (&state.scalar_mass + &ds).to_shared(),
             };
-            (index, new_state)
+            Ok::<_, HydroError>((index, new_state))
         };
         new_state_vec.push(runtime.spawn(entry));
     }
+    let solution = join_all(new_state_vec).await
+        .into_iter()
+        .map(|f| f.unwrap())
+        .collect::<Result<_, _>>()
+        .map_err(|e| e.with_model())?;
 
     Ok(State {
         time: state.time + dt,
         iteration: state.iteration + 1,
-        solution: join_all(new_state_vec).await.into_iter().map(|f| f.unwrap()).collect(),
+        solution: solution,
     })
 }
 
@@ -157,7 +176,12 @@ where
 
 
 // ============================================================================
-fn add_remove_blocks<H, M, C>(state: &mut State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>)
+fn add_remove_blocks<H, M, C>(
+    state: &mut State<C>,
+    hydro: &H,
+    model: &M,
+    mesh: &Mesh,
+    geometry: &mut HashMap<BlockIndex, GridGeometry>)
 where
     H: Hydrodynamics<Conserved = C>,
     M: InitialModel,
@@ -185,25 +209,32 @@ where
 
 
 // ============================================================================
-pub fn advance<H, M, C>(mut state: State<C>, hydro: &H, model: &M, mesh: &Mesh, geometry: &mut HashMap<BlockIndex, GridGeometry>, runtime: &Runtime, fold: usize)
-    -> anyhow::Result<State<C>>
+pub fn advance<H, M, C>(
+    mut state: State<C>,
+    hydro: &H,
+    model: &M,
+    mesh: &Mesh,
+    geometry: &mut HashMap<BlockIndex, GridGeometry>,
+    runtime: &Runtime,
+    fold: usize) -> anyhow::Result<State<C>, HydroError>
 where
     H: Hydrodynamics<Conserved = C>,
     M: InitialModel,
     C: Conserved
 {
     let runge_kutta = hydro.runge_kutta_order();
+    let dt = state.time_step(hydro, mesh)?;
 
     for _ in 0..fold {
+
         if mesh.moving_excision_surfaces() {
             add_remove_blocks(&mut state, hydro, model, mesh, geometry);
         }
-        let dt = hydro.time_step(&state, mesh);
         let update = |state| async {
-            advance_rk(state, hydro, model, mesh, geometry, dt, &runtime).await.unwrap()
+            try_advance_rk(state, hydro, model, mesh, geometry, dt, &runtime).await
         };
 
-        state = runtime.block_on(runge_kutta.advance_async(state, update, runtime));
+        state = runtime.block_on(runge_kutta.try_advance_async(state, update, runtime))?;
     }
     Ok(state)
 }

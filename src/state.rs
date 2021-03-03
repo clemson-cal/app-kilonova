@@ -2,15 +2,18 @@ use std::collections::HashMap;
 use num::ToPrimitive;
 use num::rational::Rational64;
 use serde::{Serialize, Deserialize};
-use ndarray::{ArcArray, Ix2};
+use ndarray::{Array, ArcArray, Ix2};
 use godunov_core::runge_kutta;
+use crate::physics::HydroError;
 use crate::traits::{
     Conserved,
     Hydrodynamics,
     InitialModel,
+    Primitive,
 };
 use crate::mesh::{
     BlockIndex,
+    Mesh,
     GridGeometry
 };
 
@@ -54,7 +57,6 @@ impl<C: Conserved> BlockState<C> {
         M: InitialModel,
         H: Hydrodynamics<Conserved = C>
     {
-
         let scalar      = geometry.cell_centers.mapv(|c| model.scalar_at(c, time));
         let primitive   = geometry.cell_centers.mapv(|c| hydro.interpret(&model.primitive_at(c, time)));
         let conserved   = primitive.mapv(|p| hydro.to_conserved(p)) * &geometry.cell_volumes;
@@ -64,6 +66,31 @@ impl<C: Conserved> BlockState<C> {
             conserved: conserved.to_shared(),
             scalar_mass: scalar_mass.to_shared()
         }
+    }
+
+    /**
+     * Try to convert the array of conserved quantities in this block to an
+     * array of primitive quantities, and return an error if the conversion
+     * failed anyhere. This function will not panic.
+     */
+    pub fn try_to_primitive<H, P>(
+        &self,
+        hydro: &H,
+        geometry: &GridGeometry) -> anyhow::Result<Array<P, Ix2>, HydroError>
+    where
+        H: Hydrodynamics<Conserved = C, Primitive = P>,
+        C: Conserved,
+        P: Primitive  
+    {
+        let u = &self.conserved / &geometry.cell_volumes;
+        let x: Result<Vec<_>, _> = u
+            .iter()
+            .zip(geometry.cell_centers.iter())
+            .map(|(&u, &rq)| hydro
+                .try_to_primitive(u)
+                .map_err(|e| e.at_position(rq)))
+            .collect();
+        Ok(Array::from_shape_vec(u.dim(), x?).unwrap())
     }
 }
 
@@ -107,6 +134,31 @@ impl<C: Conserved> State<C> {
      */
     pub fn inner_outer_block_indexes(&self) -> (BlockIndex, BlockIndex) {
         self.min_max_block_indexes_offset_by(0)
+    }
+
+    /**
+     * Return the time step size, computed from the mesh, the hydrodynamics
+     * state, and internal parameters such as the CFL number.
+     */
+    pub fn time_step<H>(&self, hydro: &H, mesh: &Mesh) -> Result<f64, HydroError>
+    where
+        H: Hydrodynamics<Conserved = C>
+    {
+        if let Some(max_signal_speed) = hydro.global_signal_speed() {
+            let (index, ..) = self.inner_outer_block_indexes();
+            Ok(hydro.cfl_number() * mesh.smallest_spacing(index) / max_signal_speed)
+        } else {
+            Ok(self.solution.iter().try_fold(f64::MAX, |dt, (index, state)| {
+                let geometry = mesh.subgrid(*index).geometry();
+                let block_dt = state
+                    .try_to_primitive(hydro, &geometry)?
+                    .iter()
+                    .zip(&geometry.cell_linear_dimension())
+                    .fold(dt, |dt, (p, dl)| dt.min(dl / hydro.max_signal_speed(*p))
+                );
+                Ok(dt.min(block_dt))
+            })? * hydro.cfl_number())
+        }
     }
 
     fn min_max_block_indexes_offset_by(&self, delta: i32) -> (BlockIndex, BlockIndex) {

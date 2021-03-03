@@ -1,9 +1,7 @@
 use std::ops::{Add, Sub, Mul, Div};
 use serde::Serialize;
 use godunov_core::runge_kutta::RungeKuttaOrder;
-use crate::mesh::Mesh;
-use crate::state::State;
-use crate::physics::{AnyPrimitive, Direction};
+use crate::physics::{AnyPrimitive, Direction, HydroErrorType};
 
 
 
@@ -65,12 +63,6 @@ pub trait Hydrodynamics: 'static + Clone + Send {
     fn runge_kutta_order(&self) -> RungeKuttaOrder;
 
     /**
-     * Return the time step size, computed from the mesh, the hydrodynamics
-     * state, and internal parameters such as the CFL number.
-     */
-    fn time_step(&self, state: &State<Self::Conserved>, mesh: &Mesh) -> f64;
-
-    /**
      * Compute the PLM difference from a stencil of colinear primitive
      * states.
      */
@@ -83,16 +75,33 @@ pub trait Hydrodynamics: 'static + Clone + Send {
     fn plm_gradient_scalar(&self, a: &f64, b: &f64, c: &f64) -> f64;
 
     /**
-     * Convert from a primitive to a conserved state.
-     *
+     * Try to convert from a conserved to a primitive hydrodynamic state,
+     * returning an appropriate error type if the conversion failed. This
+     * function is not permitted to panic.
+     */
+    fn try_to_primitive(&self, u: Self::Conserved) -> Result<Self::Primitive, HydroErrorType>;
+
+    /**
+     * Convert from a conserved to a primitive hydrodynamic state. This function
+     * is is permitted to panic if the conversion fails.
      */
     fn to_primitive(&self, u: Self::Conserved) -> Self::Primitive;
 
     /**
-     * Convert from a conserved to a primitive state (signature may be changed
-     * to return Result).
+     * Convert from a primitive to a conserved state.
      */
     fn to_conserved(&self, p: Self::Primitive) -> Self::Conserved;
+
+    /**
+     * Return the maximum signal speed computed from a primitive state.
+     */
+    fn max_signal_speed(&self, p: Self::Primitive) -> f64;
+
+    /**
+     * Return on optional maximum speed (probably the speed of light) to be used
+     * instead of computing one from the solution state.
+     */
+    fn global_signal_speed(&self) -> Option<f64>;
 
     /**
      * Convert from an any-primitive state to the one specific to this
@@ -119,6 +128,11 @@ pub trait Hydrodynamics: 'static + Clone + Send {
      * for the given primitive state and r-theta coordinate.
      */
     fn geometrical_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved;
+
+    /**
+     * Return the CFL number to be used
+     */
+    fn cfl_number(&self) -> f64;
 }
 
 
