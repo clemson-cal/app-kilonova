@@ -1,7 +1,7 @@
 #!/bin/bash
 
-target_dir=knc_loader/target/release
-cd knc_loader; cargo build --release; cd ..
+target_dir=loader/target/release
+cd loader; cargo build --release; cd ..
 
 rslib=$(ls $target_dir | egrep '.so|.dylib')
 pylib=$(pwd)/lib/knc_loader.so

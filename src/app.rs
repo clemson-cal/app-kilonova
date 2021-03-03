@@ -349,10 +349,12 @@ impl App {
      * name, or otherwise an input file if no matching preset is found.
      */
     pub fn from_preset_or_file(input: &str, overrides: Vec<String>) -> Result<Self, Error> {
-        match input {
-            "jet_in_cloud" => Self::from_config(serde_yaml::from_str(std::include_str!("../setups/jet_in_cloud.yaml"))?, overrides),
-            _ => Self::from_file(input, overrides),
+        for (key, yaml) in Self::presets() {
+            if input == key {
+                return Ok(Self::from_config(serde_yaml::from_str(yaml)?, overrides)?)
+            }
         }
+        Self::from_file(input, overrides)
     }
 
     /**
@@ -373,5 +375,14 @@ impl App {
             config: Configuration::package(hydro, model, mesh, control),
             version: VERSION_AND_BUILD.to_string(),
         }
+    }
+
+    pub fn presets() -> Vec<(&'static str, &'static str)> {
+        vec![
+            ("jet_in_cloud", include_str!("../setups/jet_in_cloud.yaml")),
+            ("jet_in_star", include_str!("../setups/jet_in_star.yaml")),
+            ("halo_kilonova", include_str!("../setups/halo_kilonova.yaml")),
+            ("wind_shock", include_str!("../setups/wind_shock.yaml")),
+        ]
     }
 }

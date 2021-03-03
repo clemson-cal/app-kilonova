@@ -112,6 +112,14 @@ fn main() -> anyhow::Result<()> {
     match std::env::args().nth(1) {
         None => {
             println!("usage: kilonova <input.yaml|chkpt.cbor|preset> [opts.yaml|group.key=value] [...]");
+            println!();
+            println!("These are the preset model setups:");
+            println!();
+            for (key, _) in App::presets() {
+                println!("  {}", key);
+            }
+            println!();
+            println!("To run any of these presets, run e.g. `kilonova jet_in_star`.");
             Ok(())
         }
         Some(input) => {
