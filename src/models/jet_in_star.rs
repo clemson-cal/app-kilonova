@@ -132,7 +132,7 @@ impl JetInStar
                 RHO_ENV *(r/R3).powf(-ALPHA)
             }
             Zone::Jet     => {
-                self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED)
+                self.jet_mass_rate_per_steradian() / (r * r * self.engine_u * LIGHT_SPEED)
             }
             Zone::Wind    => {
                 RHO_WIND * (r/self.envelope_radius).powf(-2.0)
@@ -226,10 +226,10 @@ impl JetInStar
         g / n_0
     }
 
-    fn jet_mass_rate_per_steradian(&self, r: f64, q: f64) -> f64 {
+    fn jet_mass_rate_per_steradian(&self) -> f64 {
         let engine_gamma = f64::sqrt(1.0 + self.engine_u * self.engine_u);
         let e = self.engine_energy;
-        let l = self.nozzle_function(r, q) * e / (4.0 * PI * self.engine_duration);
+        let l = e / (4.0 * PI * self.engine_duration);
         l / (engine_gamma * LIGHT_SPEED * LIGHT_SPEED)
     }
 }
