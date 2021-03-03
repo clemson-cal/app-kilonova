@@ -128,8 +128,9 @@ pub struct Control {
     /// The number of iterations between performing side-effects
     pub fold: usize,
 
-    /// The number of worker threads in the Tokio runtime
-    pub num_threads: usize,
+    /// Number of worker threads on the Tokio runtime. If omitted or nil,
+    /// defaults to 2x the number of physical cores.
+    pub num_threads: Option<usize>,
 
     /// Deprecated
     #[serde(default)]
@@ -137,12 +138,20 @@ pub struct Control {
 
     /// The directory where data file will be output. If omitted or nil,
     /// defaults to a the current directory.
-    #[serde(default = "current_working_directory")]
+    #[serde(default = "Control::default_output_directory")]
     pub output_directory: String,
 }
 
-fn current_working_directory() -> String {
-    ".".into()
+impl Control {
+    pub fn num_threads(&self) -> usize {
+        match self.num_threads {
+            Some(n) => n,
+            None => num_cpus::get() * 2,
+        }
+    }
+    fn default_output_directory() -> String {
+        ".".into()
+    }
 }
 
 
@@ -189,7 +198,7 @@ impl AnyHydro {
 
 impl Control {
     pub fn validate(&self) -> anyhow::Result<()> {
-        if self.num_threads == 0 || self.num_threads >= 1024 {
+        if self.num_threads() == 0 || self.num_threads() >= 1024 {
             anyhow::bail!("num_threads must be > 0 and < 1024")
         }
         if self.checkpoint_interval < 0.0 {
@@ -268,8 +277,8 @@ impl Configuration {
      * Patch this config struct with inputs from the command line. The inputs
      * can be names of YAML files or key=value pairs.
      */
-    pub fn patch_from_command_line(&mut self) -> Result<(), Error> {
-        for extra_config_str in std::env::args().skip_while(|s| ! s.contains('=') && ! s.ends_with(".yaml")) {
+    pub fn patch_from(&mut self, overrides: Vec<String>) -> Result<(), Error> {
+        for extra_config_str in overrides {
             if extra_config_str.ends_with(".yaml") {
                 self.patch_from_reader(File::open(extra_config_str)?)?
             } else {
@@ -298,9 +307,9 @@ impl App {
     /**
      * Construct a new App instance from a user configuration.
      */
-    pub fn from_config(mut config: Configuration) -> Result<Self, Error> {
+    pub fn from_config(mut config: Configuration, overrides: Vec<String>) -> Result<Self, Error> {
 
-        config.patch_from_command_line()?;
+        config.patch_from(overrides)?;
 
         let geometry = config.mesh.grid_blocks_geometry(config.control.start_time);
         let state = match &config.hydro {
@@ -318,8 +327,8 @@ impl App {
     /**
      * Patch the config struct with inputs from the command line.
      */
-    pub fn with_patched_config(mut self) -> Result<Self, Error> {
-        self.config.patch_from_command_line()?;
+    pub fn with_patched_config(mut self, overrides: Vec<String>) -> Result<Self, Error> {
+        self.config.patch_from(overrides)?;
         Ok(self)
     }
 
@@ -327,10 +336,10 @@ impl App {
      * Construct a new App instance from a file: may be a config.yaml or a
      * chkpt.0000.cbor.
      */
-    pub fn from_file(filename: &str) -> Result<Self, Error> {
+    pub fn from_file(filename: &str, overrides: Vec<String>) -> Result<Self, Error> {
         match Path::new(&filename).extension().and_then(OsStr::to_str) {
-            Some("yaml") => Self::from_config(serde_yaml::from_str(&read_to_string(filename)?)?),
-            Some("cbor") => Ok(io::read_cbor::<Self>(filename)?.with_patched_config()?),
+            Some("yaml") => Self::from_config(serde_yaml::from_str(&read_to_string(filename)?)?, overrides),
+            Some("cbor") => Ok(io::read_cbor::<Self>(filename)?.with_patched_config(overrides)?),
             _ => Err(Error::UnknownInputType(filename.to_string())),
         }
     }
@@ -339,10 +348,10 @@ impl App {
      * Construct a new App instance from a preset (hard-coded) configuration
      * name, or otherwise an input file if no matching preset is found.
      */
-    pub fn from_preset_or_file(input: &str) -> Result<Self, Error> {
+    pub fn from_preset_or_file(input: &str, overrides: Vec<String>) -> Result<Self, Error> {
         match input {
-            "jet_in_cloud" => Self::from_config(serde_yaml::from_str(std::include_str!("../setups/jet_in_cloud.yaml"))?),
-            _ => Self::from_file(input),
+            "jet_in_cloud" => Self::from_config(serde_yaml::from_str(std::include_str!("../setups/jet_in_cloud.yaml"))?, overrides),
+            _ => Self::from_file(input, overrides),
         }
     }
 

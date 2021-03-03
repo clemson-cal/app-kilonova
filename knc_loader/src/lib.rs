@@ -340,7 +340,7 @@ impl BlockProducts {
 // ============================================================================
 #[pyfunction]
 fn app(filename: &str) -> PyResult<App> {
-    match app::App::from_preset_or_file(filename) {
+    match app::App::from_preset_or_file(filename, Vec::new()) {
         Ok(app) => Ok(App{app}),
         Err(e)  => Err(PyValueError::new_err(format!("{}", e))),
     }

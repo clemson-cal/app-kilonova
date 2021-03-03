@@ -83,10 +83,9 @@ where
     AnyModel: From<M>,
     AnyState: From<State<C>>,
 {
-
     let mut block_geometry = mesh.grid_blocks_geometry(state.time);
     let runtime = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(control.num_threads)
+        .worker_threads(control.num_threads())
         .build()?;
 
     while state.time < control.final_time {
@@ -105,31 +104,40 @@ where
 // ============================================================================
 fn main() -> anyhow::Result<()> {
 
-    let input = match std::env::args().nth(1) {
-        None => anyhow::bail!("no input file given"),
-        Some(input) => input,
-    };
-
     println!();
     println!("{}", app::DESCRIPTION);
     println!("{}", app::VERSION_AND_BUILD);
-
-    let App{state, tasks, config, ..} = App::from_preset_or_file(&input)?.validate()?;
-
-    for line in serde_yaml::to_string(&config)?.split("\n").skip(1) {
-        println!("{}", line);
-    }
     println!();
 
-    let Configuration{hydro, model, mesh, control} = config;
+    match std::env::args().nth(1) {
+        None => {
+            println!("usage: kilonova <input.yaml|chkpt.cbor|preset> [opts.yaml|group.key=value] [...]");
+            Ok(())
+        }
+        Some(input) => {
+            let overrides = std::env::args().skip(2).collect();
+            let App{state, tasks, config, ..} = App::from_preset_or_file(&input, overrides)?.validate()?;
 
-    match (state, hydro) {
-        (AnyState::Newtonian(state), AnyHydro::Newtonian(hydro)) => {
-            run(state, tasks, hydro, model, mesh, control)
-        },
-        (AnyState::Relativistic(state), AnyHydro::Relativistic(hydro)) => {
-            run(state, tasks, hydro, model, mesh, control)
-        },
-        _ => unreachable!(),
+            for line in serde_yaml::to_string(&config)?.split("\n").skip(1) {
+                println!("{}", line);
+            }
+            println!();
+
+            let Configuration{hydro, model, mesh, control} = config;
+
+            println!("worker threads ...... {}", control.num_threads());
+            println!("compute cores ....... {}", num_cpus::get());
+            println!();
+
+            match (state, hydro) {
+                (AnyState::Newtonian(state), AnyHydro::Newtonian(hydro)) => {
+                    run(state, tasks, hydro, model, mesh, control)
+                },
+                (AnyState::Relativistic(state), AnyHydro::Relativistic(hydro)) => {
+                    run(state, tasks, hydro, model, mesh, control)
+                },
+                _ => unreachable!(),
+            }
+        }
     }
 }
