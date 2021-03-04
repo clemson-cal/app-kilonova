@@ -32,6 +32,6 @@ control:
   final_time: 5.0
   start_time: 1.0
   checkpoint_interval: 0.1
-  products_interval: 0.1
-  num_threads: 42
   fold: 100
+  num_threads: ~
+  output_directory: data
