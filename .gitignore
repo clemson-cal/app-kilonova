@@ -1,7 +1,6 @@
 /target
 /data
 /local
-/knc_loader
 *.cbor
 *.pk
 *.pyc

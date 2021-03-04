@@ -1,1 +1,0 @@
-{"rustc":8848005237622537231,"features":"[]","target":10117472734582456183,"profile":4339006351771724982,"path":741188691274888541,"deps":[[13449829397490703404,"ndarray",false,3474487545607608137]],"local":[{"CheckDepInfo":{"dep_info":"release/.fingerprint/ndarray-ops-f00d8d44a427d702/dep-lib-ndarray-ops"}}],"rustflags":[],"metadata":16778697937436211083,"config":0}
