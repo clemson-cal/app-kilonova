@@ -104,7 +104,7 @@ impl InitialModel for JetInStar {
         match zone {
             Zone::Core     => 1.0,
             Zone::Jet      => 1.0,
-            Zone::Envelope => 1e2,
+            Zone::Envelope => 1e2 * 0.5 * (1.0 + f64::sin(q)),
             Zone::Wind     => 1.0,
         }
     }
@@ -124,12 +124,15 @@ impl JetInStar
         let num       = RHO_C * ((1.0 - r / R3)).powf(N);
         let denom     = 1.0 + (r / R1).powf(K1) / (1.0 + (r / R2).powf(K2));
         let core_zone = num/denom;
+
+        // To ensure continuity in the density from one zone to another
+        // we add their contributions until each zone "falls off"
         match zone {
             Zone::Core    => {
-                core_zone + RHO_ENV * (r/R3).powf(-ALPHA)
+                core_zone + RHO_ENV * (r/R3).powf(-ALPHA) + RHO_WIND * (r/self.envelope_radius).powf(-2.0)
             }
             Zone::Envelope => {
-                RHO_ENV *(r/R3).powf(-ALPHA)
+                RHO_ENV *(r/R3).powf(-ALPHA) + RHO_WIND * (r/self.envelope_radius).powf(-2.0)
             }
             Zone::Jet     => {
                 self.jet_mass_rate_per_steradian() / (r * r * self.engine_u * LIGHT_SPEED)
