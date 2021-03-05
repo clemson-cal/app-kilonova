@@ -22,8 +22,7 @@ mesh:
   inner_excision_speed: 0.07
   outer_excision_speed: 0.12
   reference_radius: 1e18
-  num_polar_zones: 1 #set to 1, then specify number of radial zones
-  num_radial_zones: 128
+  num_polar_zones: 256
   block_size: 4
 
 control:
@@ -32,5 +31,5 @@ control:
   checkpoint_interval: 1e8
   products_interval: 1e8
   num_threads: 10
-  fold: 10 #Up this until it crashes
+  fold: 10
   snappy_compression: false
