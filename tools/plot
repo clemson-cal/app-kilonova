@@ -124,11 +124,20 @@ def plot_radial_profile(products, args):
     fig = plt.figure(figsize=[9, 9])
     ax1 = fig.add_subplot(1, 1, 1)
     r = products.radial_profile.vertices
-    d = products.radial_profile[0].comoving_mass_density
-    ax1.plot(r, d, '-o', mfc='none')
+    p = products.radial_profile[0].gas_pressure
+    rho = products.radial_profile[0].comoving_mass_density
+    u = products.radial_profile[0].radial_four_velocity
+    
+    #ax1.plot(r, p, '-o', mfc='none')
+    #ax1.set_ylabel(r'Gas pressure $p \ \rm{[erg/cm^3]}$')
+    #ax1.plot(r, rho, '-o', mfc='none')
+    #ax1.set_ylabel(r'Comoving mass density $\rho \ \rm{[g/cm^3]}$')
+    ax1.plot(r, u, '-o', mfc='none')
+    ax1.set_ylabel(r'Radial gamma-beta $u$')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
     ax1.set_xlabel(r'$r \ \rm{[cm]}$')
+
     return fig
 
 

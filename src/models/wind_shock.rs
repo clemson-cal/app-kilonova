@@ -3,7 +3,7 @@ use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
-static UNIFORM_TEMPERATURE: f64 = 1e-6;
+//static UNIFORM_TEMPERATURE: f64 = 1e-6;
 
 /**
  * Jet propagating through a kilonova debris cloud and surrounding relativistic
@@ -53,12 +53,17 @@ impl InitialModel for WindShock {
             self.post_shock_gamma_beta
         };
         let rho = self.wind_mass_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
-
+        let p = if r < self.shock_location {
+            self.wind_pressure
+        } else {
+            self.post_shock_pressure
+        };
+        //println!("{:?}, {:?}", LIGHT_SPEED, rho);
         AnyPrimitive {
             velocity_r: u,
             velocity_q: 0.0,
             mass_density: rho,
-            gas_pressure: rho * UNIFORM_TEMPERATURE,
+            gas_pressure: p,
         }
     }
 
