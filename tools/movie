@@ -109,9 +109,6 @@ def plot_two_dimensional(products, fig, ax1, cbaxes, args):
     for (x, z), c in zip(vertices, field):
         cm = ax1.pcolormesh(x, z, c, vmin=vmin, vmax=vmax, edgecolors='none', lw=0.5, cmap=args.cmap)
 
-    if args.radius is not None:
-        ax1.set_xlim(0, args.radius)
-        ax1.set_ylim(-args.radius, args.radius)
     ax1.set_xlabel(r'$x \ [\rm{cm}]$')
     ax1.set_ylabel(r'$z \ [\rm{cm}]$')
 
@@ -160,6 +157,10 @@ def main():
         
     def init_mesh():
         if products[0].config['mesh']['num_polar_zones'] > 1:
+            if args.radius is not None:
+                window_radius = 1e-2 * args.radius
+                ax.set_xlim(0, window_radius)
+                ax.set_ylim(-window_radius, window_radius)
             init_fig = plot_two_dimensional(products[0],fig, ax, cax, args)
         else:
             init_fig = plot_radial_profile(products[0],fig, ax, args)
@@ -175,6 +176,10 @@ def main():
         ax.cla()
         
         if products[frame].config['mesh']['num_polar_zones'] > 1:
+            if args.radius is not None:
+                window_radius = (1e-2 + (1-1e-2)*0.1 * (10 * frame/frame_count) ) * args.radius
+                ax.set_xlim(0, window_radius)
+                ax.set_ylim(-window_radius, window_radius)
             fig_frame = plot_two_dimensional(products[frame],fig, ax, cax, args)
         else:
             fig_frame = plot_radial_profile(products[frame],fig, ax, args)

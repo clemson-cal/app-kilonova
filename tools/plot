@@ -20,6 +20,10 @@ class timed(object):
         print('{:.3}s'.format(time.perf_counter() - self.start))
 
 
+def find_nearest(block, val):
+    idx = np.argmin(np.abs(block - val))
+    return idx, block[idx]
+
 def load_products(filename):
     if 'prods' in filename:
         with timed('load products'):
@@ -34,7 +38,7 @@ def load_products(filename):
     return p
 
 
-def block_vertices(block):
+def block_vertices(block, *args):
     R, Q = [x.T for x in np.meshgrid(block.radial_vertices, block.polar_vertices)]
     return R * np.sin(Q), R * np.cos(Q)
 
@@ -123,8 +127,19 @@ def plot_two_dimensional(products, args):
 def plot_radial_profile(products, args):
     fig = plt.figure(figsize=[9, 9])
     ax1 = fig.add_subplot(1, 1, 1)
-    r = products.radial_profile.vertices
-    d = products.radial_profile[0].comoving_mass_density
+    if args.theta is None:
+        r = products.radial_profile.vertices
+        d = products.radial_profile[0].comoving_mass_density
+    else:
+        r  = products.radial_profile.vertices
+        q = np.linspace(0, 2*np.pi, r.size)
+        tidx, _ = find_nearest(q, args.theta)
+        setup = next(iter(products.config['model']))
+        
+        ax1.set_title(r'Setup: $\mathtt{{{}}}$    $\theta={:.2f}$   $t = {:.4}s$'.format(setup.replace('_', '-'), args.theta, products.time))
+        ax1.set_ylabel('{}'.format(variable(args)))
+        d = products.radial_profile[tidx].radial_four_velocity
+        
     ax1.plot(r, d, '-o', mfc='none')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
@@ -142,12 +157,15 @@ def main():
     parser.add_argument('--hardcopy', action='store_true')
     parser.add_argument('--output', '-o', default=None, type=str)
     parser.add_argument('--radius', default=None, type=float)
+    parser.add_argument('--theta', default=None, type=float)
     args = parser.parse_args()
 
     filename = args.filenames[0]
     products = load_products(filename)
 
-    if products.config['mesh']['num_polar_zones'] > 1:
+    if args.theta is not None:
+        fig = plot_radial_profile(products, args)
+    elif products.config['mesh']['num_polar_zones'] > 1:
         fig = plot_two_dimensional(products, args)
     else:
         fig = plot_radial_profile(products, args)
