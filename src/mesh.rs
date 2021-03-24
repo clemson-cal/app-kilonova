@@ -4,6 +4,9 @@ use ndarray::{ArcArray, Array, Ix1, Ix2};
 use serde::{Serialize, Deserialize};
 
 
+// TODO: start_moving_mesh after engine_duration
+
+
 /**
  * Type alias for a 2D block index
  */
@@ -93,6 +96,9 @@ pub struct Mesh {
 
     /// Number of radial zones in each block
     pub block_size: usize,
+
+    /// Time after which the inner excission surface starts
+    pub start_moving_mesh: Option<f64>,
 }
 
 
@@ -300,7 +306,9 @@ impl Mesh {
      * fully within the IES.
      */
     pub fn inner_excision_surface(&self, time: f64) -> f64 {
-        self.inner_radius + time * self.inner_excision_speed
+        let t_start = self.start_moving_mesh.unwrap_or(0.0);
+        
+        self.inner_radius + (time - t_start).max(0.0) * self.inner_excision_speed
     }
 
     /**
@@ -310,7 +318,9 @@ impl Mesh {
      * fully within by the OES, but not fully within the IES.
      */
     pub fn outer_excision_surface(&self, time: f64) -> f64 {
-        self.outer_radius + time * self.outer_excision_speed
+        let t_start = self.start_moving_mesh.unwrap_or(0.0);
+        
+        self.outer_radius + (time - t_start).max(0.0) * self.outer_excision_speed
     }
 
     /**

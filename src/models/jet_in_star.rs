@@ -5,7 +5,6 @@ use crate::traits::InitialModel;
 
 
 
-
 static UNIFORM_TEMPERATURE: f64 = 1e-6;
 
 // Constants as given in Duffell & MacDayen(2015)
@@ -180,13 +179,14 @@ impl JetInStar
     pub fn zone(&self, r: f64, q: f64, t: f64) -> Zone {
         let v_jet = self.engine_beta() * LIGHT_SPEED;
         let r_jet_head = v_jet * t;
+        let r_jet_tail = v_jet * (t - self.engine_duration);
 
-        if self.in_nozzle(q) && r < r_jet_head {
+        if self.in_nozzle(q) && r < r_jet_head  && r > r_jet_tail {
             Zone::Jet
         } else if r < R3 {
             Zone::Core
         } else if R3 < r && r < self.envelope_radius {
-            Zone:: Envelope
+            Zone::Envelope
         } else {
             Zone::Wind
         }

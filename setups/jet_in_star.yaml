@@ -20,8 +20,9 @@ model:
 mesh:
   inner_radius: 1.e9
   outer_radius: 1.e12
-  inner_excision_speed: 0.0
-  outer_excision_speed: 0.0
+  start_moving_mesh: 10
+  inner_excision_speed: 3e8
+  outer_excision_speed: 3e10
   reference_radius: 1.e9
   num_polar_zones: 64
   block_size: 4
