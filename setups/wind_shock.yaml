@@ -9,15 +9,18 @@ hydro:
 model:
   wind_shock:
     wind_mass_outflow_rate: 1e20 # this is ~1e-6 solar masses per year
+    flare_outflow_rate: 1e10
+    flare_gamma_beta: 10
     wind_gamma_beta: 1e2
     post_shock_gamma_beta: 1e-2
     wind_pressure: 1e-17
     post_shock_pressure: 1e-9
-    shock_location: 2e8
+    shock_location: 1.5e8
+    flare_time: 1.0
 
 mesh:
   inner_radius: 1e8
-  outer_radius: 1e11
+  outer_radius: 1e10
   inner_excision_speed: 0.0
   outer_excision_speed: 0.0
   reference_radius: 1e8
@@ -26,9 +29,9 @@ mesh:
   block_size: 64 # num zones in a block (parallelization unit)
 
 control:
-  final_time: 4.0
+  final_time: 2.0
   start_time: 0.0
-  checkpoint_interval: 0.5
+  checkpoint_interval: 0.1
   fold: 10
   num_threads: 4
   output_directory: data
