@@ -52,6 +52,32 @@ def mesh_vertices(products):
 def known_fields():
     ['rho', 'pre', 'ur', 'uq', 'scalar', 'gamma_beta', 'temperature']
 
+def radial_field(products, field, tidx, *args):
+    if field == 'rho':
+        d = products.radial_profile[tidx].comoving_mass_density
+    elif field == 'pre':
+        d = products.radial_profile[tidx].gas_pressure
+    elif field == 'ur':
+        d = products.radial_profile[tidx].radial_four_velocity
+    elif field == 'uq':
+        d = products.radial_profile[tidx].polar_four_velocity
+    elif field == 'scalar':
+        d = products.radial_profile[tidx].scalar
+    elif field == 'gamma_beta':
+        ur = products.radial_profile[tidx].radial_four_velocity
+        uq = products.radial_profile[tidx].polar_four_velocity
+        d = np.sqrt(ur**2 + uq**2)
+    elif field == 'temperature':
+        from astropy import constants
+        c = constants.c.cgs.value
+        sig = constants.sigma_sb.cgs.value
+        a   = (4.*sig/c)
+        # Radiation Dominated Temperature in K
+        d = (3*products.radial_profile[tidx].gas_pressure*c**2/a)**(1./4.)
+        
+    else:
+        raise ValueError(f'unknown field {field}')
+    return d
 
 def block_field(block, field, transform=lambda x: x):
     if field == 'rho':
@@ -93,6 +119,8 @@ def variable(args):
         return r'$\log_{{10}}(\rho) \ [\rm{{g/cm^3}}]$'
     elif args.field == 'temperature' and args.log:
         return 'T [K]'
+    elif args.field == 'gamma_beta' and args.log:
+        return r'$\Gamma \beta$'
     else:
         return args.field
 
@@ -118,17 +146,32 @@ def plot_two_dimensional(products, fig, ax1, cbaxes, args):
     fig.suptitle(r'Setup: $\mathtt{{{}}}$   {}   $t = {:.4}s$'.format(setup.replace('_', '-'), variable(args), products.time))
     return fig
 
-
-def plot_radial_profile(products, fig, ax1,  args):
-    # fig = plt.figure(figsize=[9, 9])
-    # ax1 = fig.add_subplot(1, 1, 1)
-    r = products.radial_profile.vertices
-    d = products.radial_profile[0].comoving_mass_density
+def plot_radial_profile(products,fig, ax1, args):
+    field = args.field 
+    
+    if args.theta_index is None:
+        r = products.radial_profile.vertices
+        d = products.radial_profile[0].comoving_mass_density
+    else:
+        r  = products.radial_profile.vertices
+        polar_vertices_size = np.asarray(mesh_vertices(products)).shape[-1]
+        q = np.linspace(0, 2*np.pi, polar_vertices_size)
+        
+        setup = next(iter(products.config['model']))
+        tidx  = args.theta_index
+        d = radial_field(products, args.field,tidx, args) 
+        
+        ax1.set_title(r'Setup: $\mathtt{{{}}}$    $\theta={:.2f}$   $t = {:.4}s$'.format(setup.replace('_', '-'), 
+                                                                                         q[tidx], products.time))
+        ax1.set_ylabel('{}'.format(variable(args)))
+        
+        
     ax1.plot(r, d, '-o', mfc='none')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
     ax1.set_xlabel(r'$r \ \rm{[cm]}$')
     return fig
+
 
 
 def main():
@@ -141,30 +184,32 @@ def main():
     parser.add_argument('--hardcopy', action='store_true')
     parser.add_argument('--output', '-o', default=None, type=str)
     parser.add_argument('--radius', default=None, type=float)
+    parser.add_argument('-tidx', '--theta_index', default=None, type=int)
     args = parser.parse_args()
 
-    fig = plt.figure(figsize=(8,11))
+    fig = plt.figure(figsize=(9,9))
     ax  = fig.add_subplot(111)
+    cbaxes = False 
     
     data_dir = args.data_dir[0]
     frame_count, plist = get_frames(data_dir)
     
     products = [load_products(data_dir + filename) for filename in plist]
 
-    if products[0].config['mesh']['num_polar_zones'] > 1:
+    if products[0].config['mesh']['num_polar_zones'] > 1 and args.theta_index is None:
+        fig = plt.figure(figsize=(8,11))
         divider = make_axes_locatable(ax)
         cax = divider.append_axes('right', size='5%', pad=0.1)
+        cbaxes = True
         
     def init_mesh():
-        if products[0].config['mesh']['num_polar_zones'] > 1:
-            if args.radius is not None:
-                window_radius = 1e-2 * args.radius
-                ax.set_xlim(0, window_radius)
-                ax.set_ylim(-window_radius, window_radius)
-            init_fig = plot_two_dimensional(products[0],fig, ax, cax, args)
+        if args.theta_index is not None:
+            init_fig = plot_radial_profile(products[0], fig, ax, args)
+        elif products.config['mesh']['num_polar_zones'] > 1:
+            init_fig = plot_two_dimensional(products[0], fig, ax, cax, args)
         else:
-            init_fig = plot_radial_profile(products[0],fig, ax, args)
-        
+            init_fig = plot_radial_profile(products[0], fig, ax, args)
+            
         return init_fig
         
     def update(frame):
@@ -172,17 +217,17 @@ def main():
         Animation function. Takes the current frame number (to select the potion of
         data to plot) and a line object to update.
         """
-        cax.cla()
+        if cbaxes:
+            cax.cla()
+            
         ax.cla()
         
-        if products[frame].config['mesh']['num_polar_zones'] > 1:
-            if args.radius is not None:
-                window_radius = (1e-2 + (1-1e-2)*0.1 * (10 * frame/frame_count) ) * args.radius
-                ax.set_xlim(0, window_radius)
-                ax.set_ylim(-window_radius, window_radius)
-            fig_frame = plot_two_dimensional(products[frame],fig, ax, cax, args)
+        if args.theta_index is not None:
+            fig_frame = plot_radial_profile(products[frame], fig, ax, args)
+        elif products.config['mesh']['num_polar_zones'] > 1:
+            fig_frame = plot_two_dimensional(products[frame], fig, ax, cax, args)
         else:
-            fig_frame = plot_radial_profile(products[frame],fig, ax, args)
+            fig_frame = plot_radial_profile(products[frame], fig, ax, args)
             
         return fig_frame
 
@@ -200,7 +245,7 @@ def main():
         # Extra arguments to the animate function
         fargs=[],
         # Frame-time in ms; i.e. for a given frame-rate x, 1000/x
-        interval= 1000 / 5
+        interval= 1000 / 10
     )
     
     if args.hardcopy or args.output is not None:

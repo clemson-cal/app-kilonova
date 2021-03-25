@@ -51,6 +51,33 @@ def known_fields():
     ['rho', 'pre', 'ur', 'uq', 'scalar', 'gamma_beta', 'temperature']
 
 
+def radial_field(products, field, tidx, *args):
+    if field == 'rho':
+        d = products.radial_profile[tidx].comoving_mass_density
+    elif field == 'pre':
+        d = products.radial_profile[tidx].gas_pressure
+    elif field == 'ur':
+        d = products.radial_profile[tidx].radial_four_velocity
+    elif field == 'uq':
+        d = products.radial_profile[tidx].polar_four_velocity
+    elif field == 'scalar':
+        d = products.radial_profile[tidx].scalar
+    elif field == 'gamma_beta':
+        ur = products.radial_profile[tidx].radial_four_velocity
+        uq = products.radial_profile[tidx].polar_four_velocity
+        d = np.sqrt(ur**2 + uq**2)
+    elif field == 'temperature':
+        from astropy import constants
+        c = constants.c.cgs.value
+        sig = constants.sigma_sb.cgs.value
+        a   = (4.*sig/c)
+        # Radiation Dominated Temperature in K
+        d = (3*products.radial_profile[tidx].gas_pressure*c**2/a)**(1./4.)
+        
+    else:
+        raise ValueError(f'unknown field {field}')
+    return d
+    
 def block_field(block, field, transform=lambda x: x):
     if field == 'rho':
         d = block.comoving_mass_density
@@ -68,12 +95,9 @@ def block_field(block, field, transform=lambda x: x):
         d = np.sqrt(ur**2 + uq**2)
     elif field == 'temperature':
         from astropy import constants
-        
-        c = (constants.c.cgs).value
-        
-        sig = (constants.sigma_sb.cgs).value
+        c = constants.c.cgs.value
+        sig = constants.sigma_sb.cgs.value
         a   = (4.*sig/c)
-        
         # Radiation Dominated Temperature in K
         d = (3*block.gas_pressure*c**2/a)**(1./4.)
         
@@ -91,6 +115,8 @@ def variable(args):
         return r'$\log_{{10}}(\rho) \ [\rm{{g/cm^3}}]$'
     elif args.field == 'temperature' and args.log:
         return 'T [K]'
+    elif args.field == 'gamma_beta' and args.log:
+        return r'$\Gamma \beta$'
     else:
         return args.field
 
@@ -127,19 +153,23 @@ def plot_two_dimensional(products, args):
 def plot_radial_profile(products, args):
     fig = plt.figure(figsize=[9, 9])
     ax1 = fig.add_subplot(1, 1, 1)
-    if args.theta is None:
+    field = args.field 
+    
+    if args.theta_index is None:
         r = products.radial_profile.vertices
-        d = products.radial_profile[0].comoving_mass_density
+        d = radial_field(products, args.field, 0, args) 
     else:
         r  = products.radial_profile.vertices
-        q = np.linspace(0, 2*np.pi, r.size)
-        tidx, _ = find_nearest(q, args.theta)
+        polar_vertices_size = np.asarray(mesh_vertices(products)).shape[-1]
+        q = np.linspace(0, 2*np.pi, polar_vertices_size)
+        
         setup = next(iter(products.config['model']))
+        tidx  = args.theta_index
+        d = radial_field(products, args.field, tidx, args) 
         
-        ax1.set_title(r'Setup: $\mathtt{{{}}}$    $\theta={:.2f}$   $t = {:.4}s$'.format(setup.replace('_', '-'), args.theta, products.time))
-        ax1.set_ylabel('{}'.format(variable(args)))
-        d = products.radial_profile[tidx].radial_four_velocity
-        
+    ax1.set_title(r'Setup: $\mathtt{{{}}}$    $\theta={:.2f}$   $t = {:.4}s$'.format(setup.replace('_', '-'), 
+                                                                                         q[tidx], products.time))
+    ax1.set_ylabel('{}'.format(variable(args)))
     ax1.plot(r, d, '-o', mfc='none')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
@@ -157,13 +187,13 @@ def main():
     parser.add_argument('--hardcopy', action='store_true')
     parser.add_argument('--output', '-o', default=None, type=str)
     parser.add_argument('--radius', default=None, type=float)
-    parser.add_argument('--theta', default=None, type=float)
+    parser.add_argument('-tidx', '--theta_index', default=None, type=int)
     args = parser.parse_args()
 
     filename = args.filenames[0]
     products = load_products(filename)
 
-    if args.theta is not None:
+    if args.theta_index is not None:
         fig = plot_radial_profile(products, args)
     elif products.config['mesh']['num_polar_zones'] > 1:
         fig = plot_two_dimensional(products, args)
