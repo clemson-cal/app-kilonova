@@ -52,11 +52,8 @@ pub struct JetInStar {
     /// Radius of the Envelope
     pub envelope_radius: f64,
 
-    /// Mass of the Envelope 
-    pub envelope_mass: f64,
-
-    /// Hydrogen Volume Filling Factor
-    pub volume_factor: f64,
+    /// Energy-to-mass ratio of progenitor
+    pub eta_0: f64, 
 }
 
 
@@ -86,7 +83,7 @@ impl InitialModel for JetInStar {
         let (r, q) = coordinate;
         let d = self.mass_density(r, q, t);
         let u = self.gamma_beta(r, q, t);
-        let p = d * UNIFORM_TEMPERATURE;
+        let p = 1e-10;
 
         AnyPrimitive {
             velocity_r: u,
@@ -103,7 +100,7 @@ impl InitialModel for JetInStar {
         match zone {
             Zone::Core     => 1.0,
             Zone::Jet      => 1.0,
-            Zone::Envelope => 1e2 * 0.5 * (1.0 + f64::sin(q)),
+            Zone::Envelope => 1e2,
             Zone::Wind     => 1.0,
         }
     }
@@ -134,7 +131,7 @@ impl JetInStar
                 RHO_ENV *(r/R3).powf(-ALPHA) + RHO_WIND * (r/self.envelope_radius).powf(-2.0)
             }
             Zone::Jet     => {
-                self.jet_mass_rate_per_steradian() / (r * r * self.engine_u * LIGHT_SPEED)
+                self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED)
             }
             Zone::Wind    => {
                 RHO_WIND * (r/self.envelope_radius).powf(-2.0)
@@ -223,16 +220,16 @@ impl JetInStar
         // N0 = 4 * PI * r0^3 * exp(-2/theta0^2) * theta0^2
         let n_0 =  4.0 * PI * r0 * r0 * r0 * (1.0 - (-2.0 / q2).exp()) * q2;
 
-        // Nozzle Function: g = (r/r0) * exp(-(r/r0)^2) * exp[(cos^2(q) - 1)/theta0^2] / N0
+        // Nozzle Function: g = (r/r0) * exp(-(r/r0)^2 / 2) * exp[(cos^2(q) - 1)/theta0^2] / N0
         let g = (r / R_NOZZ) * f64::exp(-(r / R_NOZZ).powf(2.0) / 2.0) * f64::exp((q.cos().powf(2.0) - 1.0) / q2);
 
         g / n_0
     }
 
-    fn jet_mass_rate_per_steradian(&self) -> f64 {
+    fn jet_mass_rate_per_steradian(&self, r: f64, q: f64) -> f64 {
         let engine_gamma = f64::sqrt(1.0 + self.engine_u * self.engine_u);
         let e = self.engine_energy;
-        let l = e / (4.0 * PI * self.engine_duration);
+        let l = e / (self.eta_0 * 4.0 * PI * self.engine_duration);
         l / (engine_gamma * LIGHT_SPEED * LIGHT_SPEED)
     }
 }
