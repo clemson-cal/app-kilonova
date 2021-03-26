@@ -30,13 +30,6 @@ class timed(object):
 
 
 
-def find_nearest(block, val):
-    idx = np.argmin(np.abs(block - val))
-    return idx, block[idx]
-
-
-
-
 def load_products(filename):
     if 'prods' in filename:
         with timed('load products'):
@@ -166,13 +159,14 @@ def plot_two_dimensional(products, args):
     if args.radius is not None:
         ax1.set_xlim(0, args.radius)
         ax1.set_ylim(-args.radius, args.radius)
+
     ax1.set_xlabel(r'$x \ [\rm{cm}]$')
     ax1.set_ylabel(r'$z \ [\rm{cm}]$')
-
     ax1.set_aspect('equal')
     fig.colorbar(cm)
     fig.subplots_adjust(left=0, right=1, top=0.9, bottom=0.05)
     fig.suptitle(r'Setup: $\mathtt{{{}}}$   {}   $t = {:.4}s$'.format(setup.replace('_', '-'), label_name(args), products.time))
+
     return fig
 
 
@@ -195,6 +189,7 @@ def plot_radial_profile(products, args):
     ax1.set_xscale('log')
     ax1.set_yscale('log')
     ax1.set_xlabel(r'$r \ \rm{[cm]}$')
+
     return fig
 
 
