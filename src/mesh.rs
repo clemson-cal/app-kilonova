@@ -4,10 +4,14 @@ use ndarray::{ArcArray, Array, Ix1, Ix2};
 use serde::{Serialize, Deserialize};
 
 
+
+
 /**
  * Type alias for a 2D block index
  */
 pub type BlockIndex = (i32, usize);
+
+
 
 
 /**
@@ -24,6 +28,10 @@ pub struct GridGeometry {
     pub cell_centers:      ArcArray<(f64, f64), Ix2>,
 }
 
+
+
+
+// ============================================================================
 impl GridGeometry {
 
     /**
@@ -39,6 +47,8 @@ impl GridGeometry {
 }
 
 
+
+
 /**
  * A volume in (r, theta) space; polar section of a spherical annulus
  */
@@ -51,6 +61,8 @@ pub struct SphericalPolarExtent {
 }
 
 
+
+
 /**
  * A spherical polar extent, together with zone counts to make even subdivisions
  * in log-r and polar angle
@@ -61,6 +73,8 @@ pub struct SphericalPolarGrid {
     pub num_zones_r: usize,
     pub num_zones_q: usize,
 }
+
+
 
 
 /**
@@ -93,6 +107,9 @@ pub struct Mesh {
 
     /// Number of radial zones in each block
     pub block_size: usize,
+
+    /// Time after which the mesh excision starts
+    pub excision_delay: Option<f64>,
 }
 
 
@@ -260,6 +277,9 @@ impl Mesh {
         if self.reference_radius > self.outer_excision_surface(time) {
             anyhow::bail!("the reference radius is outside the outer excision surface")
         }
+        if self.excision_delay.unwrap_or(0.0) < 0.0 {
+            anyhow::bail!("the excision delay time must be non-negative")
+        }
         if self.inner_excision_speed < 0.0 || self.outer_excision_speed < 0.0 {
             anyhow::bail!("the excision surface speeds must be non-negative")
         }
@@ -300,7 +320,8 @@ impl Mesh {
      * fully within the IES.
      */
     pub fn inner_excision_surface(&self, time: f64) -> f64 {
-        self.inner_radius + time * self.inner_excision_speed
+        let t_start = self.excision_delay.unwrap_or(0.0);
+        self.inner_radius + (time - t_start).max(0.0) * self.inner_excision_speed
     }
 
     /**
@@ -310,7 +331,8 @@ impl Mesh {
      * fully within by the OES, but not fully within the IES.
      */
     pub fn outer_excision_surface(&self, time: f64) -> f64 {
-        self.outer_radius + time * self.outer_excision_speed
+        let t_start = self.excision_delay.unwrap_or(0.0);
+        self.outer_radius + (time - t_start).max(0.0) * self.outer_excision_speed
     }
 
     /**

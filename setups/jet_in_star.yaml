@@ -2,26 +2,26 @@ hydro:
   relativistic:
     gamma_law_index: 1.33
     plm_theta: 1.5
-    cfl_number: 0.4
+    cfl_number: 0.3
     runge_kutta_order: RK2
     riemann_solver: HLLC
 
 model:
   jet_in_star:
-    star_mass: 6e34
+    star_mass: 1e34
     engine_duration: 10.0
-    engine_energy: 1.5e51
+    engine_energy: 1e51
     engine_theta: 0.1
     engine_u: 50.0
-    envelope_radius: 5e10
-    envelope_mass: 2e32
-    volume_factor: 0.1
+    envelope_radius: 1e11
+    eta_0: 1.0
 
 mesh:
   inner_radius: 1.e9
-  outer_radius: 1.e11
-  inner_excision_speed: 0.0
-  outer_excision_speed: 0.0
+  outer_radius: 1.e12
+  excision_delay: 10.0
+  inner_excision_speed: 1e9
+  outer_excision_speed: 3e10
   reference_radius: 1.e9
   num_polar_zones: 64
   block_size: 4

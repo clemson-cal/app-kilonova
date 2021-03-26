@@ -1,0 +1,264 @@
+#!/usr/bin/env python3
+
+import argparse
+import pathlib
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+import knc_loader
+import os 
+
+from matplotlib.animation import FuncAnimation
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+class timed(object): 
+    def __init__(self, message):
+        self.message = message
+        self.start = time.perf_counter()
+
+    def __enter__(self): 
+        print('{:.<32} '.format(self.message), end='', flush=True)
+
+    def __exit__(self, *args): 
+        print('{:.3}s'.format(time.perf_counter() - self.start))
+
+def get_frames(dir):
+    # Get number of files in dir
+    total_frames = len([name for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))])
+    frames       = sorted([name for name in os.listdir(dir) if os.path.isfile(os.path.join(dir, name))])
+
+    return total_frames, frames
+
+def load_products(filename):
+    if 'prods' in filename:
+        p = knc_loader.products(filename)
+    else:
+        a = knc_loader.app(filename)
+        p = a.make_products()
+        p.save(filename.replace('chkpt', 'prods'))
+        
+    return p
+
+
+def block_vertices(block):
+    R, Q = [x.T for x in np.meshgrid(block.radial_vertices, block.polar_vertices)]
+    return R * np.sin(Q), R * np.cos(Q)
+
+
+def mesh_vertices(products):
+    return [block_vertices(products[k]) for k in products]
+
+
+def known_fields():
+    ['rho', 'pre', 'ur', 'uq', 'scalar', 'gamma_beta', 'temperature']
+
+def radial_field(products, field, tidx, *args):
+    if field == 'rho':
+        d = products.radial_profile[tidx].comoving_mass_density
+    elif field == 'pre':
+        d = products.radial_profile[tidx].gas_pressure
+    elif field == 'ur':
+        d = products.radial_profile[tidx].radial_four_velocity
+    elif field == 'uq':
+        d = products.radial_profile[tidx].polar_four_velocity
+    elif field == 'scalar':
+        d = products.radial_profile[tidx].scalar
+    elif field == 'gamma_beta':
+        ur = products.radial_profile[tidx].radial_four_velocity
+        uq = products.radial_profile[tidx].polar_four_velocity
+        d = np.sqrt(ur**2 + uq**2)
+    elif field == 'temperature':
+        from astropy import constants
+        c = constants.c.cgs.value
+        sig = constants.sigma_sb.cgs.value
+        a   = (4.*sig/c)
+        # Radiation Dominated Temperature in K
+        d = (3*products.radial_profile[tidx].gas_pressure*c**2/a)**(1./4.)
+        
+    else:
+        raise ValueError(f'unknown field {field}')
+    return d
+
+def block_field(block, field, transform=lambda x: x):
+    if field == 'rho':
+        d = block.comoving_mass_density
+    elif field == 'pre':
+        d = block.gas_pressure
+    elif field == 'ur':
+        d = block.radial_four_velocity
+    elif field == 'uq':
+        d = block.polar_four_velocity
+    elif field == 'scalar':
+        d = block.scalar
+    elif field == 'gamma_beta':
+        ur = block.radial_four_velocity
+        uq = block.polar_four_velocity
+        d = np.sqrt(ur**2 + uq**2)
+    elif field == 'temperature':
+        from astropy import constants
+        
+        c = (constants.c.cgs).value
+        
+        sig = (constants.sigma_sb.cgs).value
+        a   = (4.*sig/c)
+        
+        # Radiation Dominated Temperature in K
+        d = (3*block.gas_pressure*c**2/a)**(1./4.)
+        
+    else:
+        raise ValueError(f'unknown field {field}')
+    return transform(d)
+
+
+def mesh_field(products, field, transform=lambda x: x):
+    return [block_field(products[k], field, transform) for k in products]
+
+
+def variable(args):
+    if args.field == 'rho' and args.log:
+        return r'$\log_{{10}}(\rho) \ [\rm{{g/cm^3}}]$'
+    elif args.field == 'temperature' and args.log:
+        return 'T [K]'
+    elif args.field == 'gamma_beta' and args.log:
+        return r'$\Gamma \beta$'
+    else:
+        return args.field
+
+
+def plot_two_dimensional(products, fig, ax1, cbaxes, args):
+    vmin, vmax = eval(args.range)
+    
+    vertices = mesh_vertices(products)
+    field = mesh_field(products, args.field, np.log10 if args.log else lambda x: x)
+    setup = next(iter(products.config['model']))
+    vmin = min([c.min() for c in field]) if vmin is None else vmin
+    vmax = max([c.max() for c in field]) if vmax is None else vmax
+
+    for (x, z), c in zip(vertices, field):
+        cm = ax1.pcolormesh(x, z, c, vmin=vmin, vmax=vmax, edgecolors='none', lw=0.5, cmap=args.cmap)
+
+    ax1.set_xlabel(r'$x \ [\rm{cm}]$')
+    ax1.set_ylabel(r'$z \ [\rm{cm}]$')
+
+    ax1.set_aspect('equal')
+    fig.colorbar(cm, cax = cbaxes)
+    fig.subplots_adjust(left=0, right=1, top=0.9, bottom=0.05)
+    fig.suptitle(r'Setup: $\mathtt{{{}}}$   {}   $t = {:.4}s$'.format(setup.replace('_', '-'), variable(args), products.time))
+    return fig
+
+def plot_radial_profile(products,fig, ax1, args):
+    field = args.field 
+    
+    if args.theta_index is None:
+        r = products.radial_profile.vertices
+        d = products.radial_profile[0].comoving_mass_density
+    else:
+        r  = products.radial_profile.vertices
+        polar_vertices_size = np.asarray(mesh_vertices(products)).shape[-1]
+        q = np.linspace(0, 2*np.pi, polar_vertices_size)
+        
+        setup = next(iter(products.config['model']))
+        tidx  = args.theta_index
+        d = radial_field(products, args.field,tidx, args) 
+        
+        ax1.set_title(r'Setup: $\mathtt{{{}}}$    $\theta={:.2f}$   $t = {:.4}s$'.format(setup.replace('_', '-'), 
+                                                                                         q[tidx], products.time))
+        ax1.set_ylabel('{}'.format(variable(args)))
+        
+        
+    ax1.plot(r, d, '-o', mfc='none')
+    ax1.set_xscale('log')
+    ax1.set_yscale('log')
+    ax1.set_xlabel(r'$r \ \rm{[cm]}$')
+    return fig
+
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("data_dir", nargs='+')
+    parser.add_argument('-r', '--range', default='None,None', help='vmin and vmax parameters for the relief plot')
+    parser.add_argument('-f', '--field', default='rho', choices=known_fields())
+    parser.add_argument('-l', '--log', action='store_true')
+    parser.add_argument('-c', '--cmap', default='viridis')
+    parser.add_argument('--hardcopy', action='store_true')
+    parser.add_argument('--output', '-o', default=None, type=str)
+    parser.add_argument('--radius', default=None, type=float)
+    parser.add_argument('-tidx', '--theta_index', default=None, type=int)
+    args = parser.parse_args()
+
+    fig = plt.figure(figsize=(9,9))
+    ax  = fig.add_subplot(111)
+    cbaxes = False 
+    
+    data_dir = args.data_dir[0]
+    frame_count, plist = get_frames(data_dir)
+    
+    products = [load_products(data_dir + filename) for filename in plist]
+
+    if products[0].config['mesh']['num_polar_zones'] > 1 and args.theta_index is None:
+        fig = plt.figure(figsize=(8,11))
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.1)
+        cbaxes = True
+        
+    def init_mesh():
+        if args.theta_index is not None:
+            init_fig = plot_radial_profile(products[0], fig, ax, args)
+        elif products.config['mesh']['num_polar_zones'] > 1:
+            init_fig = plot_two_dimensional(products[0], fig, ax, cax, args)
+        else:
+            init_fig = plot_radial_profile(products[0], fig, ax, args)
+            
+        return init_fig
+        
+    def update(frame):
+        """
+        Animation function. Takes the current frame number (to select the potion of
+        data to plot) and a line object to update.
+        """
+        if cbaxes:
+            cax.cla()
+            
+        ax.cla()
+        
+        if args.theta_index is not None:
+            fig_frame = plot_radial_profile(products[frame], fig, ax, args)
+        elif products.config['mesh']['num_polar_zones'] > 1:
+            fig_frame = plot_two_dimensional(products[frame], fig, ax, cax, args)
+        else:
+            fig_frame = plot_radial_profile(products[frame], fig, ax, args)
+            
+        return fig_frame
+
+    # Initialize plot
+    inital_im = init_mesh()
+
+    animation = FuncAnimation(
+        # Your Matplotlib Figure object
+        fig,
+        # The function that does the updating of the Figure
+        update,
+        # Frame information (here just frame number)
+        np.arange(frame_count),
+        # blit = True,
+        # Extra arguments to the animate function
+        fargs=[],
+        # Frame-time in ms; i.e. for a given frame-rate x, 1000/x
+        interval= 1000 / 10
+    )
+    
+    if args.hardcopy or args.output is not None:
+        if args.output is None:
+            mp4name = format(pathlib.Path(data_dir).with_suffix('.mp4'))
+        else:
+            mp4name = args.output
+        print('save {}'.format(mp4name))
+        animation.save(mp4name)
+        # fig.clf()
+    else:
+        plt.show()
+
+
+if __name__ == "__main__":
+    main()

@@ -8,16 +8,33 @@ import matplotlib.pyplot as plt
 import knc_loader
 
 
-class timed(object): 
+
+
+STEFAN_BOLTZMANN_CONSTANT = 5.67037442e-05
+LIGHT_SPEED               = 2.99792458e+10
+
+
+
+
+class timed(object):
     def __init__(self, message):
         self.message = message
         self.start = time.perf_counter()
 
-    def __enter__(self): 
+    def __enter__(self):
         print('{:.<32} '.format(self.message), end='', flush=True)
 
-    def __exit__(self, *args): 
+    def __exit__(self, *args):
         print('{:.3}s'.format(time.perf_counter() - self.start))
+
+
+
+
+def find_nearest(block, val):
+    idx = np.argmin(np.abs(block - val))
+    return idx, block[idx]
+
+
 
 
 def load_products(filename):
@@ -34,61 +51,101 @@ def load_products(filename):
     return p
 
 
-def block_vertices(block):
+
+
+def block_vertices(block, *args):
     R, Q = [x.T for x in np.meshgrid(block.radial_vertices, block.polar_vertices)]
     return R * np.sin(Q), R * np.cos(Q)
+
+
 
 
 def mesh_vertices(products):
     return [block_vertices(products[k]) for k in products]
 
 
+
+
 def known_fields():
-    ['rho', 'pre', 'ur', 'uq', 'scalar', 'gamma_beta', 'temperature']
+    return ['rho', 'pre', 'ur', 'uq', 'scalar_density', 'scalar_concentration', 'energy', 'gamma_beta', 'temperature']
 
 
-def block_field(block, field, transform=lambda x: x):
+
+
+def block_field(block, field):
+
+    sigma = STEFAN_BOLTZMANN_CONSTANT
+    c = LIGHT_SPEED
+
     if field == 'rho':
-        d = block.comoving_mass_density
+        return block.comoving_mass_density
+
     elif field == 'pre':
-        d = block.gas_pressure
+        # Note: block.gas_pressure is in units of g / cm^3. Multiply by c^2 to
+        # put it in erg / cm^3.
+        return block.gas_pressure
+
     elif field == 'ur':
-        d = block.radial_four_velocity
+        return block.radial_four_velocity
+
     elif field == 'uq':
-        d = block.polar_four_velocity
-    elif field == 'scalar':
-        d = block.scalar
+        return block.polar_four_velocity
+
+    elif field == 'scalar_concentration':
+        return block.scalar
+
+    elif field == 'scalar_density':
+        # Return the lab-frame (not comoving) scalar volume density.
+        u = block.radial_four_velocity
+        w = block.polar_four_velocity
+        G = (1.0 + u**2 + w**2)**0.5
+        s = block.scalar * block.comoving_mass_density * G
+        return s
+
+    elif field == 'energy':
+        # Return the total gas energy. Assumes the gamma-law index is 4/3.
+        p = block.gas_pressure * c**2
+        d = block.comoving_mass_density
+        u = block.radial_four_velocity
+        w = block.polar_four_velocity
+        G = (1.0 + u**2 + w**2)**0.5
+        e = p / d / (4 / 3 - 1)
+        h = c**2 + e + p / d
+        data = d * h * G**2 - p - G * d * c**2
+
     elif field == 'gamma_beta':
         ur = block.radial_four_velocity
         uq = block.polar_four_velocity
-        d = np.sqrt(ur**2 + uq**2)
+        return np.sqrt(ur**2 + uq**2)
+
     elif field == 'temperature':
-        from astropy import constants
-        
-        mp  = (constants.m_p.cgs).value
-        k_B = (constants.k_B.cgs).value
-        c   = (constants.c.cgs).value
-        
-        # Convert the pressure to cgs
-        e = 3*block.gas_pressure/block.comoving_mass_density
-        # Temperature in K
-        d   = (2/3) * e * mp * c**2 / k_B
-    else:
-        raise ValueError(f'unknown field {field}')
-    return transform(d)
+        # Return the gas temperature in K. Assumes radiation dominated gas.
+        a = 4.0 * sigma / c
+        p = block.gas_pressure * c**2
+        return (3 * p / a)**0.25
+
+    raise ValueError(f'unknown field {field}')
+
+
 
 
 def mesh_field(products, field, transform=lambda x: x):
-    return [block_field(products[k], field, transform) for k in products]
+    return [transform(block_field(products[k], field)) for k in products]
 
 
-def variable(args):
+
+
+def label_name(args):
     if args.field == 'rho' and args.log:
         return r'$\log_{{10}}(\rho) \ [\rm{{g/cm^3}}]$'
     elif args.field == 'temperature' and args.log:
         return 'T [K]'
+    elif args.field == 'gamma_beta' and args.log:
+        return r'$\Gamma \beta$'
     else:
         return args.field
+
+
 
 
 def plot_two_dimensional(products, args):
@@ -116,20 +173,37 @@ def plot_two_dimensional(products, args):
     ax1.set_aspect('equal')
     fig.colorbar(cm)
     fig.subplots_adjust(left=0, right=1, top=0.9, bottom=0.05)
-    fig.suptitle(r'Setup: $\mathtt{{{}}}$   {}   $t = {:.4}s$'.format(setup.replace('_', '-'), variable(args), products.time))
+    fig.suptitle(r'Setup: $\mathtt{{{}}}$   {}   $t = {:.4}s$'.format(setup.replace('_', '-'), label_name(args), products.time))
     return fig
+
+
 
 
 def plot_radial_profile(products, args):
     fig = plt.figure(figsize=[9, 9])
     ax1 = fig.add_subplot(1, 1, 1)
-    r = products.radial_profile.vertices
-    d = products.radial_profile[0].comoving_mass_density
-    ax1.plot(r, d, '-', mfc='none', color='black', linewidth=2)
+    field = args.field
+
+    if args.theta_index is None:
+        r = products.radial_profile.vertices
+        d = block_field(products.radial_profile[0], args.field)
+    else:
+        r  = products.radial_profile.vertices
+        polar_vertices_size = np.asarray(mesh_vertices(products)).shape[-1]
+        q = np.linspace(0, 2*np.pi, polar_vertices_size)
+        setup = next(iter(products.config['model']))
+        tidx  = args.theta_index
+        d = block_field(products.radial_profile[tidx], args.field)
+
+    ax1.set_title(r'Setup: $\mathtt{{{}}}$    $\theta={:.2f}$   $t = {:.4}s$'.format(setup.replace('_', '-'), q[tidx], products.time))
+    ax1.set_ylabel(label_name(args))
+    ax1.plot(r, d, '-o', mfc='none')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
     ax1.set_xlabel(r'$r \ \rm{[cm]}$')
     return fig
+
+
 
 
 def main():
@@ -142,12 +216,15 @@ def main():
     parser.add_argument('--hardcopy', action='store_true')
     parser.add_argument('--output', '-o', default=None, type=str)
     parser.add_argument('--radius', default=None, type=float)
+    parser.add_argument('-tidx', '--theta_index', default=None, type=int)
     args = parser.parse_args()
 
     filename = args.filenames[0]
     products = load_products(filename)
 
-    if products.config['mesh']['num_polar_zones'] > 1:
+    if args.theta_index is not None:
+        fig = plot_radial_profile(products, args)
+    elif products.config['mesh']['num_polar_zones'] > 1:
         fig = plot_two_dimensional(products, args)
     else:
         fig = plot_radial_profile(products, args)
