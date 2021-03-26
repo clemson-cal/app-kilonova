@@ -93,7 +93,6 @@ def variable(args):
 
 def plot_two_dimensional(products, args):
     vmin, vmax = eval(args.range)
-    #vmin, vmax = (0,52000)
     fig = plt.figure(figsize=[7, 11])
     ax1 = fig.add_subplot(1, 1, 1)
 
@@ -126,7 +125,7 @@ def plot_radial_profile(products, args):
     ax1 = fig.add_subplot(1, 1, 1)
     r = products.radial_profile.vertices
     d = products.radial_profile[0].comoving_mass_density
-    ax1.plot(r, d, '-o', mfc='none')
+    ax1.plot(r, d, '-', mfc='none', color='black', linewidth=2)
     ax1.set_xscale('log')
     ax1.set_yscale('log')
     ax1.set_xlabel(r'$r \ \rm{[cm]}$')

@@ -20,6 +20,7 @@ use crate::models::{
     JetInCloud,
     JetInStar,
     WindShock,
+    KineticBomb,
 };
 use crate::physics::{
     AnyPrimitive,
@@ -71,6 +72,7 @@ pub enum AnyModel {
     JetInCloud(JetInCloud),
     JetInStar(JetInStar),
     WindShock(WindShock),
+    KineticBomb(KineticBomb),
 }
 
 
@@ -223,6 +225,7 @@ impl InitialModel for AnyModel {
             AnyModel::JetInCloud(m)   => m.validate(),
             AnyModel::JetInStar(m)    => m.validate(),
             AnyModel::WindShock(m)    => m.validate(),
+            AnyModel::KineticBomb(m) => m.validate(),
         }
     }
 
@@ -232,6 +235,7 @@ impl InitialModel for AnyModel {
             AnyModel::JetInCloud(m)   => m.primitive_at(coordinate, time),
             AnyModel::JetInStar(m)    => m.primitive_at(coordinate, time),
             AnyModel::WindShock(m)    => m.primitive_at(coordinate, time),
+            AnyModel::KineticBomb(m) => m.primitive_at(coordinate, time),
         }
     }
 
@@ -241,6 +245,7 @@ impl InitialModel for AnyModel {
             AnyModel::JetInCloud(m)   => m.scalar_at(coordinate, time),
             AnyModel::JetInStar(m)    => m.scalar_at(coordinate, time),
             AnyModel::WindShock(m)    => m.scalar_at(coordinate, time),
+            AnyModel::KineticBomb(m) => m.scalar_at(coordinate, time),
         }
     }
 }
@@ -383,6 +388,7 @@ impl App {
             ("jet_in_star", include_str!("../setups/jet_in_star.yaml")),
             ("halo_kilonova", include_str!("../setups/halo_kilonova.yaml")),
             ("wind_shock", include_str!("../setups/wind_shock.yaml")),
+            ("kinetic_bomb", include_str!("../setups/kinetic_bomb.yaml")),
         ]
     }
 }
