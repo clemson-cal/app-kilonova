@@ -99,8 +99,7 @@ def block_field(block, field):
         u = block.radial_four_velocity
         w = block.polar_four_velocity
         G = (1.0 + u**2 + w**2)**0.5
-        s = block.scalar * block.comoving_mass_density * G
-        return s
+        return block.scalar * block.comoving_mass_density * G
 
     elif field == 'energy':
         # Return the total gas energy. Assumes the gamma-law index is 4/3.
@@ -111,7 +110,7 @@ def block_field(block, field):
         G = (1.0 + u**2 + w**2)**0.5
         e = p / d / (4 / 3 - 1)
         h = c**2 + e + p / d
-        data = d * h * G**2 - p - G * d * c**2
+        return d * h * G**2 - p - G * d * c**2
 
     elif field == 'gamma_beta':
         ur = block.radial_four_velocity
@@ -183,19 +182,14 @@ def plot_radial_profile(products, args):
     fig = plt.figure(figsize=[9, 9])
     ax1 = fig.add_subplot(1, 1, 1)
     field = args.field
+    setup = next(iter(products.config['model']))
 
-    if args.theta_index is None:
-        r = products.radial_profile.vertices
-        d = block_field(products.radial_profile[0], args.field)
-    else:
-        r  = products.radial_profile.vertices
-        polar_vertices_size = np.asarray(mesh_vertices(products)).shape[-1]
-        q = np.linspace(0, 2*np.pi, polar_vertices_size)
-        setup = next(iter(products.config['model']))
-        tidx  = args.theta_index
-        d = block_field(products.radial_profile[tidx], args.field)
+    j = args.theta_index or 0
+    r = products.radial_profile.vertices
+    q = products[(0,0)].polar_vertices
+    d = block_field(products.radial_profile[j], args.field)
 
-    ax1.set_title(r'Setup: $\mathtt{{{}}}$    $\theta={:.2f}$   $t = {:.4}s$'.format(setup.replace('_', '-'), q[tidx], products.time))
+    ax1.set_title(r'Setup: $\mathtt{{{}}}$    $\theta={:.2f}$   $t = {:.4}s$'.format(setup.replace('_', '-'), q[j], products.time))
     ax1.set_ylabel(label_name(args))
     ax1.plot(r, d, '-o', mfc='none')
     ax1.set_xscale('log')
