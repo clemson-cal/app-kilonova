@@ -202,14 +202,14 @@ dependencies = [
 [[package]]
 name = "hydro-srhd"
 version = "0.1.0"
-source = "git+https://github.com/clemson-cal/hydro-srhd#0b77e7c5b58cf4e3a9d638ecf947f8388df3a467"
+source = "git+https://github.com/clemson-cal/hydro-srhd#25bf21ec6d672a3ab2df27c74590e4e5697848ba"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "kilonova"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "async-trait",
