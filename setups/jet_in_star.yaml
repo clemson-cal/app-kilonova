@@ -19,7 +19,7 @@ model:
 mesh:
   inner_radius: 1.e9
   outer_radius: 1.e12
-  excision_delay: 10
+  excision_delay: 10.0
   inner_excision_speed: 1e9
   outer_excision_speed: 3e10
   reference_radius: 1.e9
