@@ -5,7 +5,8 @@ use crate::traits::InitialModel;
 
 
 
-static UNIFORM_TEMPERATURE: f64 = 1e-6;
+
+// static UNIFORM_TEMPERATURE: f64 = 1e-6;
 
 // Constants as given in Duffell & MacDayen(2015)
 // source: https://arxiv.org/pdf/1407.8250.pdf
@@ -95,9 +96,8 @@ impl InitialModel for JetInStar {
 
     fn scalar_at(&self, coordinate: (f64, f64), t: f64) -> f64 {
         let (r, q) = coordinate;
-        let zone   = self.zone(r, q, t);
 
-        match zone {
+        match self.zone(r, q, t) {
             Zone::Core     => 1.0,
             Zone::Jet      => 1.0,
             Zone::Envelope => 1e2,
@@ -112,29 +112,31 @@ impl InitialModel for JetInStar {
 // ============================================================================
 impl JetInStar
 {
+
     /**
      * The comoving mass density in g/cc
      */
     fn mass_density(&self, r: f64, q: f64, t: f64) -> f64{
         let zone      = self.zone(r, q, t);
-        let num       = RHO_C * ((1.0 - r / R3)).powf(N);
+        let num       = RHO_C * (1.0 - r / R3).powf(N);
         let denom     = 1.0 + (r / R1).powf(K1) / (1.0 + (r / R2).powf(K2));
         let core_zone = num/denom;
 
-        // To ensure continuity in the density from one zone to another
-        // we add their contributions until each zone "falls off"
+        // To ensure continuity in the density from one zone to another we add
+        // their contributions until each zone "falls off"
+
         match zone {
-            Zone::Core    => {
-                core_zone + RHO_ENV * (r/R3).powf(-ALPHA) + RHO_WIND * (r/self.envelope_radius).powf(-2.0)
+            Zone::Core => {
+                core_zone + RHO_ENV * (r / R3).powf(-ALPHA) + RHO_WIND * (r / self.envelope_radius).powf(-2.0)
             }
             Zone::Envelope => {
-                RHO_ENV *(r/R3).powf(-ALPHA) + RHO_WIND * (r/self.envelope_radius).powf(-2.0)
+                RHO_ENV * (r / R3).powf(-ALPHA) + RHO_WIND * (r / self.envelope_radius).powf(-2.0)
             }
-            Zone::Jet     => {
-                self.jet_mass_rate_per_steradian(r, q) / (r * r * self.engine_u * LIGHT_SPEED)
+            Zone::Jet => {
+                self.jet_mass_rate_per_steradian() / (r * r * self.engine_u * LIGHT_SPEED)
             }
-            Zone::Wind    => {
-                RHO_WIND * (r/self.envelope_radius).powf(-2.0)
+            Zone::Wind => {
+                RHO_WIND * (r / self.envelope_radius).powf(-2.0)
             }
             
         }
@@ -178,11 +180,11 @@ impl JetInStar
         let r_jet_head = v_jet * t;
         let r_jet_tail = v_jet * (t - self.engine_duration);
 
-        if self.in_nozzle(q) && r < r_jet_head  && r > r_jet_tail {
+        if self.in_nozzle(q) && (r_jet_tail..r_jet_head).contains(&r) {
             Zone::Jet
         } else if r < R3 {
             Zone::Core
-        } else if R3 < r && r < self.envelope_radius {
+        } else if r < self.envelope_radius {
             Zone::Envelope
         } else {
             Zone::Wind
@@ -200,7 +202,6 @@ impl JetInStar
         match self.zone(r, q, t) {
             Zone::Jet => self.engine_u,
             _ => 0.0
-
         }
     }
 
@@ -212,21 +213,20 @@ impl JetInStar
      * * `q` - The polar angle theta
      */
     pub fn nozzle_function(&self, r: f64, q: f64) -> f64 {
+
         // Normalize the Nozzle Radius
         let r0 = R_NOZZ/R0;
         let q2 = self.engine_theta.powi(2);
 
-        // Nozzle Function Normalization Factor
-        // N0 = 4 * PI * r0^3 * exp(-2/theta0^2) * theta0^2
+        // Nozzle Function Normalization Factor: N0 = 4 * PI * r0^3 * exp(-2/theta0^2) * theta0^2
         let n_0 =  4.0 * PI * r0 * r0 * r0 * (1.0 - (-2.0 / q2).exp()) * q2;
 
         // Nozzle Function: g = (r/r0) * exp(-(r/r0)^2 / 2) * exp[(cos^2(q) - 1)/theta0^2] / N0
         let g = (r / R_NOZZ) * f64::exp(-(r / R_NOZZ).powf(2.0) / 2.0) * f64::exp((q.cos().powf(2.0) - 1.0) / q2);
-
         g / n_0
     }
 
-    fn jet_mass_rate_per_steradian(&self, r: f64, q: f64) -> f64 {
+    fn jet_mass_rate_per_steradian(&self) -> f64 {
         let engine_gamma = f64::sqrt(1.0 + self.engine_u * self.engine_u);
         let e = self.engine_energy;
         let l = e / (self.eta_0 * 4.0 * PI * self.engine_duration);
