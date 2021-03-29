@@ -9,9 +9,14 @@ hydro:
 model:
   wind_shock:
     wind_mass_outflow_rate: 1e20 # this is ~1e-6 solar masses per year
-    wind_gamma_beta: 2.0
-    post_shock_gamma_beta: 0.1
-    shock_location: 2e8
+    flare_outflow_rate: 1e-15
+    flare_gamma_beta: 1e2
+    wind_gamma_beta: 1e2
+    post_shock_gamma_beta: 1e-2
+    wind_pressure: 1e-17
+    post_shock_pressure: 1e-9
+    shock_location: 1.5e8
+    flare_time: 2.0 #start of the flare.
 
 mesh:
   inner_radius: 1e8
@@ -20,11 +25,11 @@ mesh:
   outer_excision_speed: 0.0
   reference_radius: 1e8
   num_polar_zones: 1
-  num_radial_zones: 512 # per decade
-  block_size: 128 # num zones in a block (parallelization unit)
+  num_radial_zones: 64 # per decade
+  block_size: 64 # num zones in a block (parallelization unit)
 
 control:
-  final_time: 1.0
+  final_time: 10.0
   start_time: 0.0
   checkpoint_interval: 0.1
   fold: 10
