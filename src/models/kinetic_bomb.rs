@@ -32,8 +32,8 @@ impl KineticBomb {
      * Return the radial extent (in cm) of the shell at time t.
      */
     fn shell_extent(&self, t: f64) -> std::ops::Range<f64> {
-        let r_outer_shell_surface = self.shell_velocity() * t;
-        let r_inner_shell_surface = self.shell_velocity() * (t - self.shell_duration());
+        let r_outer_shell_surface = self.launch_radius + self.shell_velocity() * t;
+        let r_inner_shell_surface = self.launch_radius + self.shell_velocity() * (t - self.shell_duration());
         r_inner_shell_surface..r_outer_shell_surface
     }
 
@@ -77,12 +77,10 @@ impl InitialModel for KineticBomb {
 
     fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AnyPrimitive {
         let (r, _q) = coordinate;
-        let shell_velocity = (2.0 * self.kinetic_energy / self.shell_mass).sqrt();
-        let shell_duration = self.shell_thickness / shell_velocity;
 
         if self.shell_extent(t).contains(&r) {
-            let mdot = self.shell_mass / shell_duration;
-            let v = shell_velocity;
+            let mdot = self.shell_mass / self.shell_duration();
+            let v = self.shell_velocity();
             let d = mdot / (4.0 * PI * r * r * v);
             let p = d * UNIFORM_TEMPERATURE;
 
