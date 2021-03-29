@@ -27,7 +27,9 @@ impl InitialModel for KineticBomb {
         
         let (r, _q) = coordinate;
 
-        let v = (2.0 * self.kinetic_energy / self.shell_mass).powf(1.0/2.0) * LIGHT_SPEED;
+        let v = (2.0 * self.kinetic_energy / self.shell_mass).powf(1.0/2.0);
+
+        let t = self.shell_thickness / v;
 
         if r < v * (time - (self.shell_thickness / v)) || r > v * time {
             let d0 = self.external_medium_density;
@@ -41,12 +43,11 @@ impl InitialModel for KineticBomb {
                 gas_pressure: p,
             }
         } else if r > v * (time - (self.shell_thickness / v)) && r < v * time {
-            let vol = 4.0 / 3.0 * PI * ((v * time).powi(3) - (v * (time - (self.shell_thickness / v))).powi(3));
-            let d = self.shell_mass / vol;
+            let d = self.shell_mass / 4.0 / PI / r / r / v / t;
             let p = d * 1e-3;
 
             AnyPrimitive{
-                velocity_r: v,
+                velocity_r: v / LIGHT_SPEED,
                 velocity_q: 0.0,
                 mass_density: d,
                 gas_pressure: p,
