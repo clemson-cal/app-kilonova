@@ -208,15 +208,15 @@ def main():
     parser.add_argument('-tidx', '--theta_index', default=None, type=int)
     args = parser.parse_args()
 
-    filename = args.filenames[0]
-    products = load_products(filename)
+    for filename in args.filenames:
+        products = load_products(filename)
 
-    if args.theta_index is not None:
-        fig = plot_radial_profile(products, args)
-    elif products.config['mesh']['num_polar_zones'] > 1:
-        fig = plot_two_dimensional(products, args)
-    else:
-        fig = plot_radial_profile(products, args)
+        if args.theta_index is not None:
+            fig = plot_radial_profile(products, args)
+        elif products.config['mesh']['num_polar_zones'] > 1:
+            fig = plot_two_dimensional(products, args)
+        else:
+            fig = plot_radial_profile(products, args)
 
     with timed('show'):
         if args.hardcopy or args.output is not None:

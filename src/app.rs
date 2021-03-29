@@ -235,8 +235,8 @@ impl InitialModel for AnyModel {
             AnyModel::JetInCloud(m)   => m.primitive_at(coordinate, time),
             AnyModel::JetInStar(m)    => m.primitive_at(coordinate, time),
             AnyModel::WindShock(m)    => m.primitive_at(coordinate, time),
-            AnyModel::KineticBomb(m) => m.primitive_at(coordinate, time),
-        }
+            AnyModel::KineticBomb(m)  => m.primitive_at(coordinate, time),
+        } 
     }
 
     fn scalar_at(&self, coordinate: (f64, f64), time: f64) -> f64 {
@@ -245,7 +245,7 @@ impl InitialModel for AnyModel {
             AnyModel::JetInCloud(m)   => m.scalar_at(coordinate, time),
             AnyModel::JetInStar(m)    => m.scalar_at(coordinate, time),
             AnyModel::WindShock(m)    => m.scalar_at(coordinate, time),
-            AnyModel::KineticBomb(m) => m.scalar_at(coordinate, time),
+            AnyModel::KineticBomb(m)  => m.scalar_at(coordinate, time),
         }
     }
 }

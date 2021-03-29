@@ -2,7 +2,7 @@ hydro:
   relativistic:
     gamma_law_index: 1.333
     plm_theta: 1.5
-    cfl_number: 0.4
+    cfl_number: 0.3
     runge_kutta_order: RK2
     riemann_solver: HLLC
     adaptive_time_step: true
@@ -18,18 +18,17 @@ model:
 mesh:
   inner_radius: 1e18
   outer_radius: 1e21
-  inner_excision_speed: 0.07
-  outer_excision_speed: 0.12
+  inner_excision_speed: 0.0
+  outer_excision_speed: 0.0
   reference_radius: 1e18
   num_polar_zones: 1
   num_radial_zones: 256
-  block_size: 256 #4 for 2D
+  block_size: 256
 
 control:
   final_time: 1e11
   start_time: 0.0
-  checkpoint_interval: 1e8
-  products_interval: 1e8
-  num_threads: 10
+  checkpoint_interval: 1e9
+  output_directory: data
+  num_threads: ~
   fold: 10
-  snappy_compression: false
