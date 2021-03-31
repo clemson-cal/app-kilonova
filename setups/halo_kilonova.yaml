@@ -2,7 +2,7 @@ hydro:
   relativistic:
     gamma_law_index: 1.333
     plm_theta: 1.5
-    cfl_number: 0.4
+    cfl_number: 0.2
     runge_kutta_order: RK2
     riemann_solver: HLLC
     adaptive_time_step: true
@@ -12,24 +12,23 @@ model:
     altitude: 1e20
     external_medium_density: 1e-23
     launch_radius: 1e18
-    ejecta_mdot: 2e31
-    ejecta_gamma_beta: 0.1
-    engine_duration: 0.5
+    shell_thickness: 1e18
+    kinetic_energy: 1e51
+    shell_mass: 2e32
 
 mesh:
   inner_radius: 1e18
-  outer_radius: 1e20
-  inner_excision_speed: 0.07
-  outer_excision_speed: 0.12
+  outer_radius: 1e19
+  inner_excision_speed: 0.00
+  outer_excision_speed: 0.00
   reference_radius: 1e18
-  num_polar_zones: 256
+  num_polar_zones: 512
   block_size: 4
 
 control:
   final_time: 1e10
   start_time: 0.0
-  checkpoint_interval: 1e8
-  products_interval: 1e8
-  num_threads: 10
+  checkpoint_interval: 5e7
+  output_directory: tests
+  num_threads: ~
   fold: 10
-  snappy_compression: false

@@ -92,7 +92,7 @@ impl InitialModel for KineticBomb {
             }            
         } else {
             let d0 = self.external_medium_density;
-            let d = d0 * (r / self.launch_radius).powi(-2);
+            let d = d0; // * (r / self.launch_radius).powi(-2);
             let p = d * UNIFORM_TEMPERATURE;
 
             AnyPrimitive {
