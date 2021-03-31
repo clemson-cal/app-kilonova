@@ -15,9 +15,11 @@ pub struct WindShock {
     /// Rate of outflow of the wind
     pub wind_mass_outflow_rate: f64,
 
+    #[serde(default)]
     /// Rate of outflow of the flare
     pub flare_outflow_rate: f64,
 
+    #[serde(default)]
     /// Four velocity of flare
     pub flare_gamma_beta: f64,
 
@@ -36,8 +38,13 @@ pub struct WindShock {
     /// Shock location coordinate
     pub shock_location: f64,
 
+    #[serde(default)]
     /// Flare time
     pub flare_time: f64,
+
+    #[serde(default)]
+    /// Flare duration
+    pub flare_duration: f64,
 }
 
 // ============================================================================
@@ -55,11 +62,11 @@ impl InitialModel for WindShock {
         // rho: comoving rest-mass density
         // Mdot = 4 pi r^2 rho u c
 
-        if (t >= self.flare_time) & (t < (self.flare_time + 0.1)) {
+        if (t >= self.flare_time) & (t < (self.flare_time + self.flare_duration)) {
             let r = coordinate.0;
             let u = self.flare_gamma_beta;
-            let rho = self.flare_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
-            //let rho = (1.0 - n) / (0.1) * (t - self.flare_time - 0.1) + 1.0;
+            let n = self.flare_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
+            let rho = n * (self.flare_time + self.flare_duration - t) / self.flare_duration;
             let p = rho * UNIFORM_TEMPERATURE;
             AnyPrimitive {
                 velocity_r: u,
