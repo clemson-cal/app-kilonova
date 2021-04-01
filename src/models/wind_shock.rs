@@ -68,6 +68,35 @@ impl InitialModel for WindShock {
             let n = self.flare_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
             let rho = n * (self.flare_time + self.flare_duration - t) / self.flare_duration;
             let p = rho * UNIFORM_TEMPERATURE;
+
+            AnyPrimitive {
+                velocity_r: u,
+                velocity_q: 0.0,
+                mass_density: rho,
+                gas_pressure: p,
+            }
+        } else if (t >= self.flare_time + 3.0) & (t < (self.flare_time + 3.0 + self.flare_duration))
+        {
+            let r = coordinate.0;
+            let u = self.flare_gamma_beta;
+            let n = self.flare_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
+            let rho = n * (self.flare_time + 3.0 + self.flare_duration - t) / self.flare_duration;
+            let p = rho * UNIFORM_TEMPERATURE;
+
+            AnyPrimitive {
+                velocity_r: u,
+                velocity_q: 0.0,
+                mass_density: rho,
+                gas_pressure: p,
+            }
+        } else if (t >= self.flare_time + 6.0) & (t < (self.flare_time + 6.0 + self.flare_duration))
+        {
+            let r = coordinate.0;
+            let u = self.flare_gamma_beta;
+            let n = self.flare_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
+            let rho = n * (self.flare_time + 6.0 + self.flare_duration - t) / self.flare_duration;
+            let p = rho * UNIFORM_TEMPERATURE;
+
             AnyPrimitive {
                 velocity_r: u,
                 velocity_q: 0.0,

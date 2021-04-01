@@ -1,15 +1,15 @@
-ydro:
+hydro:
   relativistic:
     gamma_law_index: 1.333
     plm_theta: 1.5
-    cfl_number: 0.4
+    cfl_number: 0.1
     runge_kutta_order: RK2
     riemann_solver: HLLC
 
 model:
   wind_shock:
     wind_mass_outflow_rate: 1e20 # this is ~1e-6 solar masses per year
-    flare_outflow_rate: 3e23
+    flare_outflow_rate: 1e22
     flare_gamma_beta: 1e2
     wind_gamma_beta: 1e2
     post_shock_gamma_beta: 1e-2
@@ -30,7 +30,7 @@ mesh:
   block_size: 32 # num zones in a block (parallelization unit)
 
 control:
-  final_time: 15.0
+  final_time: 20.0
   start_time: 0.0
   checkpoint_interval: 0.05
   fold: 10
