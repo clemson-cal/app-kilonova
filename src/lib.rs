@@ -8,3 +8,4 @@ pub mod scheme;
 pub mod state;
 pub mod tasks;
 pub mod traits;
+pub mod galmod;

@@ -17,18 +17,18 @@ model:
 
 mesh:
   inner_radius: 1e18
-  outer_radius: 1e21
+  outer_radius: 2e19
   inner_excision_speed: 0.0
   outer_excision_speed: 0.0
   reference_radius: 1e18
   num_polar_zones: 1
-  num_radial_zones: 256
-  block_size: 256
+  num_radial_zones: 512
+  block_size: 512
 
 control:
-  final_time: 1e11
+  final_time: 1e9
   start_time: 0.0
-  checkpoint_interval: 1e9
+  checkpoint_interval: 1e7
   output_directory: data
   num_threads: ~
   fold: 10

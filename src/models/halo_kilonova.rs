@@ -2,6 +2,7 @@ use std::f64::consts::PI;
 use serde::{Serialize, Deserialize};
 use crate::traits::InitialModel;
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
+use crate::galmod::GalacticModel;
 
 const UNIFORM_TEMPERATURE: f64 = 1e-3;
 
@@ -20,6 +21,7 @@ pub struct HaloKilonova {
     pub shell_thickness: f64,
     pub kinetic_energy: f64,
     pub shell_mass: f64,
+    pub radial_distance: f64,
 }
 
 
@@ -54,8 +56,8 @@ impl HaloKilonova {
     fn shell_duration(&self) -> f64 {
         self.shell_thickness / self.shell_velocity()
     }
-}
 
+}
 
 // ============================================================================
 impl InitialModel for HaloKilonova {
@@ -89,15 +91,25 @@ impl InitialModel for HaloKilonova {
                 gas_pressure: p,
             }            
         } else {
-            let z = r * q.cos();
-            let z0 = -self.altitude;
+            let z = r * q.cos() + self.altitude;
             let d0 = self.external_medium_density;
-            let d = if z < z0 {
+            let d   =  if z < 0.0 {
                 d0
             } else {
-                d0 * f64::exp(-f64::powf((z - z0) / z0, 2.0))
+                GalacticModel::density(&GalacticModel{g: 6.67e-8, m_b: 3.377e43,
+                                                      a_b: 8.98e20, v_h: 1.923e7, 
+                                                      a_h: 9.26e22, m_s: 1.538e44,
+                                                      a_s: 1.461e22, b_s: 1.790e21,
+                                                      m_g: 5.434e43, a_g: 1.461e22,
+                                                      b_g: 7.035e23}, self.radial_distance, z)
             };
-            let p = d * UNIFORM_TEMPERATURE;
+            let p   = GalacticModel::pressure_z(&GalacticModel{g: 6.67e-8, m_b: 3.377e43,
+                                                a_b: 8.98e20, v_h: 1.923e7, 
+                                                a_h: 9.26e22, m_s: 1.538e44,
+                                                a_s: 1.461e22, b_s: 1.790e21,
+                                                m_g: 5.434e43, a_g: 1.461e22,
+                                                b_g: 7.035e23}, self.radial_distance,
+                                                z, 1e19, 1e-10);
 
             AnyPrimitive {
                 velocity_r: 0.0,

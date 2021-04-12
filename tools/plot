@@ -154,7 +154,7 @@ def plot_two_dimensional(products, args):
 
     with timed('load plots'):
         for (x, z), c in zip(vertices, field):
-            cm = ax1.pcolormesh(x, z, c, vmin=1e-25, vmax=2.0e-23, edgecolors='none', lw=0.5, cmap=plt.get_cmap('magma'))
+            cm = ax1.pcolormesh(x, z, c, vmin=vmin, vmax=vmax, edgecolors='none', lw=0.5, cmap=plt.get_cmap('magma'))
 
     if args.radius is not None:
         ax1.set_xlim(0, args.radius)
@@ -162,6 +162,8 @@ def plot_two_dimensional(products, args):
 
     ax1.set_xlabel(r'$x \ [\rm{cm}]$')
     ax1.set_ylabel(r'$z \ [\rm{cm}]$')
+    #ax1.set_xlim(0,4e18)
+    #ax1.set_ylim(-4e18,4e18)
     ax1.set_aspect('equal')
     fig.colorbar(cm)
     fig.subplots_adjust(left=0, right=1, top=0.9, bottom=0.05)
@@ -191,8 +193,8 @@ def plot_radial_profile(products, args):
     ax1.plot(r, s, lw=1, label='shell boundary', color='red')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
-    ax1.set_xlim(1e18,1e20)
-    ax1.set_ylim(1e-29, 5e-23)
+    ax1.set_xlim(1e18,1e19)
+    ax1.set_ylim(1e-28, 1e-20)
     ax1.set_xlabel(r'$r \ \rm{[cm]}$')
     plt.legend()
 
