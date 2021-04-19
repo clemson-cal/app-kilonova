@@ -3,6 +3,7 @@ use serde::{Serialize, Deserialize};
 use crate::traits::InitialModel;
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::galmod::GalacticModel;
+use float_ord::FloatOrd;
 
 const UNIFORM_TEMPERATURE: f64 = 1e-3;
 
@@ -101,15 +102,9 @@ impl InitialModel for HaloKilonova {
                                                       a_h: 9.26e22, m_s: 1.538e44,
                                                       a_s: 1.461e22, b_s: 1.790e21,
                                                       m_g: 5.434e43, a_g: 1.461e22,
-                                                      b_g: 7.035e23}, self.radial_distance, z)
+                                                      b_g: 7.035e23}, self.radial_distance, z).thin_disk
             };
-            let p   = GalacticModel::pressure_z(&GalacticModel{g: 6.67e-8, m_b: 3.377e43,
-                                                a_b: 8.98e20, v_h: 1.923e7, 
-                                                a_h: 9.26e22, m_s: 1.538e44,
-                                                a_s: 1.461e22, b_s: 1.790e21,
-                                                m_g: 5.434e43, a_g: 1.461e22,
-                                                b_g: 7.035e23}, self.radial_distance,
-                                                z, 1e19, 1e-10);
+            let p   = d*1.0e-3;
 
             AnyPrimitive {
                 velocity_r: 0.0,
