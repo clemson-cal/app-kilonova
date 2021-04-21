@@ -1,5 +1,3 @@
-use float_ord::FloatOrd;
-
 pub struct LookupTable {
     data: Vec<(f64, f64)>,
 }
@@ -40,14 +38,22 @@ impl LookupTable {
             };
         }
 
-        let index = match self
-            .data
-            .binary_search_by_key(&FloatOrd(x), |&(x, _)| FloatOrd(x))
-        {
+        let index = match self.data.binary_search_by(|&(xi, _)| Self::compare_f64(xi, x)) {
             Ok(index) => index,
             Err(index) => index,
         };
+
         (index - 1, index)
+    }
+
+    fn compare_f64(a: f64, b: f64) -> std::cmp::Ordering {
+        if a < b {
+            std::cmp::Ordering::Less
+        } else if a > b {
+            std::cmp::Ordering::Greater
+        } else {
+            std::cmp::Ordering::Equal
+        }
     }
 }
 
