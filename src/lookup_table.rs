@@ -75,6 +75,18 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn lookup_table_panics_if_input_is_not_increasing() {
+        LookupTable::new(vec![(1.0, 0.1), (1.0, 0.2), (2.0, 0.3)]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn lookup_table_panics_if_input_is_not_ordered() {
+        LookupTable::new(vec![(1.0, 0.1), (0.0, 0.2), (2.0, 0.3)]);
+    }
+
+    #[test]
     fn lookup_table_gives_the_right_indexes_straddling() {
         let table = LookupTable::new(vec![(0.0, 0.1), (1.0, 0.2), (2.0, 0.3)]);
         assert_eq!(table.indexes_straddling(0.5), (0, 1));
