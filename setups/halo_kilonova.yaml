@@ -9,8 +9,7 @@ hydro:
 
 model:
   halo_kilonova:
-    altitude: 1e20
-    external_medium_density: 1e-23
+    altitude: 1.5e20
     launch_radius: 1e18
     shell_thickness: 1e18
     kinetic_energy: 1e51
@@ -23,11 +22,11 @@ mesh:
   inner_excision_speed: 0.00
   outer_excision_speed: 0.00
   reference_radius: 1e18
-  num_polar_zones: 256
+  num_polar_zones: 128
   block_size: 4
 
 control:
-  final_time: 1e10
+  final_time: 0.0
   start_time: 0.0
   checkpoint_interval: 1e8
   output_directory: data

@@ -1,8 +1,23 @@
 use crate::galmod::GalacticModel;
+use crate::lookup_table::LookupTable;
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
+
+thread_local! {
+    static PRE: Vec<(f64, f64)> = GalacticModel::vertical_pressure_profile(&GalacticModel{g: 6.67e-8,
+        m_b: 3.377e43,
+        a_b: 8.98e20,
+        v_h: 1.923e7,
+        a_h: 9.26e22,
+        m_s: 1.538e44,
+        a_s: 1.461e22,
+        b_s: 1.790e21,
+        m_g: 5.434e43,
+        a_g: 1.461e22,
+        b_g: 7.035e23},1e22,1e20,1e18,1e0);
+}
 
 const UNIFORM_TEMPERATURE: f64 = 1e-3;
 
@@ -61,7 +76,6 @@ impl InitialModel for HaloKilonova {
     fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AnyPrimitive {
         let (r, q) = coordinate;
         let z = r * q.cos() + self.altitude;
-        let p0 = 1e-3; // PRESSURE AT BASE OF ATMOSPHERE -- SET THIS APPROPRIATELY
 
         if self.shell_extent(t).contains(&r) {
             let mdot = self.shell_mass / self.shell_duration();
@@ -90,18 +104,18 @@ impl InitialModel for HaloKilonova {
                 b_g: 7.035e23,
             };
             let d = model.density(self.radial_distance, z).thin_disk;
-            let p = model
-                .vertical_pressure_profile(r, z, z * 1e-3, p0)
-                .last()
-                .unwrap()
-                .1;
 
-            AnyPrimitive {
-                velocity_r: 0.0,
-                velocity_q: 0.0,
-                mass_density: d,
-                gas_pressure: p,
-            }
+            PRE.with(|press|{
+                let p = LookupTable{data: press.to_vec()}.sample(z);
+
+                AnyPrimitive {
+                    velocity_r: 0.0,
+                    velocity_q: 0.0,
+                    mass_density: d,
+                    gas_pressure: p,
+                }
+            })
+
         } else {
             panic!("the halo kilonova setup requires z > 0.0");
         }

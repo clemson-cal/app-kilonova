@@ -1,5 +1,5 @@
 pub struct LookupTable {
-    data: Vec<(f64, f64)>,
+    pub data: Vec<(f64, f64)>,
 }
 
 impl LookupTable {
@@ -20,7 +20,7 @@ impl LookupTable {
     }
 
     pub fn sample(&self, x: f64) -> f64 {
-        let (i0, i1) = self.indexes_straddling(x);
+        let (i0, i1) = self.indices_straddling(x);
         let v = &self.data;
         let x0 = v[i0].0;
         let y0 = v[i0].1;
@@ -29,7 +29,7 @@ impl LookupTable {
         y0 + (x - x0) * (y1 - y0) / (x1 - x0)
     }
 
-    fn indexes_straddling(&self, x: f64) -> (usize, usize) {
+    fn indices_straddling(&self, x: f64) -> (usize, usize) {
         if x <= self.data[0].0 {
             panic! {
                 "attempt to sample table at or below smallest tabulated point ({} <= {})",
@@ -65,13 +65,13 @@ mod tests {
     #[should_panic]
     fn lookup_table_panics_if_sampled_at_lower_bound() {
         let table = LookupTable::new(vec![(0.0, 0.1), (1.0, 0.2), (2.0, 0.3)]);
-        table.indexes_straddling(0.0);
+        table.indices_straddling(0.0);
     }
 
     #[test]
     fn lookup_table_does_not_panic_if_sampled_at_upper_bound() {
         let table = LookupTable::new(vec![(0.0, 0.1), (1.0, 0.2), (2.0, 0.3)]);
-        table.indexes_straddling(2.0);
+        table.indices_straddling(2.0);
     }
 
     #[test]
@@ -89,9 +89,9 @@ mod tests {
     #[test]
     fn lookup_table_gives_the_right_indexes_straddling() {
         let table = LookupTable::new(vec![(0.0, 0.1), (1.0, 0.2), (2.0, 0.3)]);
-        assert_eq!(table.indexes_straddling(0.5), (0, 1));
-        assert_eq!(table.indexes_straddling(1.0), (0, 1));
-        assert_eq!(table.indexes_straddling(1.5), (1, 2));
+        assert_eq!(table.indices_straddling(0.5), (0, 1));
+        assert_eq!(table.indices_straddling(1.0), (0, 1));
+        assert_eq!(table.indices_straddling(1.5), (1, 2));
     }
 
     #[test]
