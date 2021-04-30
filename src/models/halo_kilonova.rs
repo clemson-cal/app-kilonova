@@ -5,20 +5,6 @@ use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
 
-thread_local! {
-    static PRE: Vec<(f64, f64)> = GalacticModel::vertical_pressure_profile(&GalacticModel{g: 6.67e-8,
-        m_b: 3.377e43,
-        a_b: 8.98e20,
-        v_h: 1.923e7,
-        a_h: 9.26e22,
-        m_s: 1.538e44,
-        a_s: 1.461e22,
-        b_s: 1.790e21,
-        m_g: 5.434e43,
-        a_g: 1.461e22,
-        b_g: 7.035e23},1e22,1e20,1e18,1e0);
-}
-
 const UNIFORM_TEMPERATURE: f64 = 1e-3;
 
 /**
@@ -37,6 +23,20 @@ pub struct HaloKilonova {
     // this options is deprecated, it's implied by the galactic model
     #[serde(default, skip)]
     pub external_medium_density: f64,
+}
+
+thread_local! {
+    static PRE: Vec<(f64, f64)> = GalacticModel::vertical_pressure_profile(&GalacticModel{g: 6.67e-8,
+        m_b: 3.377e43,
+        a_b: 8.98e20,
+        v_h: 1.923e7,
+        a_h: 9.26e22,
+        m_s: 1.538e44,
+        a_s: 1.461e22,
+        b_s: 1.790e21,
+        m_g: 5.434e43,
+        a_g: 1.461e22,
+        b_g: 7.035e23},1e22,3e20,1e18,1e0); //r, zmax, dz, p
 }
 
 // ============================================================================

@@ -105,6 +105,14 @@ impl Hydrodynamics for NewtonianHydro {
         p.spherical_geometry_source_terms(coordinate.0, coordinate.1)
     }
 
+    fn gravitational_source_terms(&self, _p: Self::Primitive, _coordinate: (f64, f64)) -> Self::Conserved {
+        let gd = 0.0;
+        let gr = 0.0;
+        let gq = 0.0;
+        let ge = 0.0;
+        hydro_euler::euler_2d::Conserved(gd, gr, gq, ge)
+    }
+
     fn cfl_number(&self) -> f64 {
         self.cfl_number
     }

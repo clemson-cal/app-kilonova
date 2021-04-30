@@ -22,11 +22,11 @@ mesh:
   inner_excision_speed: 0.00
   outer_excision_speed: 0.00
   reference_radius: 1e18
-  num_polar_zones: 128
+  num_polar_zones: 256
   block_size: 4
 
 control:
-  final_time: 0.0
+  final_time: 1e10
   start_time: 0.0
   checkpoint_interval: 1e8
   output_directory: data

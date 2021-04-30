@@ -130,6 +130,12 @@ pub trait Hydrodynamics: 'static + Clone + Send {
     fn geometrical_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved;
 
     /**
+     * Return the gravitational source terms (conserved quantity per unit volume)
+     * for the given primitive state and r-theta coordinate.
+     */
+    fn gravitational_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved;
+
+    /**
      * Return the CFL number to be used
      */
     fn cfl_number(&self) -> f64;

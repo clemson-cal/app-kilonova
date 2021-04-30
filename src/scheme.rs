@@ -11,7 +11,6 @@ use crate::traits::{Conserved, Primitive, Hydrodynamics, InitialModel};
 
 
 
-
 // ============================================================================
 async fn try_advance_rk<H, M, C, P>(
     state: State<C>,
@@ -131,7 +130,8 @@ where
                     &p0,
                     &geometry.cell_centers,
                     &geometry.cell_volumes]
-                .apply_collect(|&p, &c, &dv| hydro.geometrical_source_terms(p, c) * dv);
+                //.apply_collect(|&p, &c, &dv| hydro.geometrical_source_terms(p, c) * dv);
+                .apply_collect(|&p, &c, &dv| hydro.geometrical_source_terms(p, c) * dv + hydro.gravitational_source_terms(p, c) * dv);
 
                 let du = ndarray::azip![
                     &sc,

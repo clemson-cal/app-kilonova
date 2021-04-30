@@ -3,6 +3,7 @@ use godunov_core::piecewise_linear;
 use godunov_core::runge_kutta::RungeKuttaOrder;
 use crate::physics::{AnyPrimitive, RiemannSolver, Direction, HydroErrorType, LIGHT_SPEED};
 use crate::traits::Hydrodynamics;
+use crate::galmod::GalacticModel;
 
 
 
@@ -135,6 +136,32 @@ impl Hydrodynamics for RelativisticHydro {
 
     fn geometrical_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved {
         p.spherical_geometry_source_terms(coordinate.0, coordinate.1, self.gamma_law_index) * LIGHT_SPEED
+    }
+
+    fn gravitational_source_terms(&self, p: Self::Primitive, coordinate: (f64, f64)) -> Self::Conserved {
+        let h0 = p.specific_enthalpy(self.gamma_law_index);
+        let gmod = GalacticModel {g: 6.67e-8,
+                                   m_b: 3.377e43,
+                                   a_b: 8.98e20,
+                                   v_h: 1.923e7,
+                                   a_h: 9.26e22,
+                                   m_s: 1.538e44,
+                                   a_s: 1.461e22,
+                                   b_s: 1.790e21,
+                                   m_g: 5.434e43,
+                                   a_g: 1.461e22,
+                                   b_g: 7.035e23,
+                                  };
+        let cosq = f64::cos(coordinate.1);
+        let sinq = f64::sin(coordinate.1);
+        let gz = gmod.g_field_z(1e22, coordinate.0*cosq + 1.5e20).total();
+        
+        let gd = 0.0;
+        let gr = p.lorentz_factor() * p.mass_density() * h0 * gz * cosq / LIGHT_SPEED / LIGHT_SPEED;
+        let gq = -p.lorentz_factor() * p.mass_density() * h0 * gz * sinq / LIGHT_SPEED / LIGHT_SPEED;
+        let ge = p.lorentz_factor() * p.mass_density() * h0 * gz * cosq / LIGHT_SPEED * (p.gamma_beta_1()*cosq - p.gamma_beta_2()*sinq);
+
+        hydro_srhd::srhd_2d::Conserved(gd, gr, gq, ge)
     }
 
     fn cfl_number(&self) -> f64 {
