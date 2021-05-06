@@ -1,5 +1,7 @@
 pub mod app;
+pub mod galmod;
 pub mod io;
+pub mod lookup_table;
 pub mod mesh;
 pub mod models;
 pub mod physics;

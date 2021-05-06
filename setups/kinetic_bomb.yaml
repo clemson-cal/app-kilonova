@@ -1,35 +1,34 @@
 hydro:
   relativistic:
     gamma_law_index: 1.333
-    plm_theta: 1.1
-    cfl_number: 0.2
+    plm_theta: 1.5
+    cfl_number: 0.3
     runge_kutta_order: RK2
     riemann_solver: HLLC
     adaptive_time_step: true
 
 model:
-  halo_kilonova:
-    altitude: 1e20
+  kinetic_bomb:
     external_medium_density: 1e-23
     launch_radius: 1e18
     shell_thickness: 1e18
     kinetic_energy: 1e51
     shell_mass: 2e32
-    radial_distance: 1e22
 
 mesh:
-  inner_radius: 1e17
-  outer_radius: 1e20
-  inner_excision_speed: 0.00
-  outer_excision_speed: 0.00
+  inner_radius: 1e18
+  outer_radius: 2e19
+  inner_excision_speed: 0.0
+  outer_excision_speed: 0.0
   reference_radius: 1e18
-  num_polar_zones: 256
-  block_size: 4
+  num_polar_zones: 1
+  num_radial_zones: 512
+  block_size: 512
 
 control:
-  final_time: 1e10
+  final_time: 1e9
   start_time: 0.0
-  checkpoint_interval: 1e8
+  checkpoint_interval: 1e7
   output_directory: data
-  num_threads: 16
+  num_threads: ~
   fold: 10

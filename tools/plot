@@ -154,7 +154,7 @@ def plot_two_dimensional(products, args):
 
     with timed('load plots'):
         for (x, z), c in zip(vertices, field):
-            cm = ax1.pcolormesh(x, z, c, vmin=vmin, vmax=vmax, edgecolors='none', lw=0.5, cmap=args.cmap)
+            cm = ax1.pcolormesh(x, z, c, vmin=vmin, vmax=vmax, edgecolors='none', lw=0.5, cmap=plt.get_cmap('magma'))
 
     if args.radius is not None:
         ax1.set_xlim(0, args.radius)
@@ -162,6 +162,8 @@ def plot_two_dimensional(products, args):
 
     ax1.set_xlabel(r'$x \ [\rm{cm}]$')
     ax1.set_ylabel(r'$z \ [\rm{cm}]$')
+    #ax1.set_xlim(0,4e18)
+    #ax1.set_ylim(-4e18,4e18)
     ax1.set_aspect('equal')
     fig.colorbar(cm)
     fig.subplots_adjust(left=0, right=1, top=0.9, bottom=0.05)
@@ -175,20 +177,26 @@ def plot_two_dimensional(products, args):
 def plot_radial_profile(products, args):
     fig = plt.figure(figsize=[9, 9])
     ax1 = fig.add_subplot(1, 1, 1)
-    field = args.field
     setup = next(iter(products.config['model']))
 
     j = args.theta_index or 0
     r = products.radial_profile.vertices
     q = products[(0,0)].polar_vertices
-    d = block_field(products.radial_profile[j], args.field)
+    d = block_field(products.radial_profile[j], 'rho')
+    s = block_field(products.radial_profile[j], 'scalar_density')
+    p = block_field(products.radial_profile[j], 'pre')
 
-    ax1.set_title(r'Setup: $\mathtt{{{}}}$    $\theta={:.2f}$   $t = {:.4}s$'.format(setup.replace('_', '-'), q[j], products.time))
-    ax1.set_ylabel(label_name(args))
-    ax1.plot(r, d, '-o', mfc='none')
+    ax1.set_title(f'1D Kinetic Bomb (time = {round(products.time/31536000, 2)} years)')
+    ax1.set_ylabel(r'$\rho$ [g/cm], $P$ [Ba]')
+    ax1.plot(r, d, lw=1, label=r'$\rho$ (density)', color='black')
+    ax1.plot(r, p, linestyle='--', lw=1, label=r'P (pressure)', color='black')
+    ax1.plot(r, s, lw=1, label='shell boundary', color='red')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
+    ax1.set_xlim(1e18,1e19)
+    ax1.set_ylim(1e-28, 1e-20)
     ax1.set_xlabel(r'$r \ \rm{[cm]}$')
+    plt.legend()
 
     return fig
 
@@ -208,15 +216,15 @@ def main():
     parser.add_argument('-tidx', '--theta_index', default=None, type=int)
     args = parser.parse_args()
 
-    filename = args.filenames[0]
-    products = load_products(filename)
+    for filename in args.filenames:
+        products = load_products(filename)
 
-    if args.theta_index is not None:
-        fig = plot_radial_profile(products, args)
-    elif products.config['mesh']['num_polar_zones'] > 1:
-        fig = plot_two_dimensional(products, args)
-    else:
-        fig = plot_radial_profile(products, args)
+        if args.theta_index is not None:
+            fig = plot_radial_profile(products, args)
+        elif products.config['mesh']['num_polar_zones'] > 1:
+            fig = plot_two_dimensional(products, args)
+        else:
+            fig = plot_radial_profile(products, args)
 
     with timed('show'):
         if args.hardcopy or args.output is not None:

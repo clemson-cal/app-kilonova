@@ -1,67 +1,82 @@
-use crate::galmod::GalacticModel;
-use crate::physics::{AnyPrimitive, LIGHT_SPEED};
-use crate::traits::InitialModel;
-use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
+use serde::{Serialize, Deserialize};
+use crate::traits::InitialModel;
+use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 
 const UNIFORM_TEMPERATURE: f64 = 1e-3;
+
+
+
 
 /**
  * Explosion in a horizontally stratified external medium
  */
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct HaloKilonova {
-    pub altitude: f64,
+pub struct KineticBomb {
+    pub external_medium_density: f64,
     pub launch_radius: f64,
     pub shell_thickness: f64,
     pub kinetic_energy: f64,
     pub shell_mass: f64,
-    pub radial_distance: f64,
-
-    // this options is deprecated, it's implied by the galactic model
-    #[serde(default, skip)]
-    pub external_medium_density: f64,
 }
 
+
+
+
 // ============================================================================
-impl HaloKilonova {
+impl KineticBomb {
+
+
+    /**
+     * Return the radial extent (in cm) of the shell at time t.
+     */
     fn shell_extent(&self, t: f64) -> std::ops::Range<f64> {
         let r_outer_shell_surface = self.launch_radius + self.shell_velocity() * t;
-        let r_inner_shell_surface =
-            self.launch_radius + self.shell_velocity() * (t - self.shell_duration());
+        let r_inner_shell_surface = self.launch_radius + self.shell_velocity() * (t - self.shell_duration());
         r_inner_shell_surface..r_outer_shell_surface
     }
 
+
+    /**
+     * The velocity (in cm/s) the shell moves at (computed from the shell mass
+     * and kinetic energy). Note this is expression assumes the shell is
+     * sub-relativistic.
+     */
     fn shell_velocity(&self) -> f64 {
         (2.0 * self.kinetic_energy / self.shell_mass).sqrt()
     }
 
+
+    /**
+     * The duration (in s) during which the shell is emerging from the inner
+     * boundary.
+     */
     fn shell_duration(&self) -> f64 {
         self.shell_thickness / self.shell_velocity()
     }
 }
 
+
+
+
 // ============================================================================
-impl InitialModel for HaloKilonova {
+impl InitialModel for KineticBomb {
+
     fn validate(&self) -> anyhow::Result<()> {
         if self.shell_velocity() > 0.25 * LIGHT_SPEED {
-            anyhow::bail! {"
-            The shell is moving faster (v/c = {}) than 0.25 c, but
-            this problem assumes Newtonian expressions for the
-            kinetic energy. Consider reducing the kinetic energy or
-            increasing the shell mass.", self.shell_velocity() / LIGHT_SPEED}
-        // } else if rmax < explosion_alititude {
-        //     anyhow::bail!{"domain would intersect the galactic midplane!"}
+            anyhow::bail!{"
+             The shell is moving faster (v/c = {}) than 0.25 c, but
+             this problem assumes Newtonian expressions for the
+             kinetic energy. Consider reducing the kinetic energy or
+             increasing the shell mass.", self.shell_velocity() / LIGHT_SPEED}
         } else {
             Ok(())
         }
     }
 
     fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AnyPrimitive {
-        let (r, q) = coordinate;
-        let z = r * q.cos() + self.altitude;
-        let p0 = 1e-3; // PRESSURE AT BASE OF ATMOSPHERE -- SET THIS APPROPRIATELY
+        let (r, _q) = coordinate;
 
         if self.shell_extent(t).contains(&r) {
             let mdot = self.shell_mass / self.shell_duration();
@@ -74,36 +89,18 @@ impl InitialModel for HaloKilonova {
                 velocity_q: 0.0,
                 mass_density: d,
                 gas_pressure: p,
-            }
-        } else if z > 0.0 {
-            let model = GalacticModel {
-                g: 6.67e-8,
-                m_b: 3.377e43,
-                a_b: 8.98e20,
-                v_h: 1.923e7,
-                a_h: 9.26e22,
-                m_s: 1.538e44,
-                a_s: 1.461e22,
-                b_s: 1.790e21,
-                m_g: 5.434e43,
-                a_g: 1.461e22,
-                b_g: 7.035e23,
-            };
-            let d = model.density(self.radial_distance, z).thin_disk;
-            let p = model
-                .vertical_pressure_profile(r, z, z * 1e-3, p0)
-                .last()
-                .unwrap()
-                .1;
+            }            
+        } else {
+            let d0 = self.external_medium_density;
+            let d = d0 * (r / self.launch_radius).powi(2);
+            let p = d * UNIFORM_TEMPERATURE;
 
             AnyPrimitive {
                 velocity_r: 0.0,
                 velocity_q: 0.0,
                 mass_density: d,
                 gas_pressure: p,
-            }
-        } else {
-            panic!("the halo kilonova setup requires z > 0.0");
+            }            
         }
     }
 
