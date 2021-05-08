@@ -18,6 +18,11 @@ pub enum Error {
     TableTooSmall,
 }
 
+/// Encapsulates the logic to read and sample a tabulated function of a single
+/// variable. The tabulated function domain is a vector of `NUM_COLS - 1`
+/// floats. Sampling the function returns a statically allocated array of
+/// length `NUM_COLS`, i.e. the 0th element is the sample coordinate itself.
+///
 pub struct LookupTable<const NUM_COLS: usize> {
     rows: Vec<[f64; NUM_COLS]>,
 }
