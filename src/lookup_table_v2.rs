@@ -20,7 +20,7 @@ fn read_table<const NUM_ROWS: usize>(
 }
 
 pub struct LookupTable<const NUM_ROWS: usize> {
-    pub(crate) rows: Vec<[f64; NUM_ROWS]>,
+    rows: Vec<[f64; NUM_ROWS]>,
 }
 
 impl<const NUM_ROWS: usize> LookupTable<NUM_ROWS> {
