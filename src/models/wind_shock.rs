@@ -1,3 +1,4 @@
+use crate::ascii_lookup::LookupTable;
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
@@ -39,12 +40,25 @@ pub struct WindShock {
     pub shock_location: f64,
 
     #[serde(default)]
+    /// Initial data _table
+    pub initial_data_table: Option<String>,
+
+    #[serde(default)]
     /// Flare time
     pub flare_time: f64,
 
     #[serde(default)]
     /// Flare duration
     pub flare_duration: f64,
+}
+
+// impl WindShock {
+    // thread_local! {
+        // static DAT: Vec<[f64; 4]> = LookupTable::<4>::from_ascii(WindShock.initial_data_table);
+    // }
+// }
+thread_local! {
+    static DAT: Vec<[f64; 4]> = LookupTable::<4>::from_ascii();
 }
 
 // ============================================================================
@@ -61,6 +75,8 @@ impl InitialModel for WindShock {
         // v: beta-c
         // rho: comoving rest-mass density
         // Mdot = 4 pi r^2 rho u c
+        // PRE.with(|u|{
+        // let u = LookupTable{data: u.to_vec()}.sample(r);
 
         if (t >= self.flare_time) & (t < (self.flare_time + self.flare_duration)) {
             let r = coordinate.0;
@@ -105,23 +121,25 @@ impl InitialModel for WindShock {
             }
         } else {
             let r = coordinate.0;
-            let u = if r < self.shock_location {
-                self.wind_gamma_beta
-            } else {
-                self.post_shock_gamma_beta
-            };
-            let rho = self.wind_mass_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
-            let p = if r < self.shock_location {
-                self.wind_pressure
-            } else {
-                self.post_shock_pressure
-            };
-            AnyPrimitive {
-                velocity_r: u,
-                velocity_q: 0.0,
-                mass_density: rho,
-                gas_pressure: p,
-            }
+            DAT.with(|f| {
+                let four_velocity = LookupTable{rows: f.to_vec()}.sample(r)[1];
+                let mass_density = LookupTable{rows: f.to_vec()}.sample(r)[2];
+                let sp_enthalpy = LookupTable{rows: f.to_vec()}.sample(r)[3];
+                // println!("{}", four_velocity);
+
+                let u = four_velocity;
+                let rho = mass_density;
+                let h = sp_enthalpy;
+                let mu = h - LIGHT_SPEED * LIGHT_SPEED;
+                let e = mu / (4.0 / 3.0);
+                let p = rho * e * (4.0 / 3.0 - 1.0);
+                AnyPrimitive {
+                    velocity_r: u,
+                    velocity_q: 0.0,
+                    mass_density: rho,
+                    gas_pressure: p,
+                }
+            })
         }
     }
 

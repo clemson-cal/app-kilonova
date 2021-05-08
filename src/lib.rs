@@ -10,3 +10,4 @@ pub mod scheme;
 pub mod state;
 pub mod tasks;
 pub mod traits;
+pub mod ascii_lookup;
