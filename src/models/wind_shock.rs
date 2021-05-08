@@ -52,11 +52,6 @@ pub struct WindShock {
     pub flare_duration: f64,
 }
 
-// impl WindShock {
-    // thread_local! {
-        // static DAT: Vec<[f64; 4]> = LookupTable::<4>::from_ascii(WindShock.initial_data_table);
-    // }
-// }
 thread_local! {
     static DAT: Vec<[f64; 4]> = LookupTable::<4>::from_ascii();
 }
@@ -122,10 +117,9 @@ impl InitialModel for WindShock {
         } else {
             let r = coordinate.0;
             DAT.with(|f| {
-                let four_velocity = LookupTable{rows: f.to_vec()}.sample(r)[1];
-                let mass_density = LookupTable{rows: f.to_vec()}.sample(r)[2];
-                let sp_enthalpy = LookupTable{rows: f.to_vec()}.sample(r)[3];
-                // println!("{}", four_velocity);
+                let four_velocity = LookupTable { rows: f.to_vec() }.sample(r)[1];
+                let mass_density = LookupTable { rows: f.to_vec() }.sample(r)[2];
+                let sp_enthalpy = LookupTable { rows: f.to_vec() }.sample(r)[3];
 
                 let u = four_velocity;
                 let rho = mass_density;

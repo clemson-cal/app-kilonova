@@ -102,15 +102,14 @@ impl<const NUM_ROWS: usize> LookupTable<NUM_ROWS> {
         }
     }
 
-    pub fn from_ascii() -> Vec<[f64;4]> {
+    pub fn from_ascii() -> Vec<[f64; 4]> {
         let file = "wind.dat";
         let contents = std::fs::read_to_string(file).unwrap();
         read_table(contents).unwrap()
-        // LookupTable::from_rows(rows)
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn _main() -> Result<(), Box<dyn std::error::Error>> {
     let contents = std::fs::read_to_string("./wind.dat")?;
     let rows: Vec<[_; 4]> = read_table(contents)?;
     let _table = LookupTable::from_rows(rows);
