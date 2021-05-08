@@ -1,7 +1,7 @@
 use std::num::ParseFloatError;
 
 fn read_table<const NUM_ROWS: usize>(
-    contents: String,
+    contents: &str,
 ) -> Result<Vec<[f64; NUM_ROWS]>, ParseFloatError> {
     let values: Result<Vec<_>, _> = contents.split_whitespace().map(|x| x.parse()).collect();
     let result = values?
@@ -42,6 +42,13 @@ impl<const NUM_ROWS: usize> LookupTable<NUM_ROWS> {
             x_prev = x;
         }
         Self { rows }
+    }
+
+    pub fn from_ascii(filename: &str) -> Self {
+        let contents = std::fs::read_to_string(filename).unwrap();
+        Self {
+            rows: read_table(&contents).unwrap(),
+        }
     }
 
     /// Return a fixed-length array of data at the given independent variable
@@ -101,18 +108,4 @@ impl<const NUM_ROWS: usize> LookupTable<NUM_ROWS> {
             std::cmp::Ordering::Equal
         }
     }
-
-    pub fn from_ascii() -> Vec<[f64; 4]> {
-        let file = "wind.dat";
-        let contents = std::fs::read_to_string(file).unwrap();
-        read_table(contents).unwrap()
-    }
-}
-
-fn _main() -> Result<(), Box<dyn std::error::Error>> {
-    let contents = std::fs::read_to_string("./wind.dat")?;
-    let rows: Vec<[_; 4]> = read_table(contents)?;
-    let _table = LookupTable::from_rows(rows);
-
-    Ok(())
 }

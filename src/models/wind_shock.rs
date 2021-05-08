@@ -1,4 +1,4 @@
-use crate::ascii_lookup::LookupTable;
+// use crate::ascii_lookup::LookupTable;
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
@@ -52,9 +52,9 @@ pub struct WindShock {
     pub flare_duration: f64,
 }
 
-thread_local! {
-    static DAT: Vec<[f64; 4]> = LookupTable::<4>::from_ascii();
-}
+// thread_local! {
+//     static DAT: Vec<[f64; 4]> = LookupTable::<4>::from_ascii();
+// }
 
 // ============================================================================
 impl InitialModel for WindShock {
@@ -115,25 +115,26 @@ impl InitialModel for WindShock {
                 gas_pressure: p,
             }
         } else {
-            let r = coordinate.0;
-            DAT.with(|f| {
-                let four_velocity = LookupTable { rows: f.to_vec() }.sample(r)[1];
-                let mass_density = LookupTable { rows: f.to_vec() }.sample(r)[2];
-                let sp_enthalpy = LookupTable { rows: f.to_vec() }.sample(r)[3];
+            todo!()
+            // let r = coordinate.0;
+            // DAT.with(|f| {
+            //     let four_velocity = LookupTable { rows: f.to_vec() }.sample(r)[1];
+            //     let mass_density = LookupTable { rows: f.to_vec() }.sample(r)[2];
+            //     let sp_enthalpy = LookupTable { rows: f.to_vec() }.sample(r)[3];
 
-                let u = four_velocity;
-                let rho = mass_density;
-                let h = sp_enthalpy;
-                let mu = h - LIGHT_SPEED * LIGHT_SPEED;
-                let e = mu / (4.0 / 3.0);
-                let p = rho * e * (4.0 / 3.0 - 1.0);
-                AnyPrimitive {
-                    velocity_r: u,
-                    velocity_q: 0.0,
-                    mass_density: rho,
-                    gas_pressure: p,
-                }
-            })
+            //     let u = four_velocity;
+            //     let rho = mass_density;
+            //     let h = sp_enthalpy;
+            //     let mu = h - LIGHT_SPEED * LIGHT_SPEED;
+            //     let e = mu / (4.0 / 3.0);
+            //     let p = rho * e * (4.0 / 3.0 - 1.0);
+            //     AnyPrimitive {
+            //         velocity_r: u,
+            //         velocity_q: 0.0,
+            //         mass_density: rho,
+            //         gas_pressure: p,
+            //     }
+            // })
         }
     }
 
