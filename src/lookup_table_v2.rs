@@ -128,3 +128,47 @@ impl<const NUM_COLS: usize> LookupTable<NUM_COLS> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn lookup_table_panics_if_sampled_at_lower_bound() {
+        let table = LookupTable::from_rows(vec![[0.0, 0.1], [1.0, 0.2], [2.0, 0.3]]).unwrap();
+        table.indexes_straddling(0.0);
+    }
+
+    #[test]
+    fn lookup_table_does_not_panic_if_sampled_at_upper_bound() {
+        let table = LookupTable::from_rows(vec![[0.0, 0.1], [1.0, 0.2], [2.0, 0.3]]).unwrap();
+        table.indexes_straddling(2.0);
+    }
+
+    #[test]
+    fn lookup_table_panics_if_input_is_not_increasing() {
+        assert!(LookupTable::from_rows(vec![[1.0, 0.1], [1.0, 0.2], [2.0, 0.3]]).is_err())
+    }
+
+    #[test]
+    fn lookup_table_panics_if_input_is_not_ordered() {
+        assert!(LookupTable::from_rows(vec![[1.0, 0.1], [0.0, 0.2], [2.0, 0.3]]).is_err())
+    }
+
+    #[test]
+    fn lookup_table_gives_the_right_indexes_straddling() {
+        let table = LookupTable::from_rows(vec![[0.0, 0.1], [1.0, 0.2], [2.0, 0.3]]).unwrap();
+        assert_eq!(table.indexes_straddling(0.5), (0, 1));
+        assert_eq!(table.indexes_straddling(1.0), (0, 1));
+        assert_eq!(table.indexes_straddling(1.5), (1, 2));
+    }
+
+    #[test]
+    fn lookup_table_can_be_sampled_at_tabulated_points() {
+        let table = LookupTable::from_rows(vec![[0.0, 0.1], [1.0, 0.2], [2.0, 0.3]]).unwrap();
+        assert!(f64::abs(table.sample(0.5)[1] - 0.15) < 1e-10);
+        assert!(f64::abs(table.sample(1.0)[1] - 0.20) < 1e-10);
+        assert!(f64::abs(table.sample(1.5)[1] - 0.25) < 1e-10);
+    }
+}
