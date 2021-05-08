@@ -1,4 +1,4 @@
-// use crate::ascii_lookup::LookupTable;
+use crate::lookup_table_v2::LookupTable;
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
@@ -54,15 +54,13 @@ pub struct WindShock {
     pub initial_data_table: Option<String>,
 }
 
-// thread_local! {
-//     static DAT: Vec<[f64; 4]> = LookupTable::<4>::from_ascii();
-// }
-
 // ============================================================================
 impl InitialModel for WindShock {
     fn validate(&self) -> anyhow::Result<()> {
         if self.wind_gamma_beta < 0.0 {
             anyhow::bail!("the wind four-velocity must be positive")
+        } else if let Some(initial_data_table) = &self.initial_data_table {
+            LookupTable::<4>::from_ascii_file(initial_data_table)?;
         }
         Ok(())
     }
