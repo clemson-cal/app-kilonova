@@ -23,6 +23,7 @@ pub enum Error {
 /// floats. Sampling the function returns a statically allocated array of
 /// length `NUM_COLS`, i.e. the 0th element is the sample coordinate itself.
 ///
+#[derive(Clone)]
 pub struct LookupTable<const NUM_COLS: usize> {
     rows: Vec<[f64; NUM_COLS]>,
 }
