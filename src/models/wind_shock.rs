@@ -132,7 +132,7 @@ impl InitialModel for WindShock {
             let u = sample[1];
             let d = sample[2];
             let h = sample[3];
-            let mu = h - LIGHT_SPEED * LIGHT_SPEED;
+            let mu = h / LIGHT_SPEED / LIGHT_SPEED - 1.0;
             let e = mu / (4.0 / 3.0);
             let p = d * e * (4.0 / 3.0 - 1.0);
             AnyPrimitive {
