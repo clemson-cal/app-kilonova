@@ -3,6 +3,7 @@ use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
+use std::cell::RefCell;
 
 static UNIFORM_TEMPERATURE: f64 = 1e-6;
 
@@ -52,6 +53,19 @@ pub struct WindShock {
     /// the above parameters are ignored, except for the ones starting with
     /// `flare`.
     pub initial_data_table: Option<String>,
+
+    #[serde(skip)]
+    pub lookup_table: RefCell<Option<LookupTable<4>>>,
+}
+
+impl WindShock {
+    fn require_lookup_table(&self) {
+        if self.lookup_table.borrow().is_none() {
+            let filename = self.initial_data_table.as_ref().unwrap();
+            let table = LookupTable::<4>::from_ascii_file(&filename).unwrap();
+            *self.lookup_table.borrow_mut().as_mut().unwrap() = table;
+        }
+    }
 }
 
 // ============================================================================
@@ -110,27 +124,25 @@ impl InitialModel for WindShock {
                 mass_density: rho,
                 gas_pressure: p,
             }
+        } else if self.initial_data_table.is_some() {
+            self.require_lookup_table();
+            let table_borrow = self.lookup_table.borrow();
+            let table = table_borrow.as_ref().unwrap();
+            let sample = table.sample(coordinate.0);
+            let u = sample[1];
+            let d = sample[2];
+            let h = sample[3];
+            let mu = h - LIGHT_SPEED * LIGHT_SPEED;
+            let e = mu / (4.0 / 3.0);
+            let p = d * e * (4.0 / 3.0 - 1.0);
+            AnyPrimitive {
+                velocity_r: u,
+                velocity_q: 0.0,
+                mass_density: d,
+                gas_pressure: p,
+            }
         } else {
-            todo!()
-            // let r = coordinate.0;
-            // DAT.with(|f| {
-            //     let four_velocity = LookupTable { rows: f.to_vec() }.sample(r)[1];
-            //     let mass_density = LookupTable { rows: f.to_vec() }.sample(r)[2];
-            //     let sp_enthalpy = LookupTable { rows: f.to_vec() }.sample(r)[3];
-
-            //     let u = four_velocity;
-            //     let rho = mass_density;
-            //     let h = sp_enthalpy;
-            //     let mu = h - LIGHT_SPEED * LIGHT_SPEED;
-            //     let e = mu / (4.0 / 3.0);
-            //     let p = rho * e * (4.0 / 3.0 - 1.0);
-            //     AnyPrimitive {
-            //         velocity_r: u,
-            //         velocity_q: 0.0,
-            //         mass_density: rho,
-            //         gas_pressure: p,
-            //     }
-            // })
+            todo!("restore evaluation of wind profile which does not rely on a table")
         }
     }
 
