@@ -6,22 +6,20 @@ use std::f64::consts::PI;
 
 static UNIFORM_TEMPERATURE: f64 = 1e-6;
 
-/**
- * Jet propagating through a kilonova debris cloud and surrounding relativistic
- * envelop
- */
+/// Jet propagating through a kilonova debris cloud and surrounding
+/// relativistic envelop
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WindShock {
     /// Rate of outflow of the wind
     pub wind_mass_outflow_rate: f64,
 
-    #[serde(default)]
     /// Rate of outflow of the flare
+    #[serde(default)]
     pub flare_outflow_rate: f64,
 
-    #[serde(default)]
     /// Four velocity of flare
+    #[serde(default)]
     pub flare_gamma_beta: f64,
 
     /// Four velocity of wind
@@ -39,16 +37,16 @@ pub struct WindShock {
     /// Shock location coordinate
     pub shock_location: f64,
 
-    #[serde(default)]
     /// Initial data _table
+    #[serde(default)]
     pub initial_data_table: Option<String>,
 
-    #[serde(default)]
     /// Flare time
+    #[serde(default)]
     pub flare_time: f64,
 
-    #[serde(default)]
     /// Flare duration
+    #[serde(default)]
     pub flare_duration: f64,
 }
 
@@ -70,8 +68,6 @@ impl InitialModel for WindShock {
         // v: beta-c
         // rho: comoving rest-mass density
         // Mdot = 4 pi r^2 rho u c
-        // PRE.with(|u|{
-        // let u = LookupTable{data: u.to_vec()}.sample(r);
 
         if (t >= self.flare_time) & (t < (self.flare_time + self.flare_duration)) {
             let r = coordinate.0;
@@ -86,8 +82,7 @@ impl InitialModel for WindShock {
                 mass_density: rho,
                 gas_pressure: p,
             }
-        } else if (t >= self.flare_time + 3.0) & (t < (self.flare_time + 3.0 + self.flare_duration))
-        {
+        } else if (t >= self.flare_time + 3.0) & (t < (self.flare_time + 3.0 + self.flare_duration)) {
             let r = coordinate.0;
             let u = self.flare_gamma_beta;
             let n = self.flare_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
@@ -100,8 +95,7 @@ impl InitialModel for WindShock {
                 mass_density: rho,
                 gas_pressure: p,
             }
-        } else if (t >= self.flare_time + 6.0) & (t < (self.flare_time + 6.0 + self.flare_duration))
-        {
+        } else if (t >= self.flare_time + 6.0) & (t < (self.flare_time + 6.0 + self.flare_duration)) {
             let r = coordinate.0;
             let u = self.flare_gamma_beta;
             let n = self.flare_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
