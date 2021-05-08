@@ -73,7 +73,7 @@ impl InitialModel for WindShock {
         // rho: comoving rest-mass density
         // Mdot = 4 pi r^2 rho u c
 
-        if (t >= self.flare_time) & (t < (self.flare_time + self.flare_duration)) {
+        if t >= self.flare_time && t < self.flare_time + self.flare_duration {
             let r = coordinate.0;
             let u = self.flare_gamma_beta;
             let n = self.flare_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
@@ -86,7 +86,7 @@ impl InitialModel for WindShock {
                 mass_density: rho,
                 gas_pressure: p,
             }
-        } else if (t >= self.flare_time + 3.0) & (t < (self.flare_time + 3.0 + self.flare_duration)) {
+        } else if t >= self.flare_time + 3.0 && t < self.flare_time + 3.0 + self.flare_duration {
             let r = coordinate.0;
             let u = self.flare_gamma_beta;
             let n = self.flare_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
@@ -99,7 +99,7 @@ impl InitialModel for WindShock {
                 mass_density: rho,
                 gas_pressure: p,
             }
-        } else if (t >= self.flare_time + 6.0) & (t < (self.flare_time + 6.0 + self.flare_duration)) {
+        } else if t >= self.flare_time + 6.0 && t < self.flare_time + 6.0 + self.flare_duration {
             let r = coordinate.0;
             let u = self.flare_gamma_beta;
             let n = self.flare_outflow_rate / (4.0 * PI * r * r * u * LIGHT_SPEED);
