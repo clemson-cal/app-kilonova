@@ -14,19 +14,8 @@ pub struct WindShock {
     /// Rate of outflow of the wind
     pub wind_mass_outflow_rate: f64,
 
-    /// Rate of outflow of the flare
-    #[serde(default)]
-    pub flare_outflow_rate: f64,
-
-    /// Four velocity of flare
-    #[serde(default)]
-    pub flare_gamma_beta: f64,
-
     /// Four velocity of wind
     pub wind_gamma_beta: f64,
-
-    /// Four velocity of wind after shock
-    pub post_shock_gamma_beta: f64,
 
     /// Wind pressure
     pub wind_pressure: f64,
@@ -37,9 +26,16 @@ pub struct WindShock {
     /// Shock location coordinate
     pub shock_location: f64,
 
-    /// Initial data _table
+    /// Four velocity of wind after shock
+    pub post_shock_gamma_beta: f64,
+
+    /// Rate of outflow of the flare
     #[serde(default)]
-    pub initial_data_table: Option<String>,
+    pub flare_outflow_rate: f64,
+
+    /// Four velocity of flare
+    #[serde(default)]
+    pub flare_gamma_beta: f64,
 
     /// Flare time
     #[serde(default)]
@@ -48,6 +44,14 @@ pub struct WindShock {
     /// Flare duration
     #[serde(default)]
     pub flare_duration: f64,
+
+    /// Initial data table. This field is optional. If it's given a value, it
+    /// must be the relative path to an ASCII table of initial data for a
+    /// wind. The table columns are expected to be (radius [cm], gamma-beta,
+    /// mass density [g / cm^3], specific enthalpy [cm^2 / s^2]). If given,
+    /// the above parameters are ignored, except for the ones starting with
+    /// `flare`.
+    pub initial_data_table: Option<String>,
 }
 
 // thread_local! {
