@@ -384,11 +384,11 @@ impl App {
 
     pub fn presets() -> Vec<(&'static str, &'static str)> {
         vec![
-            ("jet_in_cloud", include_str!("../setups/jet_in_cloud.yaml")),
-            ("jet_in_star", include_str!("../setups/jet_in_star.yaml")),
-            ("halo_kilonova", include_str!("../setups/halo_kilonova.yaml")),
-            ("wind_shock", include_str!("../setups/wind_shock.yaml")),
-            ("kinetic_bomb", include_str!("../setups/kinetic_bomb.yaml")),
+            ("jet_in_cloud", include_str!("setups/jet_in_cloud.yaml")),
+            ("jet_in_star", include_str!("setups/jet_in_star.yaml")),
+            ("halo_kilonova", include_str!("setups/halo_kilonova.yaml")),
+            ("wind_shock", include_str!("setups/wind_shock.yaml")),
+            ("kinetic_bomb", include_str!("setups/kinetic_bomb.yaml")),
         ]
     }
 }

@@ -4,6 +4,7 @@
 //!
 
 use std::f64::consts::PI;
+use std::fmt;
 
 /// Galactic model parameters, including the gravitational constant. Here, slr
 /// stands for solar masses.
@@ -152,21 +153,21 @@ impl GalacticModel {
             a_b,
             v_h,
             a_h,
-            m_s: _,
+            m_s,
             a_s,
             b_s,
-            m_g: _,
+            m_g,
             a_g,
             b_g,
         } = self.clone();
 
         let bulge = -g * m_b * z / (r * r + z * z + a_b * a_b).powf(1.5);
 
-        let thin_disk = -g * m_b * z * (a_s + (z * z + b_s * b_s).sqrt())
+        let thin_disk = -g * m_g * z * (a_s + (z * z + b_s * b_s).sqrt())
             / (r * r + (a_s + (z * z + b_s * b_s).sqrt()).powi(2)).powf(1.5)
             / (z * z + b_s * b_s).sqrt();
 
-        let thick_disk = -g * m_b * z * (a_g + (z * z + b_g * b_g).sqrt())
+        let thick_disk = -g * m_s * z * (a_g + (z * z + b_g * b_g).sqrt())
             / (r * r + (a_g + (z * z + b_g * b_g).sqrt()).powi(2)).powf(3.0 / 2.0)
             / (z * z + b_g * b_g).sqrt();
 

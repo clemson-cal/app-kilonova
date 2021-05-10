@@ -19,10 +19,6 @@ pub struct HaloKilonova {
     pub kinetic_energy: f64,
     pub shell_mass: f64,
     pub radial_distance: f64,
-
-    // this options is deprecated, it's implied by the galactic model
-    #[serde(default, skip)]
-    pub external_medium_density: f64,
 }
 
 thread_local! {
@@ -36,7 +32,7 @@ thread_local! {
         b_s: 1.790e21,
         m_g: 5.434e43,
         a_g: 1.461e22,
-        b_g: 7.035e23},1e22,3e20,1e18,1e0); //r, zmax, dz, p
+        b_g: 7.035e23},1e22,3e20,1e16,1e-12); //r, zmax, dz, p
 }
 
 // ============================================================================
