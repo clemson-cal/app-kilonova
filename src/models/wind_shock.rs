@@ -1,9 +1,9 @@
+use std::sync::{Arc, Mutex};
 use crate::lookup_table_v2::LookupTable;
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::PI;
-use std::cell::RefCell;
 
 static UNIFORM_TEMPERATURE: f64 = 1e-6;
 
@@ -55,15 +55,17 @@ pub struct WindShock {
     pub initial_data_table: Option<String>,
 
     #[serde(skip)]
-    pub lookup_table: RefCell<Option<LookupTable<4>>>,
+    pub lookup_table: Arc<Mutex<Option<LookupTable<4>>>>,
 }
 
 impl WindShock {
     fn require_lookup_table(&self) {
-        if self.lookup_table.borrow().is_none() {
+        let mut self_table = self.lookup_table.as_ref().lock().unwrap();
+
+        if self_table.is_none() {
             let filename = self.initial_data_table.as_ref().unwrap();
             let table = LookupTable::<4>::from_ascii_file(&filename).unwrap();
-            *self.lookup_table.borrow_mut() = Some(table);
+            *self_table = Some(table);
         }
     }
 }
@@ -126,7 +128,7 @@ impl InitialModel for WindShock {
             }
         } else if self.initial_data_table.is_some() {
             self.require_lookup_table();
-            let table_borrow = self.lookup_table.borrow();
+            let table_borrow = self.lookup_table.as_ref().lock().unwrap();
             let table = table_borrow.as_ref().unwrap();
             let sample = table.sample(coordinate.0);
             let u = sample[1];
