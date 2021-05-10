@@ -2,31 +2,37 @@ hydro:
   relativistic:
     gamma_law_index: 1.333
     plm_theta: 1.5
-    cfl_number: 0.4
+    cfl_number: 0.1
     runge_kutta_order: RK2
     riemann_solver: HLLC
 
 model:
   wind_shock:
     wind_mass_outflow_rate: 1e20 # this is ~1e-6 solar masses per year
-    wind_gamma_beta: 2.0
-    post_shock_gamma_beta: 0.1
-    shock_location: 2e8
+    flare_outflow_rate: 1e33
+    flare_gamma_beta: 1e2
+    wind_gamma_beta: 1e2
+    post_shock_gamma_beta: 1e-2
+    wind_pressure: 1e-17
+    post_shock_pressure: 1e-9
+    shock_location: 5e8
+    flare_time: 1.0 #start of the flare.
+    flare_duration: 0.01 #flare will taper off linearly from start time till start time + duration
 
 mesh:
-  inner_radius: 1e8
-  outer_radius: 1e10
+  inner_radius: 5e8
+  outer_radius: 50e9
   inner_excision_speed: 0.0
   outer_excision_speed: 0.0
-  reference_radius: 1e8
+  reference_radius: 2e8
   num_polar_zones: 1
-  num_radial_zones: 512 # per decade
-  block_size: 128 # num zones in a block (parallelization unit)
+  num_radial_zones: 32 # per decade
+  block_size: 32 # num zones in a block (parallelization unit)
 
 control:
-  final_time: 1.0
+  final_time: 8.0
   start_time: 0.0
-  checkpoint_interval: 0.1
+  checkpoint_interval: 0.05
   fold: 10
   num_threads: 4
   output_directory: data

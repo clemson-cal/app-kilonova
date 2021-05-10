@@ -1,6 +1,7 @@
 /target
 /data
 /local
+/Movies
 *.cbor
 *.pk
 *.pyc

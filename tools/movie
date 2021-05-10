@@ -124,6 +124,15 @@ def variable(args):
     else:
         return args.field
 
+def label_name(args):
+    if args.field == 'rho' and args.log:
+        return r'$\log_{{10}}(\rho) \ [\rm{{g/cm^3}}]$'
+    elif args.field == 'temperature' and args.log:
+        return 'T [K]'
+    elif args.field == 'gamma_beta' and args.log:
+        return r'$\Gamma \beta$'
+    else:
+        return args.field
 
 def plot_two_dimensional(products, fig, ax1, cbaxes, args):
     vmin, vmax = eval(args.range)
@@ -146,7 +155,28 @@ def plot_two_dimensional(products, fig, ax1, cbaxes, args):
     fig.suptitle(r'Setup: $\mathtt{{{}}}$   {}   $t = {:.4}s$'.format(setup.replace('_', '-'), variable(args), products.time))
     return fig
 
-def plot_radial_profile(products,fig, ax1, args):
+def plot_radial_profile(products, fig, ax1, args):
+    #fig = plt.figure(figsize=[9, 9])
+    #ax1 = fig.add_subplot(1, 1, 1)
+    field = args.field
+    setup = next(iter(products.config['model']))
+
+    j = args.theta_index or 0
+    r = products.radial_profile.vertices
+    q = products[(0,0)].polar_vertices
+    d = block_field(products.radial_profile[j], args.field)
+
+    ax1.set_title(r'Setup: $\mathtt{{{}}}$    $\theta={:.2f}$   $t = {:.4}s$'.format(setup.replace('_', '-'), q[j], products.time))
+    ax1.set_ylabel(label_name(args))
+    ax1.plot(r, d, '-o', mfc='none')
+    ax1.set_xscale('log')
+    ax1.set_yscale('log')
+    ax1.set_xlim([1e8,4e10])
+    ax1.set_ylim([8e-14,2e-9])
+    ax1.set_xlabel(r'$r \ \rm{[cm]}$')
+
+    return fig
+'''def plot_radial_profile(products,fig, ax1, args):
     field = args.field 
     
     if args.theta_index is None:
@@ -171,7 +201,7 @@ def plot_radial_profile(products,fig, ax1, args):
     ax1.set_yscale('log')
     ax1.set_xlabel(r'$r \ \rm{[cm]}$')
     return fig
-
+'''
 
 
 def main():
@@ -205,7 +235,7 @@ def main():
     def init_mesh():
         if args.theta_index is not None:
             init_fig = plot_radial_profile(products[0], fig, ax, args)
-        elif products.config['mesh']['num_polar_zones'] > 1:
+        elif products[0].config['mesh']['num_polar_zones'] > 1:
             init_fig = plot_two_dimensional(products[0], fig, ax, cax, args)
         else:
             init_fig = plot_radial_profile(products[0], fig, ax, args)
@@ -224,7 +254,7 @@ def main():
         
         if args.theta_index is not None:
             fig_frame = plot_radial_profile(products[frame], fig, ax, args)
-        elif products.config['mesh']['num_polar_zones'] > 1:
+        elif products[0].config['mesh']['num_polar_zones'] > 1:
             fig_frame = plot_two_dimensional(products[frame], fig, ax, cax, args)
         else:
             fig_frame = plot_radial_profile(products[frame], fig, ax, args)
@@ -245,7 +275,7 @@ def main():
         # Extra arguments to the animate function
         fargs=[],
         # Frame-time in ms; i.e. for a given frame-rate x, 1000/x
-        interval= 1000 / 10
+        interval= 1000 / 5
     )
     
     if args.hardcopy or args.output is not None:
