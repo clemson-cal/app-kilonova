@@ -63,7 +63,7 @@ impl WindShock {
         if self.lookup_table.borrow().is_none() {
             let filename = self.initial_data_table.as_ref().unwrap();
             let table = LookupTable::<4>::from_ascii_file(&filename).unwrap();
-            *self.lookup_table.borrow_mut().as_mut().unwrap() = table;
+            *self.lookup_table.borrow_mut() = Some(table);
         }
     }
 }
