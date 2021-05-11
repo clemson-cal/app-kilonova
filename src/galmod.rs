@@ -4,7 +4,6 @@
 //!
 
 use std::f64::consts::PI;
-use std::fmt;
 
 /// Galactic model parameters, including the gravitational constant. Here, slr
 /// stands for solar masses.
@@ -201,7 +200,7 @@ impl GalacticModel {
     ///
     pub fn vertical_pressure_profile(&self, r: f64, zmax: f64, dz: f64, mut p: f64) -> Vec<(f64, f64)> {
         let mut profile = Vec::new();
-        let mut z = 0.0;
+        let mut z = 0.5e20;
         while z < zmax {
             profile.push((z, p));
             p += self.pressure_difference_rk4(r, z, dz);

@@ -1,5 +1,5 @@
-use crate::galmod::GalacticModel;
-use crate::lookup_table::LookupTable;
+use std::sync::{Arc, Mutex};
+use crate::lookup_table_v2::LookupTable;
 use crate::physics::{AnyPrimitive, LIGHT_SPEED};
 use crate::traits::InitialModel;
 use serde::{Deserialize, Serialize};
@@ -19,20 +19,10 @@ pub struct HaloKilonova {
     pub kinetic_energy: f64,
     pub shell_mass: f64,
     pub radial_distance: f64,
-}
+    pub initial_data_table: Option<String>,
 
-thread_local! {
-    static PRE: Vec<(f64, f64)> = GalacticModel::vertical_pressure_profile(&GalacticModel{g: 6.67e-8,
-        m_b: 3.377e43,
-        a_b: 8.98e20,
-        v_h: 1.923e7,
-        a_h: 9.26e22,
-        m_s: 1.538e44,
-        a_s: 1.461e22,
-        b_s: 1.790e21,
-        m_g: 5.434e43,
-        a_g: 1.461e22,
-        b_g: 7.035e23},1e22,3e20,1e16,1e-12); //r, zmax, dz, p
+    #[serde(skip)]
+    pub lookup_table: Arc<Mutex<Option<LookupTable<3>>>>
 }
 
 // ============================================================================
@@ -51,6 +41,16 @@ impl HaloKilonova {
     fn shell_duration(&self) -> f64 {
         self.shell_thickness / self.shell_velocity()
     }
+
+    fn require_lookup_table(&self) {
+        let mut self_table = self.lookup_table.as_ref().lock().unwrap();
+
+        if self_table.is_none() {
+            let filename = self.initial_data_table.as_ref().unwrap();
+            let table = LookupTable::<3>::from_ascii_file(&filename).unwrap();
+            *self_table = Some(table);
+        }
+    }
 }
 
 // ============================================================================
@@ -62,11 +62,10 @@ impl InitialModel for HaloKilonova {
             this problem assumes Newtonian expressions for the
             kinetic energy. Consider reducing the kinetic energy or
             increasing the shell mass.", self.shell_velocity() / LIGHT_SPEED}
-        // } else if rmax < explosion_alititude {
-        //     anyhow::bail!{"domain would intersect the galactic midplane!"}
-        } else {
-            Ok(())
+        } else if let Some(initial_data_table) = &self.initial_data_table {
+            LookupTable::<3>::from_ascii_file(initial_data_table)?;
         }
+        Ok(())
     }
 
     fn primitive_at(&self, coordinate: (f64, f64), t: f64) -> AnyPrimitive {
@@ -85,32 +84,20 @@ impl InitialModel for HaloKilonova {
                 mass_density: d,
                 gas_pressure: p,
             }
-        } else if z > 0.0 {
-            let model = GalacticModel {
-                g: 6.67e-8,
-                m_b: 3.377e43,
-                a_b: 8.98e20,
-                v_h: 1.923e7,
-                a_h: 9.26e22,
-                m_s: 1.538e44,
-                a_s: 1.461e22,
-                b_s: 1.790e21,
-                m_g: 5.434e43,
-                a_g: 1.461e22,
-                b_g: 7.035e23,
-            };
-            let d = model.density(self.radial_distance, z).thin_disk;
+        } else if self.initial_data_table.is_some() {
+            self.require_lookup_table();
+            let table_borrow = self.lookup_table.as_ref().lock().unwrap();
+            let table = table_borrow.as_ref().unwrap();
+            let sample = table.sample(z);
+            let d = sample[2];
+            let p = sample[1];
 
-            PRE.with(|press|{
-                let p = LookupTable{data: press.to_vec()}.sample(z);
-
-                AnyPrimitive {
-                    velocity_r: 0.0,
-                    velocity_q: 0.0,
-                    mass_density: d,
-                    gas_pressure: p,
-                }
-            })
+            AnyPrimitive {
+                velocity_r: 0.0,
+                velocity_q: 0.0,
+                mass_density: d,
+                gas_pressure: p,
+            }
 
         } else {
             panic!("the halo kilonova setup requires z > 0.0");
