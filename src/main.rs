@@ -29,7 +29,7 @@ use tasks::{
 
 
 // ============================================================================
-fn side_effects<C, M, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &M, mesh: &Mesh, control: &Control)
+fn side_effects<C, M, H>(state: &State<C>, tasks: &mut Tasks, hydro: &H, model: &M, mesh: &Mesh, control: &Control, timestep: f64)
     -> anyhow::Result<()>
 where
     H: Hydrodynamics<Conserved = C>,
@@ -43,7 +43,7 @@ where
         let time = tasks.iteration_message.advance(0.0);
         let mzps = 1e-6 * state.total_zones() as f64 / time * control.fold as f64;
         if tasks.iteration_message.count_this_run > 1 {
-            println!("[{:05}] t={:.5} blocks={} Mzps={:.2})", state.iteration, state.time, state.solution.len(), mzps);
+            println!("[{:05}] t={:.5e} dt={:.2e} blocks={} Mzps={:.2})", state.iteration, state.time, timestep, state.solution.len(), mzps);
         }
     }
 
@@ -87,13 +87,14 @@ where
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(control.num_threads())
         .build()?;
+    let mut timestep = 0.0;
 
     while state.time < control.final_time {
-        side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
-        state = scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry, &runtime, control.fold)?;
+        side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, timestep)?;
+        state = scheme::advance(state, &hydro, &model, &mesh, &mut block_geometry, &runtime, control.fold, &mut timestep)?;
     }
 
-    side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control)?;
+    side_effects(&state, &mut tasks, &hydro, &model, &mesh, &control, timestep)?;
 
     Ok(())
 }

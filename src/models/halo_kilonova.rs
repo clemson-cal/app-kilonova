@@ -90,7 +90,7 @@ impl InitialModel for HaloKilonova {
             let table = table_borrow.as_ref().unwrap();
             let sample = table.sample(z);
             let d = sample[2];
-            let p = sample[1];
+            let p = sample[1] / LIGHT_SPEED / LIGHT_SPEED;
 
             AnyPrimitive {
                 velocity_r: 0.0,

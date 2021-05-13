@@ -31,5 +31,5 @@ control:
   start_time: 0.0
   checkpoint_interval: 1e8
   output_directory: data
-  num_threads: 16
+  num_threads: ~
   fold: 10

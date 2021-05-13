@@ -216,7 +216,8 @@ pub fn advance<H, M, C>(
     mesh: &Mesh,
     geometry: &mut HashMap<BlockIndex, GridGeometry>,
     runtime: &Runtime,
-    fold: usize) -> anyhow::Result<State<C>, HydroError>
+    fold: usize,
+    timestep_size: &mut f64) -> anyhow::Result<State<C>, HydroError>
 where
     H: Hydrodynamics<Conserved = C>,
     M: InitialModel,
@@ -236,5 +237,6 @@ where
 
         state = runtime.block_on(runge_kutta.try_advance_async(state, update, runtime))?;
     }
+    *timestep_size = dt;
     Ok(state)
 }

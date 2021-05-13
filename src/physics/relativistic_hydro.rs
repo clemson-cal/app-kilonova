@@ -48,9 +48,10 @@ impl Hydrodynamics for RelativisticHydro {
         if self.plm_theta < 1.0 || self.plm_theta > 2.0 {
             anyhow::bail!("plm_theta must be in the range [1, 2]")            
         }
-        if self.cfl_number < 0.0 || self.cfl_number > 0.7 {
-            anyhow::bail!("cfl_number must be in the range [0.0, 0.7]")
-        }
+        // commented out for now to allow to force a particular time step
+        // if self.cfl_number < 0.0 || self.cfl_number > 0.7 {
+        //     anyhow::bail!("cfl_number must be in the range [0.0, 0.7]")
+        // }
         Ok(())
     }
 
